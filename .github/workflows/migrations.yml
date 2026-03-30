@@ -1,0 +1,59 @@
+name: Database Migrations
+
+on:
+  workflow_run:
+    workflows: ['Backend CI/CD']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch_ids:
+        description: 'Comma-separated branch IDs to migrate (leave empty for all)'
+        required: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Install EF Core tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Build Infrastructure project
+        run: dotnet build backend/Stoctable.Infrastructure/Stoctable.Infrastructure.csproj --configuration Release
+
+      - name: Run migrations for each branch
+        working-directory: backend
+        env:
+          BRANCH_CONN_STRINGS: ${{ secrets.BRANCH_CONNECTION_STRINGS_JSON }}
+          SPECIFIC_BRANCH_IDS: ${{ github.event.inputs.branch_ids }}
+        run: |
+          # BRANCH_CONNECTION_STRINGS_JSON format: {"branch-uuid-1": "connstr1", "branch-uuid-2": "connstr2"}
+          if [ -n "$SPECIFIC_BRANCH_IDS" ]; then
+            # Filter to specific branch IDs if provided
+            FILTERED=$(echo "$BRANCH_CONN_STRINGS" | jq --arg ids "$SPECIFIC_BRANCH_IDS" \
+              'to_entries | map(select(.key as $k | ($ids | split(",") | map(ltrimstr(" ")) | contains([$k])))) | from_entries')
+            CONN_STRINGS="$FILTERED"
+          else
+            CONN_STRINGS="$BRANCH_CONN_STRINGS"
+          fi
+
+          echo "$CONN_STRINGS" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' | while IFS=$'\t' read -r branch_id conn_str; do
+            echo "Migrating branch: $branch_id"
+            DEFAULT_CONN_STRING="$conn_str" dotnet ef database update \
+              --project Stoctable.Infrastructure/Stoctable.Infrastructure.csproj \
+              --startup-project Stoctable.Api/Stoctable.Api.csproj \
+              --no-build \
+              --verbose
+            echo "✓ Branch $branch_id migrated successfully"
+          done

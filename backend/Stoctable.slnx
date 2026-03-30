@@ -1,0 +1,9 @@
+<Solution>
+  <Project Path="Stoctable.Api/Stoctable.Api.csproj" />
+  <Project Path="Stoctable.Application/Stoctable.Application.csproj" />
+  <Project Path="Stoctable.Communication/Stoctable.Communication.csproj" />
+  <Project Path="Stoctable.Domain/Stoctable.Domain.csproj" />
+  <Project Path="Stoctable.Exceptions/Stoctable.Exceptions.csproj" />
+  <Project Path="Stoctable.Infrastructure/Stoctable.Infrastructure.csproj" />
+  <Project Path="Stoctable.Tests/Stoctable.Tests.csproj" />
+</Solution>

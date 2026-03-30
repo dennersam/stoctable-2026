@@ -1,0 +1,47 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/.vs/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+
+# .NET secrets
+appsettings.*.json
+!appsettings.Development.json
+secrets.json
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Terraform
+infrastructure/**/.terraform/
+infrastructure/**/*.tfstate
+infrastructure/**/*.tfstate.backup
+infrastructure/**/*.tfvars
+!infrastructure/**/terraform.tfvars.example
+infrastructure/**/.terraform.lock.hcl
+
+# Coverage
+coverage/
+TestResults/
