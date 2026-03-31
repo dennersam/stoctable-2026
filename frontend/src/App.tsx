@@ -10,6 +10,12 @@ import { LoginPage } from '@/pages/auth/LoginPage';
 import { AdminDashboard } from '@/pages/dashboard/AdminDashboard';
 import { AtendenteDashboard } from '@/pages/dashboard/AtendenteDashboard';
 import { CaixaDashboard } from '@/pages/dashboard/CaixaDashboard';
+import { ProductListPage } from '@/pages/products/ProductListPage';
+import { CustomerListPage } from '@/pages/customers/CustomerListPage';
+import { QuotationListPage } from '@/pages/quotations/QuotationListPage';
+import { QuotationEditorPage } from '@/pages/quotations/QuotationEditorPage';
+import { CheckoutListPage } from '@/pages/checkout/CheckoutListPage';
+import { CheckoutPage } from '@/pages/checkout/CheckoutPage';
 
 function DashboardRouter() {
   const { user } = useAuthStore();
@@ -46,7 +52,7 @@ function App() {
             path="/products"
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
-                <div className="text-gray-500">Produtos — Sprint 5</div>
+                <ProductListPage />
               </ProtectedRoute>
             }
           />
@@ -54,7 +60,7 @@ function App() {
             path="/customers"
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
-                <div className="text-gray-500">Clientes — Sprint 5</div>
+                <CustomerListPage />
               </ProtectedRoute>
             }
           />
@@ -62,7 +68,7 @@ function App() {
             path="/quotations"
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
-                <div className="text-gray-500">Orçamentos — Sprint 5</div>
+                <QuotationListPage />
               </ProtectedRoute>
             }
           />
@@ -70,7 +76,7 @@ function App() {
             path="/quotations/new"
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
-                <div className="text-gray-500">Novo Orçamento — Sprint 5</div>
+                <QuotationEditorPage />
               </ProtectedRoute>
             }
           />
@@ -78,7 +84,7 @@ function App() {
             path="/checkout"
             element={
               <ProtectedRoute roles={['admin', 'caixa']}>
-                <div className="text-gray-500">Caixa — Sprint 5</div>
+                <CheckoutListPage />
               </ProtectedRoute>
             }
           />
@@ -86,7 +92,7 @@ function App() {
             path="/checkout/:saleId"
             element={
               <ProtectedRoute roles={['admin', 'caixa']}>
-                <div className="text-gray-500">Checkout — Sprint 5</div>
+                <CheckoutPage />
               </ProtectedRoute>
             }
           />
@@ -94,7 +100,7 @@ function App() {
             path="/suppliers"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500">Fornecedores — Sprint 5</div>
+                <div className="text-gray-500 p-4">Fornecedores — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -102,7 +108,7 @@ function App() {
             path="/inventory"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500">Estoque — Sprint 5</div>
+                <div className="text-gray-500 p-4">Estoque — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -110,7 +116,7 @@ function App() {
             path="/reports"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500">Relatórios — Sprint 5</div>
+                <div className="text-gray-500 p-4">Relatórios — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -118,7 +124,7 @@ function App() {
             path="/admin"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500">Administração — Sprint 5</div>
+                <div className="text-gray-500 p-4">Administração — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -126,7 +132,7 @@ function App() {
             path="/admin/users"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500">Usuários — Sprint 5</div>
+                <div className="text-gray-500 p-4">Usuários — em breve</div>
               </ProtectedRoute>
             }
           />

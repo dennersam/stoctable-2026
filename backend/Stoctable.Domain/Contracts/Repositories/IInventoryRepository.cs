@@ -9,4 +9,5 @@ public interface IInventoryRepository
     Task<StockReservation?> GetActiveReservationAsync(Guid productId, Guid quotationId, CancellationToken ct = default);
     Task AddReservationAsync(StockReservation reservation, CancellationToken ct = default);
     Task<IEnumerable<StockReservation>> GetActiveReservationsByQuotationAsync(Guid quotationId, CancellationToken ct = default);
+    Task UpdateReservationAsync(StockReservation reservation, CancellationToken ct = default);
 }

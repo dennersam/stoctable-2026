@@ -1,0 +1,27 @@
+namespace Stoctable.Communication.Responses.Products;
+
+public record ProductResponse(
+    Guid Id,
+    string Sku,
+    string Name,
+    string? Barcode,
+    string? Manufacturer,
+    Guid? CategoryId,
+    string? CategoryName,
+    Guid? SupplierId,
+    string? SupplierName,
+    decimal CostPrice,
+    decimal SalePrice,
+    decimal StockQuantity,
+    decimal StockReserved,
+    decimal StockAvailable,
+    decimal StockMinimum,
+    string Unit,
+    decimal? IcmsRate,
+    decimal? IpiRate,
+    string? Cst,
+    string? Ncm,
+    string? ImageUrl,
+    bool IsActive,
+    string? Notes,
+    DateTimeOffset CreatedAt);

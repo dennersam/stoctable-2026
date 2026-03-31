@@ -2,9 +2,10 @@ import axios, { type AxiosError } from 'axios';
 import { env } from '@/config/env';
 
 const api = axios.create({
-  baseURL: `${env.apiBaseUrl}/api/v1`,
+  baseURL: `${env.apiBaseUrl}/api`,
   headers: {
     'Content-Type': 'application/json',
+    'X-Branch-Id': 'dev'
   },
 });
 

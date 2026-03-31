@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Contracts.Services;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Interceptors;
+using Stoctable.Infrastructure.Repositories;
 using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Infrastructure;
@@ -15,19 +19,35 @@ public static class DependencyInjectionExtension
         services.AddScoped<TenantContext>();
         services.AddScoped<ITenantConnectionProvider, TenantConnectionProvider>();
 
+        // Audit interceptor
+        services.AddScoped<AuditSaveChangesInterceptor>();
+
         // DbContext com connection string resolvida dinamicamente via TenantContext
         services.AddDbContext<StoctableDbContext>((sp, options) =>
         {
             var tenantContext = sp.GetRequiredService<TenantContext>();
+            var auditInterceptor = sp.GetRequiredService<AuditSaveChangesInterceptor>();
+            var config = sp.GetRequiredService<IConfiguration>();
 
-            // Durante migrations (design-time), usa string de fallback
+            // Prioridade: TenantContext (runtime) → user-secrets/appsettings → env var → localhost
             var connectionString = tenantContext.IsResolved
                 ? tenantContext.ConnectionString!
-                : Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
+                : config["DefaultBranchConnectionString"]
+                  ?? Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
                   ?? "Host=localhost;Database=stoctable_branch_dev;Username=postgres;Password=postgres";
 
-            options.UseNpgsql(connectionString);
+            options.UseNpgsql(connectionString)
+                   .AddInterceptors(auditInterceptor);
         });
+
+        // Repositories
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IQuotationRepository, QuotationRepository>();
+        services.AddScoped<ISaleRepository, SaleRepository>();
+        services.AddScoped<IInventoryRepository, InventoryRepository>();
+        services.AddScoped<ISupplierRepository, SupplierRepository>();
 
         return services;
     }
