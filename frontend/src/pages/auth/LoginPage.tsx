@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { isAxiosError } from 'axios';
 import { authService } from '@/services/authService';
 import { useAuthStore } from '@/store/authStore';
 import { useBranchStore } from '@/store/branchStore';
@@ -40,51 +41,55 @@ export function LoginPage() {
       }
 
       navigate('/dashboard');
-    } catch {
-      setError('Usuário ou senha inválidos');
+    } catch (err) {
+      if (isAxiosError(err) && err.response) {
+        setError('Usuário ou senha inválidos.');
+      } else {
+        setError('Serviço indisponível no momento. Tente novamente mais tarde.');
+      }
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md">
-        <div className="rounded-lg border bg-white p-8 shadow-sm">
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold text-blue-600">Stoctable</h1>
-            <p className="text-sm text-gray-500">Sistema de Gestão</p>
+    <div className="flex min-h-screen items-center justify-center bg-gray-950">
+      <div className="w-full max-w-md px-4">
+        <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-xl">
+          <div className="mb-8 text-center">
+            <h1 className="text-3xl font-bold text-blue-500">Stoctable</h1>
+            <p className="mt-1 text-sm text-gray-400">Sistema de Gestão</p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Usuário</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Usuário</label>
               <input
                 {...register('username')}
                 type="text"
                 autoComplete="username"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-500 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Digite seu usuário"
               />
               {errors.username && (
-                <p className="mt-1 text-xs text-red-500">{errors.username.message}</p>
+                <p className="mt-1 text-xs text-red-400">{errors.username.message}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Senha</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Senha</label>
               <input
                 {...register('password')}
                 type="password"
                 autoComplete="current-password"
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-500 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="Digite sua senha"
               />
               {errors.password && (
-                <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
               )}
             </div>
 
             {error && (
-              <div className="rounded-md bg-red-50 p-3 text-sm text-red-600">
+              <div className="rounded-md bg-red-950 border border-red-800 p-3 text-sm text-red-400">
                 {error}
               </div>
             )}
@@ -92,7 +97,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60 transition-colors"
             >
               {isSubmitting ? 'Entrando...' : 'Entrar'}
             </button>
