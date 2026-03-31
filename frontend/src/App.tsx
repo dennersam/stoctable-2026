@@ -11,11 +11,13 @@ import { AdminDashboard } from '@/pages/dashboard/AdminDashboard';
 import { AtendenteDashboard } from '@/pages/dashboard/AtendenteDashboard';
 import { CaixaDashboard } from '@/pages/dashboard/CaixaDashboard';
 import { ProductListPage } from '@/pages/products/ProductListPage';
+import { ProductFormPage } from '@/pages/products/ProductFormPage';
 import { CustomerListPage } from '@/pages/customers/CustomerListPage';
 import { QuotationListPage } from '@/pages/quotations/QuotationListPage';
 import { QuotationEditorPage } from '@/pages/quotations/QuotationEditorPage';
 import { CheckoutListPage } from '@/pages/checkout/CheckoutListPage';
 import { CheckoutPage } from '@/pages/checkout/CheckoutPage';
+import { InventoryPage } from '@/pages/inventory/InventoryPage';
 
 function DashboardRouter() {
   const { user } = useAuthStore();
@@ -48,6 +50,7 @@ function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardRouter />} />
 
+          {/* Products */}
           <Route
             path="/products"
             element={
@@ -57,6 +60,24 @@ function App() {
             }
           />
           <Route
+            path="/products/new"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <ProductFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/products/:id/edit"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <ProductFormPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Customers */}
+          <Route
             path="/customers"
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
@@ -64,6 +85,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Quotations */}
           <Route
             path="/quotations"
             element={
@@ -80,6 +103,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Checkout */}
           <Route
             path="/checkout"
             element={
@@ -96,19 +121,23 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/suppliers"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500 p-4">Fornecedores — em breve</div>
-              </ProtectedRoute>
-            }
-          />
+
+          {/* Inventory */}
           <Route
             path="/inventory"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500 p-4">Estoque — em breve</div>
+                <InventoryPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Placeholders */}
+          <Route
+            path="/suppliers"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <div className="text-gray-500 dark:text-gray-400 p-4">Fornecedores — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -116,7 +145,7 @@ function App() {
             path="/reports"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500 p-4">Relatórios — em breve</div>
+                <div className="text-gray-500 dark:text-gray-400 p-4">Relatórios — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -124,7 +153,7 @@ function App() {
             path="/admin"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500 p-4">Administração — em breve</div>
+                <div className="text-gray-500 dark:text-gray-400 p-4">Administração — em breve</div>
               </ProtectedRoute>
             }
           />
@@ -132,7 +161,7 @@ function App() {
             path="/admin/users"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500 p-4">Usuários — em breve</div>
+                <div className="text-gray-500 dark:text-gray-400 p-4">Usuários — em breve</div>
               </ProtectedRoute>
             }
           />

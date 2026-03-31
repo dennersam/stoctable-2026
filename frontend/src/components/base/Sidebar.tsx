@@ -28,9 +28,9 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="flex w-56 flex-col border-r bg-white">
-      <div className="flex h-14 items-center px-4 border-b">
-        <span className="font-bold text-blue-600 text-xl">Stoctable</span>
+    <aside className="flex w-56 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+      <div className="flex h-14 items-center px-4 border-b border-gray-200 dark:border-gray-700">
+        <span className="font-bold text-blue-600 dark:text-blue-400 text-xl">Stoctable</span>
       </div>
       <nav className="flex-1 space-y-1 p-2">
         {visibleItems.map((item) => (
@@ -41,8 +41,8 @@ export function Sidebar() {
               cn(
                 'flex items-center rounded-md px-3 py-2 text-sm font-medium transition-colors',
                 isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
               )
             }
           >

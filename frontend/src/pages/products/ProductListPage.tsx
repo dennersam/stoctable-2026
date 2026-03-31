@@ -55,15 +55,15 @@ export function ProductListPage() {
 
   const stockStatus = (p: Product) => {
     const available = p.stockQuantity - p.stockReserved;
-    if (available <= 0) return 'text-red-600 font-semibold';
-    if (available <= p.stockMinimum) return 'text-yellow-600 font-semibold';
-    return 'text-green-700';
+    if (available <= 0) return 'text-red-600 dark:text-red-400 font-semibold';
+    if (available <= p.stockMinimum) return 'text-yellow-600 dark:text-yellow-400 font-semibold';
+    return 'text-green-700 dark:text-green-400';
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Produtos</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Produtos</h1>
         {isAdmin && (
           <Link
             to="/products/new"
@@ -80,12 +80,12 @@ export function ProductListPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar por SKU, nome, código de barras..."
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           type="submit"
           disabled={searching}
-          className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium hover:bg-gray-200 disabled:opacity-50"
+          className="rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
         >
           {searching ? 'Buscando...' : 'Buscar'}
         </button>
@@ -93,7 +93,7 @@ export function ProductListPage() {
           <button
             type="button"
             onClick={() => { setSearch(''); loadProducts(); }}
-            className="rounded-md border px-4 py-2 text-sm hover:bg-gray-50"
+            className="rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-4 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             Limpar
           </button>
@@ -101,60 +101,62 @@ export function ProductListPage() {
       </form>
 
       {loading ? (
-        <div className="py-12 text-center text-gray-500">Carregando...</div>
+        <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">SKU</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Nome</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Preço</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Estoque disp.</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+                {['SKU', 'Nome', 'Preço', 'Estoque disp.', 'Status'].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    {h}
+                  </th>
+                ))}
                 {isAdmin && <th className="px-4 py-3" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-gray-400">
+                  <td colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-gray-400 dark:text-gray-500">
                     Nenhum produto encontrado.
                   </td>
                 </tr>
               ) : (
                 products.map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-sm text-gray-700">{p.sku}</td>
+                  <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{p.sku}</td>
                     <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{p.name}</div>
-                      {p.manufacturer && <div className="text-xs text-gray-400">{p.manufacturer}</div>}
+                      <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>
+                      {p.manufacturer && <div className="text-xs text-gray-400 dark:text-gray-500">{p.manufacturer}</div>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                       R$ {p.salePrice.toFixed(2)}
                     </td>
                     <td className={`px-4 py-3 text-sm ${stockStatus(p)}`}>
                       {(p.stockQuantity - p.stockReserved).toFixed(0)} {p.unit}
                       {p.stockReserved > 0 && (
-                        <span className="ml-1 text-xs text-gray-400">({p.stockReserved} res.)</span>
+                        <span className="ml-1 text-xs text-gray-400 dark:text-gray-500">({p.stockReserved} res.)</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                        p.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                        p.isActive
+                          ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                       }`}>
                         {p.isActive ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
                     {isAdmin && (
                       <td className="px-4 py-3 text-right text-sm">
-                        <Link to={`/products/${p.id}/edit`} className="mr-3 text-blue-600 hover:underline">
+                        <Link to={`/products/${p.id}/edit`} className="mr-3 text-blue-600 dark:text-blue-400 hover:underline">
                           Editar
                         </Link>
                         {p.isActive && (
                           <button
                             onClick={() => handleDeactivate(p.id, p.name)}
-                            className="text-red-500 hover:underline"
+                            className="text-red-500 dark:text-red-400 hover:underline"
                           >
                             Desativar
                           </button>
