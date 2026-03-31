@@ -13,6 +13,10 @@ import { CaixaDashboard } from '@/pages/dashboard/CaixaDashboard';
 import { ProductListPage } from '@/pages/products/ProductListPage';
 import { ProductFormPage } from '@/pages/products/ProductFormPage';
 import { CustomerListPage } from '@/pages/customers/CustomerListPage';
+import { CustomerFormPage } from '@/pages/customers/CustomerFormPage';
+import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage';
+import { SupplierListPage } from '@/pages/suppliers/SupplierListPage';
+import { SupplierFormPage } from '@/pages/suppliers/SupplierFormPage';
 import { QuotationListPage } from '@/pages/quotations/QuotationListPage';
 import { QuotationEditorPage } from '@/pages/quotations/QuotationEditorPage';
 import { CheckoutListPage } from '@/pages/checkout/CheckoutListPage';
@@ -86,6 +90,30 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/customers/new"
+            element={
+              <ProtectedRoute roles={['admin', 'atendente']}>
+                <CustomerFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customers/:id"
+            element={
+              <ProtectedRoute roles={['admin', 'atendente']}>
+                <CustomerDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/customers/:id/edit"
+            element={
+              <ProtectedRoute roles={['admin', 'atendente']}>
+                <CustomerFormPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Quotations */}
           <Route
@@ -143,15 +171,33 @@ function App() {
             }
           />
 
-          {/* Placeholders */}
+          {/* Suppliers */}
           <Route
             path="/suppliers"
             element={
               <ProtectedRoute roles={['admin']}>
-                <div className="text-gray-500 dark:text-gray-400 p-4">Fornecedores — em breve</div>
+                <SupplierListPage />
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/suppliers/new"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <SupplierFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/suppliers/:id/edit"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <SupplierFormPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Placeholders */}
           <Route
             path="/reports"
             element={
