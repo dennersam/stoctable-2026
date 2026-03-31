@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Stoctable.Infrastructure.Context;
@@ -11,9 +12,11 @@ using Stoctable.Infrastructure.Context;
 namespace Stoctable.Infrastructure.Migrations
 {
     [DbContext(typeof(StoctableDbContext))]
-    partial class StoctableDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331121539_AddManufacturerAndRefactorProduct")]
+    partial class AddManufacturerAndRefactorProduct
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

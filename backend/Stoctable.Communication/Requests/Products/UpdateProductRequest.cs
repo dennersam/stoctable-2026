@@ -6,7 +6,7 @@ public record UpdateProductRequest(
     decimal? CostPrice = null,
     string? Unit = null,
     string? Barcode = null,
-    string? Manufacturer = null,
+    Guid? ManufacturerId = null,
     Guid? CategoryId = null,
     Guid? SupplierId = null,
     decimal? StockMinimum = null,

@@ -14,7 +14,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Sku).HasColumnName("sku").HasMaxLength(50).IsRequired();
         builder.Property(p => p.Barcode).HasColumnName("barcode").HasMaxLength(50);
         builder.Property(p => p.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
-        builder.Property(p => p.Manufacturer).HasColumnName("manufacturer").HasMaxLength(100);
+        builder.Property(p => p.ManufacturerId).HasColumnName("manufacturer_id");
         builder.Property(p => p.CategoryId).HasColumnName("category_id");
         builder.Property(p => p.SupplierId).HasColumnName("supplier_id");
         builder.Property(p => p.CostPrice).HasColumnName("cost_price").HasPrecision(12, 2);
@@ -39,6 +39,7 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasIndex(p => p.Barcode);
 
         builder.HasOne(p => p.Category).WithMany(c => c.Products).HasForeignKey(p => p.CategoryId);
+        builder.HasOne(p => p.Manufacturer).WithMany(m => m.Products).HasForeignKey(p => p.ManufacturerId);
         builder.HasOne(p => p.Supplier).WithMany(s => s.Products).HasForeignKey(p => p.SupplierId);
     }
 }

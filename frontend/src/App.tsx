@@ -18,6 +18,7 @@ import { QuotationEditorPage } from '@/pages/quotations/QuotationEditorPage';
 import { CheckoutListPage } from '@/pages/checkout/CheckoutListPage';
 import { CheckoutPage } from '@/pages/checkout/CheckoutPage';
 import { InventoryPage } from '@/pages/inventory/InventoryPage';
+import { ManufacturerListPage } from '@/pages/manufacturers/ManufacturerListPage';
 
 function DashboardRouter() {
   const { user } = useAuthStore();
@@ -128,6 +129,16 @@ function App() {
             element={
               <ProtectedRoute roles={['admin']}>
                 <InventoryPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Manufacturers */}
+          <Route
+            path="/manufacturers"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <ManufacturerListPage />
               </ProtectedRoute>
             }
           />

@@ -8,4 +8,5 @@ public interface IProductRepository : IRepository<Product>
     Task<Product?> GetByBarcodeAsync(string barcode, CancellationToken ct = default);
     Task<IEnumerable<Product>> SearchAsync(string query, CancellationToken ct = default);
     Task<IEnumerable<Product>> GetLowStockAsync(CancellationToken ct = default);
+    Task<int> GetNextSkuAsync(CancellationToken ct = default);
 }

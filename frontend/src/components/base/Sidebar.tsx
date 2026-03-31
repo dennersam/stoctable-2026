@@ -15,6 +15,7 @@ const navItems: NavItem[] = [
   { label: 'Orçamentos', to: '/quotations', roles: ['admin', 'atendente'] },
   { label: 'Caixa', to: '/checkout', roles: ['admin', 'caixa'] },
   { label: 'Fornecedores', to: '/suppliers', roles: ['admin'] },
+  { label: 'Fabricantes', to: '/manufacturers', roles: ['admin'] },
   { label: 'Estoque', to: '/inventory', roles: ['admin'] },
   { label: 'Relatórios', to: '/reports', roles: ['admin'] },
   { label: 'Administração', to: '/admin', roles: ['admin'] },

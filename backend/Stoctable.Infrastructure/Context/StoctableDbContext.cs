@@ -8,6 +8,7 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
 {
     public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<Manufacturer> Manufacturers => Set<Manufacturer>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<Product> Products => Set<Product>();

@@ -3,7 +3,8 @@ export interface Product {
   sku: string;
   barcode?: string;
   name: string;
-  manufacturer?: string;
+  manufacturerId?: string;
+  manufacturerName?: string;
   categoryId?: string;
   categoryName?: string;
   supplierId?: string;
@@ -31,10 +32,9 @@ export interface ProductCategory {
 }
 
 export interface CreateProductRequest {
-  sku: string;
   barcode?: string;
   name: string;
-  manufacturer?: string;
+  manufacturerId?: string;
   categoryId?: string;
   supplierId?: string;
   costPrice: number;

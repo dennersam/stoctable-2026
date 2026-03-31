@@ -42,6 +42,7 @@ public static class DependencyInjectionExtension
 
         // Repositories
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IManufacturerRepository, ManufacturerRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IQuotationRepository, QuotationRepository>();

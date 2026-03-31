@@ -122,6 +122,7 @@ try
 
     // ─── Endpoints ───────────────────────────────────────────────────────────────
     app.MapAuthEndpoints();
+    app.MapManufacturerEndpoints();
     app.MapProductEndpoints();
     app.MapCustomerEndpoints();
     app.MapQuotationEndpoints();

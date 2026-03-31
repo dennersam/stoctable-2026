@@ -11,10 +11,10 @@ public class Repository<T>(StoctableDbContext context) : IRepository<T> where T 
     protected readonly StoctableDbContext Context = context;
     protected readonly DbSet<T> DbSet = context.Set<T>();
 
-    public async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public virtual async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await DbSet.FindAsync([id], ct);
 
-    public async Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default)
+    public virtual async Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default)
         => await DbSet.ToListAsync(ct);
 
     public async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, CancellationToken ct = default)

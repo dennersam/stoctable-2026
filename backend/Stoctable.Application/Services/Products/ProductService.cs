@@ -41,22 +41,22 @@ public class ProductService(IProductRepository productRepository, IConfiguration
 
     public async Task<Result<ProductResponse>> CreateAsync(CreateProductRequest request, CancellationToken ct = default)
     {
-        if (await productRepository.ExistsAsync(p => p.Sku == request.Sku, ct))
-            return Result<ProductResponse>.Conflict(ErrorMessages.Product.SkuAlreadyExists);
-
         if (request.Barcode is not null &&
             await productRepository.ExistsAsync(p => p.Barcode == request.Barcode, ct))
             return Result<ProductResponse>.Conflict(ErrorMessages.Product.BarcodeAlreadyExists);
 
+        // SKU gerado automaticamente como número sequencial
+        var nextSku = await productRepository.GetNextSkuAsync(ct);
+
         var product = new Product
         {
-            Sku = request.Sku,
+            Sku = nextSku.ToString(),
             Name = request.Name,
             SalePrice = request.SalePrice,
             CostPrice = request.CostPrice,
             Unit = request.Unit,
             Barcode = request.Barcode,
-            Manufacturer = request.Manufacturer,
+            ManufacturerId = request.ManufacturerId,
             CategoryId = request.CategoryId,
             SupplierId = request.SupplierId,
             StockMinimum = request.StockMinimum,
@@ -86,7 +86,7 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         if (request.CostPrice is not null) product.CostPrice = request.CostPrice.Value;
         if (request.Unit is not null) product.Unit = request.Unit;
         if (request.Barcode is not null) product.Barcode = request.Barcode;
-        if (request.Manufacturer is not null) product.Manufacturer = request.Manufacturer;
+        if (request.ManufacturerId is not null) product.ManufacturerId = request.ManufacturerId;
         if (request.CategoryId is not null) product.CategoryId = request.CategoryId;
         if (request.SupplierId is not null) product.SupplierId = request.SupplierId;
         if (request.StockMinimum is not null) product.StockMinimum = request.StockMinimum.Value;
@@ -141,7 +141,8 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         Sku: p.Sku,
         Name: p.Name,
         Barcode: p.Barcode,
-        Manufacturer: p.Manufacturer,
+        ManufacturerId: p.ManufacturerId,
+        ManufacturerName: p.Manufacturer?.Name,
         CategoryId: p.CategoryId,
         CategoryName: p.Category?.Name,
         SupplierId: p.SupplierId,

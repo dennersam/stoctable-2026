@@ -13,8 +13,7 @@ public class Product : BaseEntity
     /// <summary>Descrição do produto (TABEST1.produto)</summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Fabricante (TABEST1.fabricante)</summary>
-    public string? Manufacturer { get; set; }
+    public Guid? ManufacturerId { get; set; }
 
     public Guid? CategoryId { get; set; }
     public Guid? SupplierId { get; set; }
@@ -55,6 +54,7 @@ public class Product : BaseEntity
     public string? Notes { get; set; }
 
     public ProductCategory? Category { get; set; }
+    public Manufacturer? Manufacturer { get; set; }
     public Supplier? Supplier { get; set; }
     public ICollection<QuotationItem> QuotationItems { get; set; } = [];
     public ICollection<SaleItem> SaleItems { get; set; } = [];

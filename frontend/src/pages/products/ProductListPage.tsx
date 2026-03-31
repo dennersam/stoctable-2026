@@ -128,7 +128,7 @@ export function ProductListPage() {
                     <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{p.sku}</td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>
-                      {p.manufacturer && <div className="text-xs text-gray-400 dark:text-gray-500">{p.manufacturer}</div>}
+                      {p.manufacturerName && <div className="text-xs text-gray-400 dark:text-gray-500">{p.manufacturerName}</div>}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
                       R$ {p.salePrice.toFixed(2)}

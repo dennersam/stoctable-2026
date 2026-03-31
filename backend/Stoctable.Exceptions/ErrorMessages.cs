@@ -48,6 +48,12 @@ public static class ErrorMessages
         public const string PaymentExceedsTotal = "Valor do pagamento excede o total da venda.";
     }
 
+    public static class Manufacturer
+    {
+        public const string NotFound = "Fabricante não encontrado.";
+        public const string NameAlreadyExists = "Já existe um fabricante com este nome.";
+    }
+
     public static class Supplier
     {
         public const string NotFound = "Fornecedor não encontrado.";
