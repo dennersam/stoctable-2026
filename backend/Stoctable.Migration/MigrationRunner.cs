@@ -23,6 +23,7 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
 
         Log("Conexões abertas. Iniciando migração...\n");
 
+        await CleanTargetTablesAsync(pg);
         await MigrateDefaultCategory(pg);
         await MigrateSuppliers(sic, pg);
         await MigrateManufacturers(sic, pg);
@@ -31,6 +32,43 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
         await MigrateUsers(sic, pg);
 
         Log("\n✓ Migração concluída.");
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // 0. Limpeza das tabelas alvo (garante idempotência)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private static async Task CleanTargetTablesAsync(NpgsqlConnection pg)
+    {
+        Log("→ Limpando tabelas alvo (dados de execuções anteriores)...");
+
+        // Ordem respeitando FKs: mais dependentes primeiro
+        var tables = new[]
+        {
+            "audit_logs",
+            "inventory_movements",
+            "stock_reservations",
+            "sale_items",
+            "quotation_items",
+            "payments",
+            "sales",
+            "quotations",
+            "customer_crm_notes",
+            "customers",
+            "products",
+            "manufacturers",
+            "suppliers",
+            "product_categories",
+            "users",
+        };
+
+        foreach (var table in tables)
+        {
+            await using var cmd = new NpgsqlCommand($"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE", pg);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        Log("  tabelas limpas.\n");
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -91,7 +129,6 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
               (id, company_name, trade_name, cnpj, address, phone, email, contact_person, is_active, notes, created_at, created_by)
             VALUES
               (@id, @company_name, NULL, @cnpj, @address, @phone, @email, @contact_person, true, @notes, NOW(), 'migration')
-            ON CONFLICT DO NOTHING
             """;
 
         int count = 0;
@@ -133,7 +170,6 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
         const string sql = """
             INSERT INTO manufacturers (id, name, notes, is_active, created_at, created_by)
             VALUES (@id, @name, NULL, true, NOW(), 'migration')
-            ON CONFLICT DO NOTHING
             """;
 
         int count = 0;
@@ -196,10 +232,11 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
               (@id, @sku, @barcode, @name, @manufacturer_id, @category_id, @supplier_id,
                @cost_price, @sale_price, @stock_quantity, 0, @stock_minimum,
                @unit, @ipi_rate, @icms_rate, @cst, @is_active, @notes, NOW(), 'migration')
-            ON CONFLICT (sku) DO NOTHING
             """;
 
         int count = 0, skipped = 0;
+        var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var p in rows)
         {
             if (string.IsNullOrWhiteSpace(p.Produto)) { skipped++; continue; }
@@ -207,6 +244,10 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             var sku = string.IsNullOrWhiteSpace(p.Codigo)
                 ? $"SIC{p.Controle}"
                 : p.Codigo.Trim();
+
+            // Garante unicidade de SKU sem depender de ON CONFLICT
+            if (!seenSkus.Add(sku))
+                sku = $"SIC{p.Controle}";
 
             var id = Guid.NewGuid();
             _productMap[p.Controle] = id;
@@ -239,18 +280,8 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             cmd.Parameters.AddWithValue("is_active", !(p.Inativo ?? false));
             cmd.Parameters.AddWithValue("notes", (object?)p.Obs ?? DBNull.Value);
 
-            try
-            {
-                await cmd.ExecuteNonQueryAsync();
-                count++;
-            }
-            catch (PostgresException ex) when (ex.SqlState == "23505") // unique_violation
-            {
-                // SKU duplicado: prefixar com controle
-                cmd.Parameters["sku"].Value = $"SIC{p.Controle}";
-                await cmd.ExecuteNonQueryAsync();
-                count++;
-            }
+            await cmd.ExecuteNonQueryAsync();
+            count++;
         }
 
         Log($"  {count} produto(s) migrado(s). {skipped} ignorado(s) (nome vazio).");
@@ -299,10 +330,11 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
               (@id, @full_name, @document_type, @document_number, @email, @phone, @mobile,
                @address, @city, @state, @zip_code, @credit_limit, @is_active, @notes,
                NOW(), 'migration')
-            ON CONFLICT (document_number) DO NOTHING
             """;
 
         int count = 0, skipped = 0;
+        var seenDocs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var c in rows)
         {
             if (string.IsNullOrWhiteSpace(c.Nome)) { skipped++; continue; }
@@ -310,14 +342,13 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             var id = Guid.NewGuid();
             _customerMap[c.Controle] = id;
 
-            // Monta endereço completo
             var address = BuildCustomerAddress(c.Endereco, c.EndNumero, c.EndComplemento);
-
-            // Concatena observação + contato quando relevante
             var notes = MergeNotes(c.Obs, c.Contato.HasValue() ? $"Contato: {c.Contato}" : null);
 
-            // document_number: índice único → null se vazio para evitar conflito
+            // Documento duplicado na própria fonte: zera para não violar unique index
             var docNumber = string.IsNullOrWhiteSpace(c.Cgc) ? null : Truncate(c.Cgc, 18);
+            if (docNumber != null && !seenDocs.Add(docNumber))
+                docNumber = null;
 
             await using var cmd = new NpgsqlCommand(sql, pg);
             cmd.Parameters.AddWithValue("id", id);
@@ -335,18 +366,8 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             cmd.Parameters.AddWithValue("is_active", !(c.AtendBloq ?? false));
             cmd.Parameters.AddWithValue("notes", (object?)notes ?? DBNull.Value);
 
-            try
-            {
-                await cmd.ExecuteNonQueryAsync();
-                count++;
-            }
-            catch (PostgresException ex) when (ex.SqlState == "23505")
-            {
-                // Documento duplicado: inserir sem documento
-                cmd.Parameters["document_number"].Value = DBNull.Value;
-                await cmd.ExecuteNonQueryAsync();
-                count++;
-            }
+            await cmd.ExecuteNonQueryAsync();
+            count++;
         }
 
         Log($"  {count} cliente(s) migrado(s). {skipped} ignorado(s) (nome vazio).");
@@ -375,10 +396,11 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
               (id, username, email, password_hash, full_name, role, is_active, created_at, created_by)
             VALUES
               (@id, @username, @email, @password_hash, @full_name, @role, @is_active, NOW(), 'migration')
-            ON CONFLICT (username) DO NOTHING
             """;
 
         int count = 0;
+        var seenUsernames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var u in rows)
         {
             if (string.IsNullOrWhiteSpace(u.Nome)) continue;
@@ -387,9 +409,11 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             _userMap[u.Controle] = id;
 
             var username = SanitizeUsername(u.Nome);
+            if (!seenUsernames.Add(username))
+                username = $"{username}_{u.Controle}";
+
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(u.Senha ?? "Troca@123");
             var role = u.Nivel == 1 ? "admin" : "atendente";
-            // email fictício: usuário não tinha email no SIC 6
             var email = $"{username}@migrado.local";
 
             await using var cmd = new NpgsqlCommand(sql, pg);
@@ -401,19 +425,8 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             cmd.Parameters.AddWithValue("role", role);
             cmd.Parameters.AddWithValue("is_active", !(u.Inativo ?? false));
 
-            try
-            {
-                await cmd.ExecuteNonQueryAsync();
-                count++;
-            }
-            catch (PostgresException ex) when (ex.SqlState == "23505")
-            {
-                // username duplicado: adicionar sufixo numérico
-                cmd.Parameters["username"].Value = $"{username}_{u.Controle}";
-                cmd.Parameters["email"].Value = $"{username}_{u.Controle}@migrado.local";
-                await cmd.ExecuteNonQueryAsync();
-                count++;
-            }
+            await cmd.ExecuteNonQueryAsync();
+            count++;
         }
 
         Log($"  {count} usuário(s) migrado(s).");
