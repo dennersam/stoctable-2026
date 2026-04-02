@@ -3,6 +3,7 @@ using Azure.Storage.Blobs.Models;
 using Microsoft.Extensions.Configuration;
 using Stoctable.Application.Results;
 using Stoctable.Communication.Requests.Products;
+using Stoctable.Communication.Responses;
 using Stoctable.Communication.Responses.Products;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
@@ -16,6 +17,25 @@ public class ProductService(IProductRepository productRepository, IConfiguration
     {
         var products = await productRepository.GetAllAsync(ct);
         return Result<IEnumerable<ProductResponse>>.Success(products.Select(MapToResponse));
+    }
+
+    public async Task<Result<PagedResult<ProductResponse>>> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var (items, totalCount) = await productRepository.GetPagedAsync(page, pageSize, search, ct);
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+        var result = new PagedResult<ProductResponse>(
+            Items: items.Select(MapToResponse),
+            TotalCount: totalCount,
+            Page: page,
+            PageSize: pageSize,
+            TotalPages: totalPages);
+
+        return Result<PagedResult<ProductResponse>>.Success(result);
     }
 
     public async Task<Result<ProductResponse>> GetByIdAsync(Guid id, CancellationToken ct = default)

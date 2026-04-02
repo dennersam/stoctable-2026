@@ -51,6 +51,35 @@ public class ProductRepository(StoctableDbContext context) : Repository<Product>
             .OrderBy(p => p.StockQuantity)
             .ToListAsync(ct);
 
+    public async Task<(IEnumerable<Product> Items, int TotalCount)> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default)
+    {
+        var query = DbSet
+            .Include(p => p.Category)
+            .Include(p => p.Manufacturer)
+            .Include(p => p.Supplier)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lower = search.ToLower();
+            query = query.Where(p =>
+                p.Sku.ToLower().Contains(lower) ||
+                p.Name.ToLower().Contains(lower) ||
+                (p.Barcode != null && p.Barcode.ToLower().Contains(lower)) ||
+                (p.Manufacturer != null && p.Manufacturer.Name.ToLower().Contains(lower)));
+        }
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(p => p.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
     public async Task<int> GetNextSkuAsync(CancellationToken ct = default)
     {
         var skus = await DbSet.Select(p => p.Sku).ToListAsync(ct);

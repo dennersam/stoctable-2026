@@ -9,4 +9,6 @@ public interface IProductRepository : IRepository<Product>
     Task<IEnumerable<Product>> SearchAsync(string query, CancellationToken ct = default);
     Task<IEnumerable<Product>> GetLowStockAsync(CancellationToken ct = default);
     Task<int> GetNextSkuAsync(CancellationToken ct = default);
+    Task<(IEnumerable<Product> Items, int TotalCount)> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default);
 }
