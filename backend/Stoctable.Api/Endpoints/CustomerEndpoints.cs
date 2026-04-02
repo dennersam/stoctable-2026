@@ -4,6 +4,8 @@ using Stoctable.Communication.Requests.Customers;
 
 namespace Stoctable.Api.Endpoints;
 
+file record CustomerListQuery(int Page = 1, int PageSize = 20, string? Search = null);
+
 public static class CustomerEndpoints
 {
     public static void MapCustomerEndpoints(this IEndpointRouteBuilder app)
@@ -12,9 +14,11 @@ public static class CustomerEndpoints
             .WithTags("Customers")
             .RequireAuthorization("SalesRep");
 
-        group.MapGet("/", async (CustomerService service, CancellationToken ct) =>
+        group.MapGet("/", async (
+            [AsParameters] CustomerListQuery query,
+            CustomerService service, CancellationToken ct) =>
         {
-            var result = await service.GetAllAsync(ct);
+            var result = await service.GetPagedAsync(query.Page, query.PageSize, query.Search, ct);
             return Results.Ok(result.Data);
         }).WithName("GetAllCustomers");
 

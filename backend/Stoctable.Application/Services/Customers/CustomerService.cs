@@ -1,5 +1,6 @@
 using Stoctable.Application.Results;
 using Stoctable.Communication.Requests.Customers;
+using Stoctable.Communication.Responses;
 using Stoctable.Communication.Responses.Customers;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
@@ -13,6 +14,25 @@ public class CustomerService(ICustomerRepository customerRepository)
     {
         var customers = await customerRepository.GetAllAsync(ct);
         return Result<IEnumerable<CustomerResponse>>.Success(customers.Select(MapToResponse));
+    }
+
+    public async Task<Result<PagedResult<CustomerResponse>>> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var (items, totalCount) = await customerRepository.GetPagedAsync(page, pageSize, search, ct);
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+        var result = new PagedResult<CustomerResponse>(
+            Items: items.Select(MapToResponse),
+            TotalCount: totalCount,
+            Page: page,
+            PageSize: pageSize,
+            TotalPages: totalPages);
+
+        return Result<PagedResult<CustomerResponse>>.Success(result);
     }
 
     public async Task<Result<CustomerResponse>> GetByIdAsync(Guid id, CancellationToken ct = default)
