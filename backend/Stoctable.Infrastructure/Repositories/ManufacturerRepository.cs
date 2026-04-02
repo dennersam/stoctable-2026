@@ -19,4 +19,22 @@ public class ManufacturerRepository(StoctableDbContext context) : Repository<Man
             .Take(30)
             .ToListAsync(ct);
     }
+
+    public async Task<(IEnumerable<Manufacturer> Items, int TotalCount)> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default)
+    {
+        var query = DbSet.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var lower = search.ToLower();
+            query = query.Where(m => m.Name.ToLower().Contains(lower));
+        }
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderBy(m => m.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+        return (items, totalCount);
+    }
 }

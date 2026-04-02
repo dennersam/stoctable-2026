@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import type { Manufacturer, CreateManufacturerRequest } from '@/types/manufacturer';
+import type { PaginatedResult } from '@/types/common';
 
 export const manufacturerService = {
   // Retorna apenas ativos — para uso em selects
@@ -8,9 +9,9 @@ export const manufacturerService = {
     return response.data;
   },
 
-  // Lista completa (admin)
-  getAll: async () => {
-    const response = await api.get<Manufacturer[]>('/manufacturers/all');
+  // Lista completa paginada (admin)
+  getAll: async (params?: { page?: number; pageSize?: number; search?: string }) => {
+    const response = await api.get<PaginatedResult<Manufacturer>>('/manufacturers/all', { params });
     return response.data;
   },
 

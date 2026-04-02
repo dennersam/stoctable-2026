@@ -6,4 +6,6 @@ public interface IManufacturerRepository : IRepository<Manufacturer>
 {
     Task<IEnumerable<Manufacturer>> SearchAsync(string query, CancellationToken ct = default);
     Task<IEnumerable<Manufacturer>> GetActiveAsync(CancellationToken ct = default);
+    Task<(IEnumerable<Manufacturer> Items, int TotalCount)> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default);
 }

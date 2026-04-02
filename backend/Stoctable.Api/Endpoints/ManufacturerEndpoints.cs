@@ -2,6 +2,8 @@ using Stoctable.Application.Services.Manufacturers;
 
 namespace Stoctable.Api.Endpoints;
 
+file record ManufacturerListQuery(int Page = 1, int PageSize = 20, string? Search = null);
+
 public static class ManufacturerEndpoints
 {
     public static void MapManufacturerEndpoints(this IEndpointRouteBuilder app)
@@ -17,10 +19,10 @@ public static class ManufacturerEndpoints
             return Results.Ok(result.Data);
         }).WithName("GetActiveManufacturers");
 
-        // GET /api/manufacturers/all — lista completa (admin)
-        group.MapGet("/all", async (ManufacturerService service, CancellationToken ct) =>
+        // GET /api/manufacturers/all — lista completa paginada (admin)
+        group.MapGet("/all", async ([AsParameters] ManufacturerListQuery query, ManufacturerService service, CancellationToken ct) =>
         {
-            var result = await service.GetAllAsync(ct);
+            var result = await service.GetPagedAsync(query.Page, query.PageSize, query.Search, ct);
             return Results.Ok(result.Data);
         }).WithName("GetAllManufacturers").RequireAuthorization("AdminOnly");
 

@@ -1,4 +1,5 @@
 using Stoctable.Application.Results;
+using Stoctable.Communication.Responses;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
 using Stoctable.Exceptions;
@@ -27,6 +28,17 @@ public class ManufacturerService(IManufacturerRepository manufacturerRepository)
         var items = await manufacturerRepository.GetAllAsync(ct);
         return Result<IEnumerable<ManufacturerResponse>>.Success(
             items.OrderBy(m => m.Name).Select(MapToResponse));
+    }
+
+    public async Task<Result<PagedResult<ManufacturerResponse>>> GetPagedAsync(
+        int page, int pageSize, string? search, CancellationToken ct = default)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var (items, totalCount) = await manufacturerRepository.GetPagedAsync(page, pageSize, search, ct);
+        var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+        return Result<PagedResult<ManufacturerResponse>>.Success(new PagedResult<ManufacturerResponse>(
+            items.Select(MapToResponse), totalCount, page, pageSize, totalPages));
     }
 
     public async Task<Result<ManufacturerResponse>> GetByIdAsync(Guid id, CancellationToken ct = default)

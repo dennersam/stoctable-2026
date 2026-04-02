@@ -1,7 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { manufacturerService } from '@/services/manufacturerService';
 import type { Manufacturer } from '@/types/manufacturer';
+import { Pagination } from '@/components/base/Pagination';
+
+const PAGE_SIZE = 20;
 
 const inputCls =
   'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
@@ -110,32 +113,47 @@ export function ManufacturerListPage() {
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [modal, setModal] = useState<'new' | Manufacturer | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = useCallback(async () => {
+  const loadManufacturers = async (p: number, s: string) => {
     setLoading(true);
     try {
-      const data = await manufacturerService.getAll();
-      setManufacturers(data);
+      const data = await manufacturerService.getAll({ page: p, pageSize: PAGE_SIZE, search: s || undefined });
+      setManufacturers(data.items);
+      setTotalCount(data.totalCount);
+      setTotalPages(data.totalPages);
     } catch {
       toast.error('Erro ao carregar fabricantes.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    loadManufacturers(page, search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
-  const filtered = manufacturers.filter((m) =>
-    !search || m.name.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(1);
+      loadManufacturers(1, search);
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const handleDeactivate = async (m: Manufacturer) => {
     if (!confirm(`Desativar fabricante "${m.name}"?`)) return;
     try {
       await manufacturerService.deactivate(m.id);
       toast.success('Fabricante desativado.');
-      load();
+      loadManufacturers(page, search);
     } catch {
       toast.error('Erro ao desativar fabricante.');
     }
@@ -167,62 +185,72 @@ export function ManufacturerListPage() {
         {loading ? (
           <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                  {['Nome', 'Observações', 'Status', ''].map((h) => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
-                {filtered.length === 0 ? (
+          <>
+            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
-                    <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500">
-                      Nenhum fabricante encontrado.
-                    </td>
+                    {['Nome', 'Observações', 'Status', ''].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ) : (
-                  filtered.map((m) => (
-                    <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
-                      <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{m.name}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
-                        {m.notes ?? '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          m.isActive
-                            ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {m.isActive ? 'Ativo' : 'Inativo'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm">
-                        <button
-                          onClick={() => setModal(m)}
-                          className="mr-3 text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Editar
-                        </button>
-                        {m.isActive && (
-                          <button
-                            onClick={() => handleDeactivate(m)}
-                            className="text-red-500 dark:text-red-400 hover:underline"
-                          >
-                            Desativar
-                          </button>
-                        )}
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                  {manufacturers.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500">
+                        Nenhum fabricante encontrado.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    manufacturers.map((m) => (
+                      <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{m.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                          {m.notes ?? '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            m.isActive
+                              ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                          }`}>
+                            {m.isActive ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-sm">
+                          <button
+                            onClick={() => setModal(m)}
+                            className="mr-3 text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            Editar
+                          </button>
+                          {m.isActive && (
+                            <button
+                              onClick={() => handleDeactivate(m)}
+                              className="text-red-500 dark:text-red-400 hover:underline"
+                            >
+                              Desativar
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              totalCount={totalCount}
+              pageSize={PAGE_SIZE}
+              onPageChange={setPage}
+            />
+          </>
         )}
       </div>
 
@@ -230,7 +258,7 @@ export function ManufacturerListPage() {
         <ManufacturerModal
           manufacturer={modal === 'new' ? undefined : modal}
           onClose={() => setModal(null)}
-          onSaved={load}
+          onSaved={() => loadManufacturers(page, search)}
         />
       )}
     </>

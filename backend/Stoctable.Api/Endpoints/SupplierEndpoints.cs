@@ -2,6 +2,8 @@ using Stoctable.Application.Services.Suppliers;
 
 namespace Stoctable.Api.Endpoints;
 
+file record SupplierListQuery(int Page = 1, int PageSize = 20, string? Search = null);
+
 public static class SupplierEndpoints
 {
     public static void MapSupplierEndpoints(this IEndpointRouteBuilder app)
@@ -10,9 +12,9 @@ public static class SupplierEndpoints
             .WithTags("Suppliers")
             .RequireAuthorization("AdminOnly");
 
-        group.MapGet("/", async (SupplierService service, CancellationToken ct) =>
+        group.MapGet("/", async ([AsParameters] SupplierListQuery query, SupplierService service, CancellationToken ct) =>
         {
-            var result = await service.GetAllAsync(ct);
+            var result = await service.GetPagedAsync(query.Page, query.PageSize, query.Search, ct);
             return Results.Ok(result.Data);
         }).WithName("GetAllSuppliers");
 

@@ -155,7 +155,7 @@ export function ProductFormPage() {
   // Load select options
   useEffect(() => {
     manufacturerService.getActive().then(setManufacturers).catch(() => {});
-    supplierService.getAll().then(setSuppliers).catch(() => {});
+    supplierService.getAllForSelect().then(setSuppliers).catch(() => {});
   }, []);
 
   // Load product for edit

@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import type { PaginatedResult } from '@/types/common';
 
 export interface Supplier {
   id: string;
@@ -28,9 +29,14 @@ export interface CreateSupplierRequest {
 }
 
 export const supplierService = {
-  getAll: async () => {
-    const response = await api.get<Supplier[]>('/suppliers');
+  getAll: async (params?: { page?: number; pageSize?: number; search?: string }) => {
+    const response = await api.get<PaginatedResult<Supplier>>('/suppliers', { params });
     return response.data;
+  },
+
+  getAllForSelect: async () => {
+    const response = await api.get<PaginatedResult<Supplier>>('/suppliers', { params: { page: 1, pageSize: 100 } });
+    return response.data.items;
   },
 
   search: async (q: string) => {

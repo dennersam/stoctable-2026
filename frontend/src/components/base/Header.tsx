@@ -34,7 +34,6 @@ export function Header() {
   return (
     <header className="flex h-14 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 shadow-sm">
       <div className="flex items-center gap-2">
-        <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">Stoctable</span>
         {branchName && (
           <span className="text-sm text-gray-500 dark:text-gray-400">— {branchName}</span>
         )}
