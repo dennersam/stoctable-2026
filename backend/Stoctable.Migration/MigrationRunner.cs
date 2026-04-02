@@ -1,3 +1,4 @@
+
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Npgsql;
@@ -132,6 +133,8 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             """;
 
         int count = 0;
+        var seenCnpjs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var s in rows)
         {
             if (string.IsNullOrWhiteSpace(s.Empresa)) continue;
@@ -139,10 +142,14 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             var id = Guid.NewGuid();
             _supplierMap[s.Controle] = id;
 
+            var cnpj = string.IsNullOrWhiteSpace(s.Cgc) ? null : Truncate(s.Cgc, 18);
+            if (cnpj != null && !seenCnpjs.Add(cnpj))
+                cnpj = null; // CNPJ duplicado na fonte: zera para não violar unique index
+
             await using var cmd = new NpgsqlCommand(sql, pg);
             cmd.Parameters.AddWithValue("id", id);
             cmd.Parameters.AddWithValue("company_name", (object?)Truncate(s.Empresa, 200) ?? DBNull.Value);
-            cmd.Parameters.AddWithValue("cnpj", (object?)Truncate(s.Cgc, 18) ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("cnpj", (object?)cnpj ?? DBNull.Value);
             cmd.Parameters.AddWithValue("address", (object?)BuildAddress(s.Endereco, s.Bairro, s.Cidade, s.Estado, s.Cep) ?? DBNull.Value);
             cmd.Parameters.AddWithValue("phone", (object?)Truncate(s.Telefone, 30) ?? DBNull.Value);
             cmd.Parameters.AddWithValue("email", (object?)Truncate(s.Email, 150) ?? DBNull.Value);
