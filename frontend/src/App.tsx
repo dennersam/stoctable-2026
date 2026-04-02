@@ -1,8 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 
-import { hydrateAuth, useAuthStore } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { ProtectedRoute } from '@/components/base/ProtectedRoute';
 import { Layout } from '@/components/base/Layout';
 
@@ -33,10 +32,6 @@ function DashboardRouter() {
 }
 
 function App() {
-  useEffect(() => {
-    hydrateAuth();
-  }, []);
-
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
@@ -224,7 +219,7 @@ function App() {
           />
         </Route>
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );
