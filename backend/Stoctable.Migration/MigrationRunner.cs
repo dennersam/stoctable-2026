@@ -180,14 +180,20 @@ public class MigrationRunner(string sicConnStr, string pgConnStr)
             """;
 
         int count = 0;
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var name in names)
         {
+            // Trunca antes de checar duplicata (dois nomes distintos podem colidir após truncar)
+            var truncated = Truncate(name, 100)!;
+            if (!seenNames.Add(truncated)) continue;
+
             var id = Guid.NewGuid();
             _manufacturerMap[name] = id;
 
             await using var cmd = new NpgsqlCommand(sql, pg);
             cmd.Parameters.AddWithValue("id", id);
-            cmd.Parameters.AddWithValue("name", Truncate(name, 100)!);
+            cmd.Parameters.AddWithValue("name", truncated);
             await cmd.ExecuteNonQueryAsync();
             count++;
         }
