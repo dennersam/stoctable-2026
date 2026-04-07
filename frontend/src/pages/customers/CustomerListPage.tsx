@@ -54,7 +54,7 @@ export function CustomerListPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Clientes</h1>
         <Link
           to="/customers/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           Novo cliente
         </Link>
@@ -65,7 +65,7 @@ export function CustomerListPage() {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Buscar por nome, CPF/CNPJ, telefone, cidade..."
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
 
       {loading ? (
@@ -110,7 +110,7 @@ export function CustomerListPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
-                      <Link to={`/customers/${c.id}`} className="mr-3 text-blue-600 dark:text-blue-400 hover:underline">
+                      <Link to={`/customers/${c.id}`} className="mr-3 text-brand-600 dark:text-brand-400 hover:underline">
                         Ver
                       </Link>
                       <Link to={`/customers/${c.id}/edit`} className="text-gray-500 dark:text-gray-400 hover:underline">

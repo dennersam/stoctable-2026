@@ -62,4 +62,8 @@ export const supplierService = {
   deactivate: async (id: string) => {
     await api.delete(`/suppliers/${id}`);
   },
+
+  hardDelete: async (id: string) => {
+    await api.delete(`/suppliers/${id}/permanent`);
+  },
 };

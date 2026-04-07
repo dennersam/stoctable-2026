@@ -18,6 +18,7 @@ import { SupplierListPage } from '@/pages/suppliers/SupplierListPage';
 import { SupplierFormPage } from '@/pages/suppliers/SupplierFormPage';
 import { QuotationListPage } from '@/pages/quotations/QuotationListPage';
 import { QuotationEditorPage } from '@/pages/quotations/QuotationEditorPage';
+import { QuotationDetailPage } from '@/pages/quotations/QuotationDetailPage';
 import { CheckoutListPage } from '@/pages/checkout/CheckoutListPage';
 import { CheckoutPage } from '@/pages/checkout/CheckoutPage';
 import { InventoryPage } from '@/pages/inventory/InventoryPage';
@@ -124,6 +125,14 @@ function App() {
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
                 <QuotationEditorPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/quotations/:id"
+            element={
+              <ProtectedRoute roles={['admin', 'atendente', 'caixa']}>
+                <QuotationDetailPage />
               </ProtectedRoute>
             }
           />

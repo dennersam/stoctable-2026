@@ -15,7 +15,12 @@
       "Bash(xargs grep:*)",
       "Read(//c/Projects/Stoctable/frontend/src/**)",
       "Bash(dotnet restore:*)",
-      "Read(//c/Projects/**)"
+      "Read(//c/Projects/**)",
+      "Bash(xargs sed:*)",
+      "Bash(sed -i 's/bg-white dark:bg-gray-900 transition-all/bg-white dark:bg-brand-950 transition-all/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
+      "Bash(sed -i 's/hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900/hover:bg-brand-50 dark:hover:bg-brand-900\\\\/20 hover:text-brand-700/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
+      "Bash(sed -i 's/'\\\\''text-gray-600 dark:text-gray-300 hover/'\\\\''text-gray-600 dark:text-gray-200 hover/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
+      "Bash(sed -i 's/hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200/hover:bg-brand-50 dark:hover:bg-brand-900\\\\/20 hover:text-brand-700 dark:hover:text-white/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)"
     ]
   }
 }

@@ -119,6 +119,23 @@ public class SupplierService(ISupplierRepository supplierRepository)
         return Result<bool>.Success(true);
     }
 
+    public async Task<Result<bool>> HardDeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var supplier = await supplierRepository.GetByIdAsync(id, ct);
+        if (supplier is null)
+            return Result<bool>.NotFound(ErrorMessages.Supplier.NotFound);
+
+        try
+        {
+            await supplierRepository.DeleteAsync(supplier, ct);
+            return Result<bool>.Success(true);
+        }
+        catch (Exception)
+        {
+            return Result<bool>.Conflict("Não é possível excluir este fornecedor pois ele está vinculado a produtos.");
+        }
+    }
+
     private static SupplierResponse MapToResponse(Supplier s) => new(
         Id: s.Id,
         CompanyName: s.CompanyName,

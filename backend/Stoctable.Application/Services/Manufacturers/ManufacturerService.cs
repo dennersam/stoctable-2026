@@ -92,6 +92,23 @@ public class ManufacturerService(IManufacturerRepository manufacturerRepository)
         return Result<bool>.Success(true);
     }
 
+    public async Task<Result<bool>> HardDeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var manufacturer = await manufacturerRepository.GetByIdAsync(id, ct);
+        if (manufacturer is null)
+            return Result<bool>.NotFound(ErrorMessages.Manufacturer.NotFound);
+
+        try
+        {
+            await manufacturerRepository.DeleteAsync(manufacturer, ct);
+            return Result<bool>.Success(true);
+        }
+        catch (Exception)
+        {
+            return Result<bool>.Conflict("Não é possível excluir este fabricante pois ele está vinculado a produtos.");
+        }
+    }
+
     private static ManufacturerResponse MapToResponse(Manufacturer m) => new(
         Id: m.Id,
         Name: m.Name,

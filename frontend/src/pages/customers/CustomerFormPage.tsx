@@ -7,7 +7,7 @@ import type { CreateCustomerRequest } from '@/types/customer';
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const inputCls =
-  'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+  'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 const STATES = [
   'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS',
@@ -297,7 +297,7 @@ export function CustomerFormPage() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-blue-600 hover:bg-blue-700 px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-md bg-brand-600 hover:bg-brand-700 px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {saving ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Cadastrar cliente'}
           </button>

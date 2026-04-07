@@ -8,7 +8,7 @@ export function Layout() {
 
   return (
     <div className={`${isDark ? 'dark' : ''} flex h-screen`}>
-      <div className="flex h-screen w-full bg-gray-100 dark:bg-gray-950">
+      <div className="flex h-screen w-full bg-gray-100 dark:bg-brand-950">
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />

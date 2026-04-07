@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
@@ -69,7 +70,9 @@ try
                 ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "stoctable",
                 ValidAudience = builder.Configuration["Jwt:Audience"] ?? "stoctable",
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.Zero,
+                RoleClaimType = ClaimTypes.Role,
+                NameClaimType = ClaimTypes.NameIdentifier,
             };
         });
 
@@ -130,6 +133,7 @@ try
     app.MapSupplierEndpoints();
     app.MapInventoryEndpoints();
     app.MapUserEndpoints();
+    app.MapPaymentMethodEndpoints();
 
     app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTimeOffset.UtcNow }))
        .AllowAnonymous()

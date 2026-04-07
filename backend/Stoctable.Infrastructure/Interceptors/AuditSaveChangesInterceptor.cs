@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +40,7 @@ public class AuditSaveChangesInterceptor(IHttpContextAccessor httpContextAccesso
         var ipAddress = httpContext?.Connection?.RemoteIpAddress?.ToString();
 
         Guid? userId = null;
-        if (Guid.TryParse(httpContext?.User?.FindFirst("sub")?.Value, out var parsed))
+        if (Guid.TryParse(httpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var parsed))
             userId = parsed;
 
         var entries = context.ChangeTracker

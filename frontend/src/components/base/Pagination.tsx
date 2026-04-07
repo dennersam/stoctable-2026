@@ -47,7 +47,7 @@ export function Pagination({ page, totalPages, totalCount, pageSize, onPageChang
               onClick={() => onPageChange(p)}
               className={`min-w-[2rem] px-2 py-1.5 text-sm rounded-md border transition-colors ${
                 p === page
-                  ? 'bg-blue-600 border-blue-600 text-white font-medium'
+                  ? 'bg-brand-600 border-brand-600 text-white font-medium'
                   : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >

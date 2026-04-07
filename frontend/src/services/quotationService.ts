@@ -6,11 +6,10 @@ import type {
   FinalizeQuotationRequest,
   CancelQuotationRequest,
 } from '@/types/quotation';
-import type { PaginatedResult } from '@/types/common';
 
 export const quotationService = {
-  getAll: async (params?: { page?: number; pageSize?: number; status?: string }) => {
-    const response = await api.get<PaginatedResult<Quotation>>('/quotations', { params });
+  getAll: async (params?: { status?: string }) => {
+    const response = await api.get<Quotation[]>('/quotations', { params });
     return response.data;
   },
 
@@ -46,6 +45,11 @@ export const quotationService = {
 
   convertToSale: async (quotationId: string) => {
     const response = await api.post<{ saleId: string }>(`/quotations/${quotationId}/convert`);
+    return response.data;
+  },
+
+  setCustomer: async (quotationId: string, customerId: string | null) => {
+    const response = await api.patch<Quotation>(`/quotations/${quotationId}/customer`, { customerId });
     return response.data;
   },
 };

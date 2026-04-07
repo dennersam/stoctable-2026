@@ -65,6 +65,14 @@ public static class ProductEndpoints
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).RequireAuthorization("AdminOnly").WithName("DeactivateProduct");
 
+        group.MapDelete("/{id:guid}/permanent", async (Guid id, ProductService service, CancellationToken ct) =>
+        {
+            var result = await service.HardDeleteAsync(id, ct);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).RequireAuthorization("AdminOnly").WithName("HardDeleteProduct");
+
         group.MapPost("/{id:guid}/image", async (Guid id, IFormFile file, ProductService service, CancellationToken ct) =>
         {
             await using var stream = file.OpenReadStream();

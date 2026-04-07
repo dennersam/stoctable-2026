@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Pencil, PowerOff, Trash2 } from 'lucide-react';
 import { productService } from '@/services/productService';
 import type { Product } from '@/types/product';
 import { useAuthStore } from '@/store/authStore';
@@ -65,6 +66,18 @@ export function ProductListPage() {
     }
   };
 
+  const handleHardDelete = async (id: string, name: string) => {
+    if (!confirm(`Excluir permanentemente o produto "${name}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await productService.hardDelete(id);
+      toast.success('Produto excluído.');
+      loadProducts(page, search);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg ?? 'Não é possível excluir este produto.');
+    }
+  };
+
   const stockStatus = (p: Product) => {
     const available = p.stockQuantity - p.stockReserved;
     if (available <= 0) return 'text-red-600 dark:text-red-400 font-semibold';
@@ -79,7 +92,7 @@ export function ProductListPage() {
         {isAdmin && (
           <Link
             to="/products/new"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
             Novo produto
           </Link>
@@ -91,7 +104,7 @@ export function ProductListPage() {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Buscar por SKU, nome, código de barras, fabricante..."
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
 
       {loading ? (
@@ -144,18 +157,32 @@ export function ProductListPage() {
                         </span>
                       </td>
                       {isAdmin && (
-                        <td className="px-4 py-3 text-right text-sm">
-                          <Link to={`/products/${p.id}/edit`} className="mr-3 text-blue-600 dark:text-blue-400 hover:underline">
-                            Editar
-                          </Link>
-                          {p.isActive && (
-                            <button
-                              onClick={() => handleDeactivate(p.id, p.name)}
-                              className="text-red-500 dark:text-red-400 hover:underline"
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            <Link
+                              to={`/products/${p.id}/edit`}
+                              title="Editar"
+                              className="rounded p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
                             >
-                              Desativar
+                              <Pencil size={15} />
+                            </Link>
+                            {p.isActive && (
+                              <button
+                                onClick={() => handleDeactivate(p.id, p.name)}
+                                title="Desativar"
+                                className="rounded p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-400 transition-colors"
+                              >
+                                <PowerOff size={15} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleHardDelete(p.id, p.name)}
+                              title="Excluir permanentemente"
+                              className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
+                            >
+                              <Trash2 size={15} />
                             </button>
-                          )}
+                          </div>
                         </td>
                       )}
                     </tr>

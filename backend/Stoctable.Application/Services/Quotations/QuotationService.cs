@@ -47,6 +47,20 @@ public class QuotationService(
         return Result<QuotationResponse>.Success(MapToResponse(quotation), 201);
     }
 
+    public async Task<Result<QuotationResponse>> SetCustomerAsync(Guid quotationId, Guid? customerId, CancellationToken ct = default)
+    {
+        var quotation = await quotationRepository.GetWithItemsAsync(quotationId, ct);
+        if (quotation is null)
+            return Result<QuotationResponse>.NotFound(ErrorMessages.Quotation.NotFound);
+
+        if (quotation.Status != QuotationStatus.Draft)
+            return Result<QuotationResponse>.Failure("Apenas orçamentos em rascunho podem ter o cliente alterado.");
+
+        quotation.CustomerId = customerId;
+        await quotationRepository.UpdateAsync(quotation, ct);
+        return Result<QuotationResponse>.Success(MapToResponse(quotation));
+    }
+
     public async Task<Result<QuotationResponse>> AddItemAsync(Guid quotationId, AddQuotationItemRequest request, CancellationToken ct = default)
     {
         var quotation = await quotationRepository.GetWithItemsAsync(quotationId, ct);

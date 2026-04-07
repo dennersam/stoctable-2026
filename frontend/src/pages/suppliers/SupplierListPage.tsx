@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Pencil, PowerOff, Trash2 } from 'lucide-react';
 import { supplierService, type Supplier } from '@/services/supplierService';
 import { Pagination } from '@/components/base/Pagination';
+import { useAuthStore } from '@/store/authStore';
 
 const PAGE_SIZE = 20;
 
 export function SupplierListPage() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -55,13 +60,25 @@ export function SupplierListPage() {
     }
   };
 
+  const handleHardDelete = async (s: Supplier) => {
+    if (!confirm(`Excluir permanentemente o fornecedor "${s.companyName}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await supplierService.hardDelete(s.id);
+      toast.success('Fornecedor excluído.');
+      loadSuppliers(page, search);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg ?? 'Não é possível excluir este fornecedor.');
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fornecedores</h1>
         <Link
           to="/suppliers/new"
-          className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white"
+          className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white"
         >
           Novo fornecedor
         </Link>
@@ -71,7 +88,7 @@ export function SupplierListPage() {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Buscar por razão social, fantasia, CNPJ ou telefone..."
-        className="w-full max-w-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full max-w-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
 
       {loading ? (
@@ -120,15 +137,34 @@ export function SupplierListPage() {
                         {s.isActive ? 'Ativo' : 'Inativo'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
-                      <Link to={`/suppliers/${s.id}/edit`} className="mr-3 text-blue-600 dark:text-blue-400 hover:underline">
-                        Editar
-                      </Link>
-                      {s.isActive && (
-                        <button onClick={() => handleDeactivate(s)} className="text-red-500 dark:text-red-400 hover:underline">
-                          Desativar
-                        </button>
-                      )}
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1">
+                        <Link
+                          to={`/suppliers/${s.id}/edit`}
+                          title="Editar"
+                          className="rounded p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
+                        >
+                          <Pencil size={15} />
+                        </Link>
+                        {s.isActive && (
+                          <button
+                            onClick={() => handleDeactivate(s)}
+                            title="Desativar"
+                            className="rounded p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-400 transition-colors"
+                          >
+                            <PowerOff size={15} />
+                          </button>
+                        )}
+                        {isAdmin && (
+                          <button
+                            onClick={() => handleHardDelete(s)}
+                            title="Excluir permanentemente"
+                            className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

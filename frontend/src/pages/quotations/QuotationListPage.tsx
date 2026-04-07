@@ -12,10 +12,10 @@ const STATUS_LABELS: Record<QuotationStatus, string> = {
 };
 
 const STATUS_COLORS: Record<QuotationStatus, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  finalized: 'bg-blue-100 text-blue-700',
-  converted: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-500',
+  draft: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+  finalized: 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400',
+  converted: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
+  cancelled: 'bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400',
 };
 
 export function QuotationListPage() {
@@ -27,7 +27,7 @@ export function QuotationListPage() {
     try {
       setLoading(true);
       const data = await quotationService.getAll({ status });
-      setQuotations(Array.isArray(data) ? data : (data as any).items ?? []);
+      setQuotations(data);
     } catch {
       toast.error('Erro ao carregar orçamentos.');
     } finally {
@@ -40,10 +40,10 @@ export function QuotationListPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Orçamentos</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orçamentos</h1>
         <Link
           to="/quotations/new"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
         >
           Novo orçamento
         </Link>
@@ -56,8 +56,8 @@ export function QuotationListPage() {
             onClick={() => setStatus(s)}
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               status === s
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-brand-600 text-white'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
             {STATUS_LABELS[s]}
@@ -66,35 +66,33 @@ export function QuotationListPage() {
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-gray-500">Carregando...</div>
+        <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Número</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Cliente</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Atendente</th>
-                <th className="px-4 py-3 text-right text-xs font-medium uppercase text-gray-500">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500">Data</th>
-                <th className="px-4 py-3" />
+                {['Número', 'Cliente', 'Atendente', 'Total', 'Status', 'Data', ''].map(h => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 bg-white">
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
               {quotations.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-400">
+                  <td colSpan={7} className="py-8 text-center text-gray-400 dark:text-gray-500">
                     Nenhum orçamento {STATUS_LABELS[status].toLowerCase()}.
                   </td>
                 </tr>
               ) : (
                 quotations.map(q => (
-                  <tr key={q.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-sm text-gray-700">{q.quotationNumber}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{q.customerName || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{q.salespersonName || '—'}</td>
-                    <td className="px-4 py-3 text-right text-sm font-medium text-gray-900">
+                  <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                    <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{q.quotationNumber}</td>
+                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{q.customerName || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{q.salespersonName || '—'}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">
                       R$ {q.totalAmount.toFixed(2)}
                     </td>
                     <td className="px-4 py-3">
@@ -102,11 +100,11 @@ export function QuotationListPage() {
                         {STATUS_LABELS[q.status]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-400">
+                    <td className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500">
                       {new Date(q.createdAt).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-4 py-3 text-right text-sm">
-                      <Link to={`/quotations/${q.id}`} className="text-blue-600 hover:underline">
+                      <Link to={`/quotations/${q.id}`} className="text-brand-600 dark:text-brand-400 hover:underline">
                         Ver
                       </Link>
                     </td>

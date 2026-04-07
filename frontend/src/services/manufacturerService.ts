@@ -28,4 +28,8 @@ export const manufacturerService = {
   deactivate: async (id: string) => {
     await api.delete(`/manufacturers/${id}`);
   },
+
+  hardDelete: async (id: string) => {
+    await api.delete(`/manufacturers/${id}/permanent`);
+  },
 };

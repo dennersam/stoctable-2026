@@ -32,7 +32,7 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 shadow-sm">
+    <header className="flex h-14 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-brand-950 px-6 shadow-sm">
       <div className="flex items-center gap-2">
         {branchName && (
           <span className="text-sm text-gray-500 dark:text-gray-400">— {branchName}</span>
@@ -41,7 +41,7 @@ export function Header() {
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-700 dark:text-gray-300">
           {user?.fullName}{' '}
-          <span className="rounded-full bg-blue-100 dark:bg-blue-900/40 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-400 capitalize">
+          <span className="rounded-full bg-brand-100 dark:bg-brand-900/40 px-2 py-0.5 text-xs font-medium text-brand-700 dark:text-brand-400 capitalize">
             {user?.role}
           </span>
         </span>

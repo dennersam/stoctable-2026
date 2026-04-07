@@ -30,7 +30,7 @@ public static class QuotationEndpoints
 
         group.MapPost("/", async (CreateQuotationRequest request, ClaimsPrincipal user, QuotationService service, CancellationToken ct) =>
         {
-            if (!Guid.TryParse(user.FindFirst("sub")?.Value, out var salespersonId))
+            if (!Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var salespersonId))
                 return Results.Unauthorized();
 
             var result = await service.CreateAsync(request, salespersonId, ct);
@@ -38,6 +38,14 @@ public static class QuotationEndpoints
                 ? Results.Created($"/api/quotations/{result.Data!.Id}", result.Data)
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).WithName("CreateQuotation");
+
+        group.MapPatch("/{id:guid}/customer", async (Guid id, SetCustomerRequest request, QuotationService service, CancellationToken ct) =>
+        {
+            var result = await service.SetCustomerAsync(id, request.CustomerId, ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("SetQuotationCustomer");
 
         group.MapPost("/{id:guid}/items", async (Guid id, AddQuotationItemRequest request, QuotationService service, CancellationToken ct) =>
         {
@@ -73,7 +81,7 @@ public static class QuotationEndpoints
 
         group.MapPost("/{id:guid}/convert", async (Guid id, ClaimsPrincipal user, QuotationService service, CancellationToken ct) =>
         {
-            if (!Guid.TryParse(user.FindFirst("sub")?.Value, out var cashierId))
+            if (!Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var cashierId))
                 return Results.Unauthorized();
 
             var result = await service.ConvertToSaleAsync(id, cashierId, ct);

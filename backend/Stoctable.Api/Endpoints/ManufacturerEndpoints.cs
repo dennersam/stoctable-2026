@@ -57,5 +57,13 @@ public static class ManufacturerEndpoints
                 ? Results.NoContent()
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).WithName("DeactivateManufacturer").RequireAuthorization("AdminOnly");
+
+        group.MapDelete("/{id:guid}/permanent", async (Guid id, ManufacturerService service, CancellationToken ct) =>
+        {
+            var result = await service.HardDeleteAsync(id, ct);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("HardDeleteManufacturer").RequireAuthorization("AdminOnly");
     }
 }

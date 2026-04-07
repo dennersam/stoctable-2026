@@ -32,6 +32,10 @@ export const productService = {
     await api.delete(`/products/${id}`);
   },
 
+  hardDelete: async (id: string) => {
+    await api.delete(`/products/${id}/permanent`);
+  },
+
   uploadImage: async (id: string, file: File) => {
     const formData = new FormData();
     formData.append('image', file);

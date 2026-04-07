@@ -15,3 +15,5 @@ public record FinalizeQuotationRequest(
     string? Notes = null);
 
 public record CancelQuotationRequest(string CancellationReason);
+
+public record SetCustomerRequest(Guid? CustomerId);

@@ -1,10 +1,9 @@
 import api from '@/lib/api';
 import type { Sale, PaymentMethod, ProcessPaymentRequest } from '@/types/sale';
-import type { PaginatedResult } from '@/types/common';
 
 export const saleService = {
-  getAll: async (params?: { page?: number; pageSize?: number; status?: string }) => {
-    const response = await api.get<PaginatedResult<Sale>>('/sales', { params });
+  getAll: async (params?: { status?: string }) => {
+    const response = await api.get<Sale[]>('/sales', { params });
     return response.data;
   },
 

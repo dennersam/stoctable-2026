@@ -55,5 +55,13 @@ public static class SupplierEndpoints
                 ? Results.NoContent()
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).WithName("DeactivateSupplier");
+
+        group.MapDelete("/{id:guid}/permanent", async (Guid id, SupplierService service, CancellationToken ct) =>
+        {
+            var result = await service.HardDeleteAsync(id, ct);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("HardDeleteSupplier");
     }
 }

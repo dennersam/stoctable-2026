@@ -13,7 +13,7 @@ const NOTE_TYPE_LABEL: Record<CustomerCrmNote['noteType'], string> = {
 };
 
 const NOTE_TYPE_COLOR: Record<CustomerCrmNote['noteType'], string> = {
-  general: 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400',
+  general: 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400',
   complaint: 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400',
   followup: 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400',
 };
@@ -194,13 +194,13 @@ export function CustomerDetailPage() {
             onChange={e => setNewNote(e.target.value)}
             rows={2}
             placeholder="Adicionar anotação sobre o cliente..."
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
           />
           <div className="flex items-center gap-2">
             <select
               value={newNoteType}
               onChange={e => setNewNoteType(e.target.value as CustomerCrmNote['noteType'])}
-              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="general">Geral</option>
               <option value="followup">Acompanhamento</option>
@@ -209,7 +209,7 @@ export function CustomerDetailPage() {
             <button
               type="submit"
               disabled={addingNote || !newNote.trim()}
-              className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             >
               {addingNote ? 'Salvando...' : 'Adicionar nota'}
             </button>

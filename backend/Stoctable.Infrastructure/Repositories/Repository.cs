@@ -27,9 +27,14 @@ public class Repository<T>(StoctableDbContext context) : IRepository<T> where T 
         return entity;
     }
 
-    public async Task UpdateAsync(T entity, CancellationToken ct = default)
+    public virtual async Task UpdateAsync(T entity, CancellationToken ct = default)
     {
-        DbSet.Update(entity);
+        // Only mark as Modified if the entity is not already being tracked.
+        // Calling DbSet.Update on a tracked entity traverses the entire object graph
+        // and changes Added dependents to Modified, causing INSERT to become UPDATE
+        // on rows that don't exist yet → DbUpdateConcurrencyException.
+        if (Context.Entry(entity).State == EntityState.Detached)
+            DbSet.Update(entity);
         await Context.SaveChangesAsync(ct);
     }
 

@@ -57,7 +57,7 @@ interface SummaryCardProps {
 
 function SummaryCard({ label, value, color }: SummaryCardProps) {
   const colors = {
-    blue: 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400',
+    blue: 'border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400',
     yellow: 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400',
     red: 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400',
   };
@@ -216,7 +216,7 @@ export function InventoryPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por SKU ou nome..."
-          className="flex-1 min-w-48 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="flex-1 min-w-48 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <button
           onClick={() => setShowCritical(!showCritical)}
@@ -298,7 +298,7 @@ export function InventoryPage() {
                       <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
                         <button
                           onClick={() => openAdjust(p)}
-                          className="mr-3 text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                          className="mr-3 text-brand-600 dark:text-brand-400 hover:underline font-medium"
                         >
                           Ajustar
                         </button>
@@ -355,7 +355,7 @@ export function InventoryPage() {
                 onChange={(e) => setAdjustQty(e.target.value)}
                 placeholder="Ex: 10 ou -5"
                 autoFocus
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {adjustQty && !isNaN(parseFloat(adjustQty)) && parseFloat(adjustQty) !== 0 && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -376,7 +376,7 @@ export function InventoryPage() {
                 onChange={(e) => setAdjustNotes(e.target.value)}
                 rows={2}
                 placeholder="Ex: inventário mensal, devolução de cliente..."
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
               />
             </div>
 
@@ -390,7 +390,7 @@ export function InventoryPage() {
               <button
                 onClick={handleAdjust}
                 disabled={adjustSaving}
-                className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 {adjustSaving ? 'Salvando...' : 'Confirmar ajuste'}
               </button>

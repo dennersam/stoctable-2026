@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
+import { Pencil, PowerOff, Trash2 } from 'lucide-react';
 import { manufacturerService } from '@/services/manufacturerService';
 import type { Manufacturer } from '@/types/manufacturer';
 import { Pagination } from '@/components/base/Pagination';
+import { useAuthStore } from '@/store/authStore';
 
 const PAGE_SIZE = 20;
 
 const inputCls =
-  'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
+  'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 // ─── Modal de cadastro / edição ───────────────────────────────────────────────
 
@@ -96,7 +98,7 @@ function ManufacturerModal({ manufacturer, onClose, onSaved }: ModalProps) {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+              className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
               {saving ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar'}
             </button>
@@ -110,6 +112,9 @@ function ManufacturerModal({ manufacturer, onClose, onSaved }: ModalProps) {
 // ─── main page ───────────────────────────────────────────────────────────────
 
 export function ManufacturerListPage() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
+
   const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -159,6 +164,18 @@ export function ManufacturerListPage() {
     }
   };
 
+  const handleHardDelete = async (m: Manufacturer) => {
+    if (!confirm(`Excluir permanentemente o fabricante "${m.name}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    try {
+      await manufacturerService.hardDelete(m.id);
+      toast.success('Fabricante excluído.');
+      loadManufacturers(page, search);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      toast.error(msg ?? 'Não é possível excluir este fabricante.');
+    }
+  };
+
   return (
     <>
       <div className="space-y-4">
@@ -167,7 +184,7 @@ export function ManufacturerListPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fabricantes</h1>
           <button
             onClick={() => setModal('new')}
-            className="rounded-md bg-blue-600 hover:bg-blue-700 px-4 py-2 text-sm font-medium text-white"
+            className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white"
           >
             Novo fabricante
           </button>
@@ -178,7 +195,7 @@ export function ManufacturerListPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome..."
-          className="w-full max-w-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full max-w-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
 
         {/* Table */}
@@ -220,21 +237,34 @@ export function ManufacturerListPage() {
                             {m.isActive ? 'Ativo' : 'Inativo'}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-sm">
-                          <button
-                            onClick={() => setModal(m)}
-                            className="mr-3 text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            Editar
-                          </button>
-                          {m.isActive && (
+                        <td className="px-4 py-3 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
                             <button
-                              onClick={() => handleDeactivate(m)}
-                              className="text-red-500 dark:text-red-400 hover:underline"
+                              onClick={() => setModal(m)}
+                              title="Editar"
+                              className="rounded p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
                             >
-                              Desativar
+                              <Pencil size={15} />
                             </button>
-                          )}
+                            {m.isActive && (
+                              <button
+                                onClick={() => handleDeactivate(m)}
+                                title="Desativar"
+                                className="rounded p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-400 transition-colors"
+                              >
+                                <PowerOff size={15} />
+                              </button>
+                            )}
+                            {isAdmin && (
+                              <button
+                                onClick={() => handleHardDelete(m)}
+                                title="Excluir permanentemente"
+                                className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))

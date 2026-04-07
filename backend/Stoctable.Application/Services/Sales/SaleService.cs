@@ -78,7 +78,14 @@ public class SaleService(ISaleRepository saleRepository)
         SalespersonName: s.Salesperson?.FullName,
         CashierId: s.CashierId,
         CashierName: s.Cashier?.FullName,
-        Status: s.Status.ToString().ToLower(),
+        Status: s.Status switch
+        {
+            SaleStatus.PendingPayment => "pending_payment",
+            SaleStatus.PartiallyPaid  => "partially_paid",
+            SaleStatus.Paid           => "paid",
+            SaleStatus.Cancelled      => "cancelled",
+            _                         => s.Status.ToString().ToLower()
+        },
         Subtotal: s.Subtotal,
         DiscountAmount: s.DiscountAmount,
         TotalAmount: s.TotalAmount,

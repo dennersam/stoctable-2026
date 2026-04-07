@@ -7,6 +7,7 @@ import { isAxiosError } from 'axios';
 import { authService } from '@/services/authService';
 import { useAuthStore } from '@/store/authStore';
 import { useBranchStore } from '@/store/branchStore';
+import { Logo } from '@/components/base/Logo';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Usuário obrigatório'),
@@ -35,7 +36,6 @@ export function LoginPage() {
       const response = await authService.login(data);
       setAuth(response.user, response.accessToken, response.refreshToken);
 
-      // Auto-select first branch if user has only one
       if (response.user.branchIds.length === 1) {
         setBranch(response.user.branchIds[0], '');
       }
@@ -51,22 +51,25 @@ export function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950">
+    <div className="flex min-h-screen items-center justify-center bg-brand-950">
       <div className="w-full max-w-md px-4">
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-xl">
+        <div className="rounded-xl border border-brand-800 bg-brand-900 p-8 shadow-xl">
           <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold text-blue-500">Stoctable</h1>
-            <p className="mt-1 text-sm text-gray-400">Sistema de Gestão</p>
+            <div className="flex items-center justify-center gap-3 mb-1">
+              <Logo size={40} className="text-white" />
+              <h1 className="text-3xl font-bold text-white tracking-tight">Stoctable</h1>
+            </div>
+            <p className="mt-2 text-sm text-brand-300">Sistema de Gestão</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Usuário</label>
+              <label className="block text-sm font-medium text-brand-200 mb-1">Usuário</label>
               <input
                 {...register('username')}
                 type="text"
                 autoComplete="username"
-                className="block w-full rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-500 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-brand-700 bg-brand-800 text-white placeholder-brand-400 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
                 placeholder="Digite seu usuário"
               />
               {errors.username && (
@@ -75,12 +78,12 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Senha</label>
+              <label className="block text-sm font-medium text-brand-200 mb-1">Senha</label>
               <input
                 {...register('password')}
                 type="password"
                 autoComplete="current-password"
-                className="block w-full rounded-md border border-gray-700 bg-gray-800 text-white placeholder-gray-500 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="block w-full rounded-md border border-brand-700 bg-brand-800 text-white placeholder-brand-400 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
                 placeholder="Digite sua senha"
               />
               {errors.password && (
@@ -97,7 +100,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-60 transition-colors"
+              className="w-full rounded-md bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60 transition-colors"
             >
               {isSubmitting ? 'Entrando...' : 'Entrar'}
             </button>

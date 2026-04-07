@@ -9,7 +9,7 @@ export function AtendenteDashboard() {
       <div className="flex gap-4">
         <button
           onClick={() => navigate('/quotations/new')}
-          className="rounded-lg bg-blue-600 px-6 py-4 text-white font-medium hover:bg-blue-700"
+          className="rounded-lg bg-brand-600 px-6 py-4 text-white font-medium hover:bg-brand-700"
         >
           Novo Orçamento
         </button>

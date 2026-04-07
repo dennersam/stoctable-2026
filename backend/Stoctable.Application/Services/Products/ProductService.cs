@@ -156,6 +156,23 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         return Result<bool>.Success(true);
     }
 
+    public async Task<Result<bool>> HardDeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var product = await productRepository.GetByIdAsync(id, ct);
+        if (product is null)
+            return Result<bool>.NotFound(ErrorMessages.Product.NotFound);
+
+        try
+        {
+            await productRepository.DeleteAsync(product, ct);
+            return Result<bool>.Success(true);
+        }
+        catch (Exception)
+        {
+            return Result<bool>.Conflict("Não é possível excluir este produto pois ele está vinculado a vendas, orçamentos ou movimentações de estoque.");
+        }
+    }
+
     private static ProductResponse MapToResponse(Product p) => new(
         Id: p.Id,
         Sku: p.Sku,

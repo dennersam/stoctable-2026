@@ -27,7 +27,7 @@ public static class SaleEndpoints
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).WithName("GetSaleById");
 
-        group.MapPost("/{id:guid}/payment", async (Guid id, ProcessPaymentRequest request, SaleService service, CancellationToken ct) =>
+        group.MapPost("/{id:guid}/payments", async (Guid id, ProcessPaymentRequest request, SaleService service, CancellationToken ct) =>
         {
             var result = await service.ProcessPaymentAsync(id, request, ct);
             return result.IsSuccess

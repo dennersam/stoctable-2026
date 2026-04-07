@@ -3,6 +3,7 @@ using Stoctable.Application.Services.Auth;
 using Stoctable.Application.Services.Customers;
 using Stoctable.Application.Services.Inventory;
 using Stoctable.Application.Services.Manufacturers;
+using Stoctable.Application.Services.PaymentMethods;
 using Stoctable.Application.Services.Products;
 using Stoctable.Application.Services.Quotations;
 using Stoctable.Application.Services.Sales;
@@ -24,6 +25,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<InventoryService>();
         services.AddScoped<SupplierService>();
         services.AddScoped<UserService>();
+        services.AddScoped<PaymentMethodService>();
 
         return services;
     }

@@ -37,7 +37,10 @@ public static class DependencyInjectionExtension
                   ?? "Host=localhost;Database=stoctable_branch_dev;Username=postgres;Password=postgres";
 
             options.UseNpgsql(connectionString)
-                   .AddInterceptors(auditInterceptor);
+                   .AddInterceptors(auditInterceptor)
+                   .EnableSensitiveDataLogging()
+                   .EnableDetailedErrors()
+                   .LogTo(msg => System.Console.WriteLine(msg), Microsoft.Extensions.Logging.LogLevel.Information);
         });
 
         // Repositories
@@ -49,6 +52,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<ISaleRepository, SaleRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
+        services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
 
         return services;
     }

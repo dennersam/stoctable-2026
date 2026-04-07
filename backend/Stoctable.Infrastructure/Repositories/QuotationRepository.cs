@@ -30,4 +30,16 @@ public class QuotationRepository(StoctableDbContext context) : Repository<Quotat
         var count = await DbSet.CountAsync(q => q.QuotationNumber.StartsWith(prefix), ct);
         return $"{prefix}{(count + 1):D4}";
     }
+
+    // Override: entity is already loaded and tracked via GetWithItemsAsync.
+    // EF's snapshot-based change tracking handles everything automatically:
+    //   - Quotation scalar changes (RecalculateTotals) → detected as Modified → UPDATE
+    //   - New QuotationItems added to the collection   → detected as Added   → INSERT
+    //   - Unchanged existing items                     → no SQL generated
+    // Calling DbSet.Update or forcing State = Modified traverses the object graph
+    // and can change Added dependents to Modified, causing 0-row UPDATE exceptions.
+    public override async Task UpdateAsync(Quotation entity, CancellationToken ct = default)
+    {
+        await Context.SaveChangesAsync(ct);
+    }
 }
