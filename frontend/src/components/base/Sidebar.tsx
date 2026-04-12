@@ -50,18 +50,18 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'relative flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-brand-950 transition-all duration-200',
+        'relative flex flex-col overflow-hidden bg-brand-950 rounded-2xl shadow-md transition-all duration-200',
         collapsed ? 'w-15' : 'w-56'
       )}
     >
       {/* Logo */}
-      <div className="flex h-14 items-center border-b border-gray-200 dark:border-gray-700 px-3 overflow-hidden">
+      <div className="flex h-14 items-center border-b border-brand-800/50 px-3 overflow-hidden">
         {collapsed ? (
-          <Logo size={26} className="mx-auto text-brand-600 dark:text-brand-300" />
+          <Logo size={26} className="mx-auto text-brand-300" />
         ) : (
-          <div className="flex items-center gap-2.5 whitespace-nowrap">
-            <Logo size={26} className="shrink-0 text-brand-600 dark:text-brand-300" />
-            <span className="font-bold text-brand-600 dark:text-brand-300 text-xl tracking-tight">
+          <div className="flex w-full items-center justify-center gap-2.5 whitespace-nowrap">
+            <Logo size={26} className="shrink-0 text-brand-300" />
+            <span className="font-bold text-brand-300 text-xl tracking-tight">
               Stoctable
             </span>
           </div>
@@ -82,8 +82,8 @@ export function Sidebar() {
                   'flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
                   collapsed ? 'justify-center' : 'gap-3',
                   isActive
-                    ? 'bg-brand-50 dark:bg-brand-900/30 text-brand-700 dark:text-brand-400'
-                    : 'text-gray-600 dark:text-gray-200 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:text-brand-700 dark:hover:text-white'
+                    ? 'bg-brand-800/50 text-brand-300'
+                    : 'text-gray-300 hover:bg-brand-800/30 hover:text-white'
                 )
               }
             >
@@ -95,12 +95,12 @@ export function Sidebar() {
       </nav>
 
       {/* Toggle button */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-2">
+      <div className="border-t border-brand-800/50 p-2">
         <button
           onClick={() => setCollapsed((c) => !c)}
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
           className={cn(
-            'flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:text-brand-700 dark:hover:text-white transition-colors',
+            'flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-400 hover:bg-brand-800/30 hover:text-white transition-colors',
             collapsed ? 'justify-center' : 'gap-3'
           )}
         >

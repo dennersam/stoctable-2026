@@ -32,29 +32,29 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-brand-950 px-6 shadow-sm">
+    <header className="flex h-14 items-center justify-between bg-brand-950 px-6 rounded-2xl shadow-md">
       <div className="flex items-center gap-2">
         {branchName && (
-          <span className="text-sm text-gray-500 dark:text-gray-400">— {branchName}</span>
+          <span className="text-sm text-gray-400">— {branchName}</span>
         )}
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-700 dark:text-gray-300">
+        <span className="text-sm text-gray-200">
           {user?.fullName}{' '}
-          <span className="rounded-full bg-brand-100 dark:bg-brand-900/40 px-2 py-0.5 text-xs font-medium text-brand-700 dark:text-brand-400 capitalize">
+          <span className="rounded-full bg-brand-800/60 px-2 py-0.5 text-xs font-medium text-brand-300 capitalize">
             {user?.role}
           </span>
         </span>
         <button
           onClick={toggle}
           title={isDark ? 'Modo claro' : 'Modo escuro'}
-          className="rounded-md p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="rounded-md p-1.5 text-gray-400 hover:bg-brand-800/40 hover:text-white transition-colors"
         >
           {isDark ? <SunIcon /> : <MoonIcon />}
         </button>
         <button
           onClick={handleLogout}
-          className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          className="text-sm text-gray-400 hover:text-white transition-colors"
         >
           Sair
         </button>

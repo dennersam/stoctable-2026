@@ -32,4 +32,12 @@ export const customerService = {
     const response = await api.post<CustomerCrmNote>(`/customers/${customerId}/crm-notes`, { note, noteType });
     return response.data;
   },
+
+  deactivate: async (id: string) => {
+    await api.delete(`/customers/${id}`);
+  },
+
+  hardDelete: async (id: string) => {
+    await api.delete(`/customers/${id}/permanent`);
+  },
 };

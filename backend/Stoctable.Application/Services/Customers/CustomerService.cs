@@ -169,6 +169,16 @@ public class CustomerService(ICustomerRepository customerRepository)
         return Result<bool>.Success(true);
     }
 
+    public async Task<Result<bool>> HardDeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        var customer = await customerRepository.GetByIdAsync(id, ct);
+        if (customer is null)
+            return Result<bool>.NotFound(ErrorMessages.Customer.NotFound);
+
+        await customerRepository.DeleteAsync(customer, ct);
+        return Result<bool>.Success(true);
+    }
+
     private static CustomerResponse MapToResponse(Customer c) => new(
         Id: c.Id,
         FullName: c.FullName,
