@@ -19,12 +19,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setAuth: (user, accessToken, refreshToken) => {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('authUser', JSON.stringify(user));
     set({ user, accessToken, isAuthenticated: true });
   },
 
   clearAuth: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('authUser');
     localStorage.removeItem('branchId');
     set({ user: null, accessToken: null, isAuthenticated: false });
   },
@@ -39,33 +41,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 // Hydrate from localStorage on app start
 export function hydrateAuth() {
   const token = localStorage.getItem('accessToken');
-  if (!token) return;
+  const storedUser = localStorage.getItem('authUser');
+  if (!token || !storedUser) return;
 
   try {
-    // Decode JWT payload to get user info (no library needed for payload decode)
+    // Check token expiry without relying on claim names
     const payload = JSON.parse(atob(token.split('.')[1]));
     const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) return;
 
-    if (payload.exp && payload.exp < now) {
-      // Token expired — clear and let interceptor handle refresh
-      return;
-    }
-
-    const user: AuthUser = {
-      id: payload.sub,
-      username: payload.preferred_username ?? payload.sub,
-      fullName: payload.name ?? '',
-      email: payload.email ?? '',
-      role: payload.role,
-      branchIds: JSON.parse(payload.branch_ids ?? '[]'),
-    };
-
-    useAuthStore.getState().setAuth(
-      user,
-      token,
-      localStorage.getItem('refreshToken') ?? ''
-    );
+    const user: AuthUser = JSON.parse(storedUser);
+    useAuthStore.getState().setAuth(user, token, localStorage.getItem('refreshToken') ?? '');
   } catch {
-    // Invalid token — ignore
+    // Invalid token or corrupted stored user — ignore
   }
 }
