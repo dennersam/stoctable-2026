@@ -104,26 +104,26 @@ export function ProductListPage() {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Buscar por SKU, nome, código de barras, fabricante..."
-        className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
       />
 
       {loading ? (
         <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
       ) : (
         <div className="space-y-3">
-          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-800">
+          <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-brand-800/50">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
+              <thead className="bg-gray-50 dark:bg-brand-900/40">
                 <tr>
                   {['SKU', 'Nome', 'Preço', 'Estoque disp.', 'Status'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                    <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">
                       {h}
                     </th>
                   ))}
                   {isAdmin && <th className="px-4 py-3" />}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
+              <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
                 {products.length === 0 ? (
                   <tr>
                     <td colSpan={isAdmin ? 6 : 5} className="py-8 text-center text-gray-400 dark:text-gray-500">
@@ -132,7 +132,7 @@ export function ProductListPage() {
                   </tr>
                 ) : (
                   products.map(p => (
-                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20">
                       <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{p.sku}</td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>

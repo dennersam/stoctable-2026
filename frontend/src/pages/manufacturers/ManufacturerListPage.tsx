@@ -9,7 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 const PAGE_SIZE = 20;
 
 const inputCls =
-  'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
+  'w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 // ─── Modal de cadastro / edição ───────────────────────────────────────────────
 
@@ -50,14 +50,14 @@ function ManufacturerModal({ manufacturer, onClose, onSaved }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-sm rounded-xl bg-white dark:bg-gray-900 shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4">
+      <div className="w-full max-w-sm rounded-xl bg-white dark:bg-brand-900 shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-brand-800/50 px-5 py-4">
           <h2 className="font-semibold text-gray-900 dark:text-white">
             {isEdit ? 'Editar Fabricante' : 'Novo Fabricante'}
           </h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600"
+            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-brand-800/40 hover:text-gray-600 dark:hover:text-gray-200"
           >
             ✕
           </button>
@@ -91,7 +91,7 @@ function ManufacturerModal({ manufacturer, onClose, onSaved }: ModalProps) {
           <div className="flex gap-2 justify-end pt-1">
             <button
               onClick={onClose}
-              className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="rounded-md border border-gray-300 dark:border-brand-700/50 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-800/30"
             >
               Cancelar
             </button>
@@ -195,7 +195,7 @@ export function ManufacturerListPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por nome..."
-          className="w-full max-w-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full max-w-sm rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
 
         {/* Table */}
@@ -203,18 +203,18 @@ export function ManufacturerListPage() {
           <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
         ) : (
           <>
-            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800">
+            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-brand-800/50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
+                <thead className="bg-gray-50 dark:bg-brand-900/40">
                   <tr>
                     {['Nome', 'Observações', 'Status', ''].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
                   {manufacturers.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500">
@@ -223,7 +223,7 @@ export function ManufacturerListPage() {
                     </tr>
                   ) : (
                     manufacturers.map((m) => (
-                      <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                      <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{m.name}</td>
                         <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
                           {m.notes ?? '—'}

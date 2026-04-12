@@ -57,7 +57,7 @@ export function QuotationListPage() {
             className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
               status === s
                 ? 'bg-brand-600 text-white'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                : 'bg-gray-100 dark:bg-brand-900/30 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-brand-800/40'
             }`}
           >
             {STATUS_LABELS[s]}
@@ -68,18 +68,18 @@ export function QuotationListPage() {
       {loading ? (
         <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-brand-800/50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
+            <thead className="bg-gray-50 dark:bg-brand-900/40">
               <tr>
                 {['Número', 'Cliente', 'Atendente', 'Total', 'Status', 'Data', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">
+                  <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
+            <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
               {quotations.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-gray-400 dark:text-gray-500">
@@ -88,7 +88,7 @@ export function QuotationListPage() {
                 </tr>
               ) : (
                 quotations.map(q => (
-                  <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                  <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
                     <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{q.quotationNumber}</td>
                     <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{q.customerName || '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{q.salespersonName || '—'}</td>

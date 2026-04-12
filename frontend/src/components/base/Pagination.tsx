@@ -23,7 +23,7 @@ export function Pagination({ page, totalPages, totalCount, pageSize, onPageChang
   if (totalPages > 1) add(totalPages);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-brand-800/40">
       <p className="text-sm text-gray-500 dark:text-gray-400">
         Exibindo <span className="font-medium text-gray-700 dark:text-gray-300">{from}–{to}</span> de{' '}
         <span className="font-medium text-gray-700 dark:text-gray-300">{totalCount}</span> registros
@@ -33,7 +33,7 @@ export function Pagination({ page, totalPages, totalCount, pageSize, onPageChang
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page === 1}
-          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-brand-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           ← Anterior
         </button>
@@ -48,7 +48,7 @@ export function Pagination({ page, totalPages, totalCount, pageSize, onPageChang
               className={`min-w-[2rem] px-2 py-1.5 text-sm rounded-md border transition-colors ${
                 p === page
                   ? 'bg-brand-600 border-brand-600 text-white font-medium'
-                  : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                  : 'border-gray-300 dark:border-brand-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30'
               }`}
             >
               {p}
@@ -59,7 +59,7 @@ export function Pagination({ page, totalPages, totalCount, pageSize, onPageChang
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page === totalPages}
-          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-sm rounded-md border border-gray-300 dark:border-brand-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Próxima →
         </button>

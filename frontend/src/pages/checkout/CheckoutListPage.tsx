@@ -26,7 +26,7 @@ export function CheckoutListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Caixa — Vendas Pendentes</h1>
-        <button onClick={load} className="rounded border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+        <button onClick={load} className="rounded border border-gray-300 dark:border-brand-700/50 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30">
           Atualizar
         </button>
       </div>
@@ -34,13 +34,13 @@ export function CheckoutListPage() {
       {loading ? (
         <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
       ) : sales.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-16 text-center text-gray-400 dark:text-gray-500">
+        <div className="rounded-lg border border-gray-200 dark:border-brand-800/50 bg-white dark:bg-brand-900/20 py-16 text-center text-gray-400 dark:text-gray-500">
           Nenhuma venda pendente de pagamento.
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {sales.map(s => (
-            <div key={s.id} className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-2">
+            <div key={s.id} className="rounded-lg border border-gray-200 dark:border-brand-800/50 bg-white dark:bg-brand-900/20 p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-sm font-semibold text-gray-700 dark:text-gray-200">{s.saleNumber}</span>
                 <span className="rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-400">

@@ -83,12 +83,12 @@ function Modal({ title, onClose, children, wide }: ModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-xl bg-white dark:bg-gray-900 shadow-xl`}>
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4">
+      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-xl bg-white dark:bg-brand-900 shadow-xl`}>
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-brand-800/50 px-5 py-4">
           <h2 className="font-semibold text-gray-900 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200"
+            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-brand-800/40 hover:text-gray-600 dark:hover:text-gray-200"
           >
             ✕
           </button>
@@ -216,14 +216,14 @@ export function InventoryPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar por SKU ou nome..."
-          className="flex-1 min-w-48 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="flex-1 min-w-48 rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
         <button
           onClick={() => setShowCritical(!showCritical)}
           className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
             showCritical
               ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 border border-transparent'
+              : 'bg-gray-100 dark:bg-brand-900/30 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-brand-800/40 border border-transparent dark:border-brand-700/30'
           }`}
         >
           Apenas críticos
@@ -231,7 +231,7 @@ export function InventoryPage() {
         {(search || showCritical) && (
           <button
             onClick={() => { setSearch(''); setShowCritical(false); }}
-            className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="rounded-md border border-gray-300 dark:border-brand-700/50 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30"
           >
             Limpar filtros
           </button>
@@ -242,21 +242,21 @@ export function InventoryPage() {
       {loading ? (
         <div className="py-16 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
+            <thead className="bg-gray-50 dark:bg-brand-900/40">
               <tr>
                 {['SKU', 'Nome', 'Total', 'Reservado', 'Disponível', 'Mínimo', 'Status', ''].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-brand-300/70"
                   >
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
+            <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-gray-400 dark:text-gray-500">
@@ -268,7 +268,7 @@ export function InventoryPage() {
                   const avail = p.stockQuantity - p.stockReserved;
                   const status = getStockStatus(p);
                   return (
-                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
                       <td className="px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-300">
                         {p.sku}
                       </td>
@@ -323,7 +323,7 @@ export function InventoryPage() {
         <Modal title={`Ajustar Estoque — ${adjustTarget.name}`} onClose={() => setAdjustTarget(null)}>
           <div className="space-y-4">
             {/* Current stock info */}
-            <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+            <div className="rounded-lg bg-gray-50 dark:bg-brand-900/30 p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 dark:text-gray-400">Estoque total</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
@@ -336,7 +336,7 @@ export function InventoryPage() {
                   {adjustTarget.stockReserved} {adjustTarget.unit}
                 </span>
               </div>
-              <div className="flex justify-between text-sm mt-1 pt-1 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between text-sm mt-1 pt-1 border-t border-gray-200 dark:border-brand-800/40">
                 <span className="text-gray-500 dark:text-gray-400">Disponível</span>
                 <span className="font-bold text-gray-900 dark:text-white">
                   {adjustTarget.stockQuantity - adjustTarget.stockReserved} {adjustTarget.unit}
@@ -355,7 +355,7 @@ export function InventoryPage() {
                 onChange={(e) => setAdjustQty(e.target.value)}
                 placeholder="Ex: 10 ou -5"
                 autoFocus
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               {adjustQty && !isNaN(parseFloat(adjustQty)) && parseFloat(adjustQty) !== 0 && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -376,14 +376,14 @@ export function InventoryPage() {
                 onChange={(e) => setAdjustNotes(e.target.value)}
                 rows={2}
                 placeholder="Ex: inventário mensal, devolução de cliente..."
-                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                className="w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
               />
             </div>
 
             <div className="flex gap-2 justify-end pt-1">
               <button
                 onClick={() => setAdjustTarget(null)}
-                className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="rounded-md border border-gray-300 dark:border-brand-700/50 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-800/30"
               >
                 Cancelar
               </button>
@@ -417,7 +417,7 @@ export function InventoryPage() {
               {movements.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-start justify-between rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 gap-4"
+                  className="flex items-start justify-between rounded-lg border border-gray-100 dark:border-brand-800/40 bg-gray-50 dark:bg-brand-900/30 px-4 py-3 gap-4"
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <span
