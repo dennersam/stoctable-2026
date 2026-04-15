@@ -1206,6 +1206,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("created_by");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("avatar_url");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(150)

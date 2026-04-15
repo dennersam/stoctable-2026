@@ -40,6 +40,21 @@ public class QuotationRepository(StoctableDbContext context) : Repository<Quotat
     // and can change Added dependents to Modified, causing 0-row UPDATE exceptions.
     public override async Task UpdateAsync(Quotation entity, CancellationToken ct = default)
     {
+        // EF Core 9 regression: new entities whose GUID PK is pre-set via BaseEntity
+        // (Id = Guid.NewGuid()) are treated as "existing entities being re-attached"
+        // when added to a tracked collection, resulting in Modified state instead of
+        // Added. This causes an UPDATE that affects 0 rows → DbUpdateConcurrencyException.
+        // Fix: any Modified entry where OriginalValue == CurrentValue for ALL properties
+        // was never persisted, so re-mark it as Added to generate INSERT instead.
+        foreach (var entry in Context.ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Modified
+                     && e.Entity is not AuditLog
+                     && e.Properties.All(p => Equals(p.OriginalValue, p.CurrentValue)))
+            .ToList())
+        {
+            entry.State = EntityState.Added;
+        }
+
         await Context.SaveChangesAsync(ct);
     }
 }

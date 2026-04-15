@@ -76,6 +76,39 @@ public class UserService(IUserRepository userRepository)
         return Result<UserResponse>.Success(MapToResponse(user));
     }
 
+    public async Task<Result<UserResponse>> GetMeAsync(Guid userId, CancellationToken ct = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, ct);
+        if (user is null)
+            return Result<UserResponse>.NotFound(ErrorMessages.User.NotFound);
+
+        return Result<UserResponse>.Success(MapToResponse(user));
+    }
+
+    public async Task<Result<UserResponse>> UpdateProfileAsync(Guid userId, UpdateProfileRequest request, CancellationToken ct = default)
+    {
+        var user = await userRepository.GetByIdAsync(userId, ct);
+        if (user is null)
+            return Result<UserResponse>.NotFound(ErrorMessages.User.NotFound);
+
+        if (request.NewPassword is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+                return Result<UserResponse>.Failure(ErrorMessages.User.IncorrectPassword);
+
+            if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+                return Result<UserResponse>.Failure(ErrorMessages.User.IncorrectPassword);
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        }
+
+        if (request.FullName is not null) user.FullName = request.FullName;
+        if (request.AvatarUrl is not null) user.AvatarUrl = request.AvatarUrl;
+
+        await userRepository.UpdateAsync(user, ct);
+        return Result<UserResponse>.Success(MapToResponse(user));
+    }
+
     private static UserResponse MapToResponse(User u) => new(
         Id: u.Id,
         Username: u.Username,
@@ -83,6 +116,7 @@ public class UserService(IUserRepository userRepository)
         FullName: u.FullName,
         Role: u.Role.ToString().ToLower(),
         IsActive: u.IsActive,
+        AvatarUrl: u.AvatarUrl,
         LastLoginAt: u.LastLoginAt,
         CreatedAt: u.CreatedAt);
 }

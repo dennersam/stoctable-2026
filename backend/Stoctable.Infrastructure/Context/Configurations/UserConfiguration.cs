@@ -18,6 +18,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.FullName).HasColumnName("full_name").HasMaxLength(150).IsRequired();
         builder.Property(u => u.Role).HasColumnName("role")
             .HasConversion(r => r.ToString().ToLowerInvariant(), s => Enum.Parse<UserRole>(s, true));
+        builder.Property(u => u.AvatarUrl).HasColumnName("avatar_url");
         builder.Property(u => u.IsActive).HasColumnName("is_active");
         builder.Property(u => u.LastLoginAt).HasColumnName("last_login_at");
         builder.Property(u => u.RefreshToken).HasColumnName("refresh_token").HasMaxLength(500);

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { customerService } from '@/services/customerService';
 import type { Customer, CustomerCrmNote } from '@/types/customer';
+import { CustomerModal } from './CustomerListPage';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,7 @@ export function CustomerDetailPage() {
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editOpen, setEditOpen] = useState(false);
 
   const [notes, setNotes] = useState<CustomerCrmNote[]>([]);
   const [notesLoading, setNotesLoading] = useState(true);
@@ -140,12 +142,12 @@ export function CustomerDetailPage() {
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link
-            to={`/customers/${id}/edit`}
+          <button
+            onClick={() => setEditOpen(true)}
             className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             Editar
-          </Link>
+          </button>
           {customer.isActive && (
             <button
               onClick={handleDeactivate}
@@ -245,6 +247,14 @@ export function CustomerDetailPage() {
           ))}
         </div>
       </section>
+
+      {editOpen && (
+        <CustomerModal
+          customerId={id!}
+          onClose={() => setEditOpen(false)}
+          onSaved={loadCustomer}
+        />
+      )}
     </div>
   );
 }

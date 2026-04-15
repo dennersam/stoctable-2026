@@ -71,7 +71,10 @@ public class QuotationService(
             return Result<QuotationResponse>.Failure(
                 string.Format(ErrorMessages.Quotation.CannotModify, quotation.Status));
 
-        var product = await productRepository.GetByIdAsync(request.ProductId, ct);
+        // AsNoTracking: apenas leitura do SalePrice — evita que o EF Core faça
+        // relationship fixup entre Product.QuotationItems e o novo QuotationItem,
+        // o que causava DbUpdateConcurrencyException no lote INSERT+UPDATE do Npgsql 9.
+        var product = await productRepository.GetByIdNoTrackingAsync(request.ProductId, ct);
         if (product is null)
             return Result<QuotationResponse>.NotFound(ErrorMessages.Product.NotFound);
 
@@ -98,7 +101,11 @@ public class QuotationService(
 
         RecalculateTotals(quotation);
         await quotationRepository.UpdateAsync(quotation, ct);
-        return Result<QuotationResponse>.Success(MapToResponse(quotation));
+
+        // Recarrega do banco para popular Product.Name/Sku nos itens (não disponível
+        // em memória pois o produto foi carregado sem rastreamento).
+        var updated = await quotationRepository.GetWithItemsAsync(quotationId, ct);
+        return Result<QuotationResponse>.Success(MapToResponse(updated!));
     }
 
     public async Task<Result<QuotationResponse>> RemoveItemAsync(Guid quotationId, Guid itemId, CancellationToken ct = default)

@@ -12,6 +12,7 @@ public class User : BaseEntity
     public UserRole Role { get; set; } = UserRole.Atendente;
     public bool IsActive { get; set; } = true;
     public DateTimeOffset? LastLoginAt { get; set; }
+    public string? AvatarUrl { get; set; }
     public string? RefreshToken { get; set; }
     public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
 }

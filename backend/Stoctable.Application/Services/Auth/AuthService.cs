@@ -43,7 +43,8 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
                 FullName: user.FullName,
                 Email: user.Email,
                 Role: user.Role.ToString().ToLower(),
-                BranchIds: []));
+                BranchIds: [],
+                AvatarUrl: user.AvatarUrl));
 
         return Result<AuthTokenResponse>.Success(response);
     }
@@ -75,7 +76,8 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
                 FullName: user.FullName,
                 Email: user.Email,
                 Role: user.Role.ToString().ToLower(),
-                BranchIds: []));
+                BranchIds: [],
+                AvatarUrl: user.AvatarUrl));
 
         return Result<AuthTokenResponse>.Success(response);
     }

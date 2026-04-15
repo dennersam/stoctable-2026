@@ -17,7 +17,7 @@ public class StoctableDbContextFactory : IDesignTimeDbContextFactory<StoctableDb
     public StoctableDbContext CreateDbContext(string[] args)
     {
         var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
-            ?? "Host=localhost;Database=stoctable_branch_dev;Username=postgres;Password=postgres";
+            ?? "Host=ep-divine-sky-ae4edken-pooler.c-2.us-east-2.aws.neon.tech; Database=neondb; Username=neondb_owner; Password=npg_f7edhy4IOJnK; SSL Mode=VerifyFull; Channel Binding=Require;";
 
         var optionsBuilder = new DbContextOptionsBuilder<StoctableDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

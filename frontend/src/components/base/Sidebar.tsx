@@ -39,7 +39,12 @@ const navItems: NavItem[] = [
   { label: 'Administração',to: '/admin',         icon: Settings,       roles: ['admin'] },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  isMobile?: boolean;
+  onMobileClose?: () => void;
+}
+
+export function Sidebar({ isMobile = false, onMobileClose }: SidebarProps) {
   const { user } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -51,12 +56,14 @@ export function Sidebar() {
     <aside
       className={cn(
         'relative flex flex-col overflow-hidden bg-brand-950 rounded-2xl shadow-md transition-all duration-200',
-        collapsed ? 'w-15' : 'w-56'
+        isMobile
+          ? 'w-56 h-full'
+          : collapsed ? 'w-15' : 'w-56'
       )}
     >
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-brand-800/50 px-3 overflow-hidden">
-        {collapsed ? (
+        {!isMobile && collapsed ? (
           <Logo size={26} className="mx-auto text-brand-300" />
         ) : (
           <div className="flex w-full items-center justify-center gap-2.5 whitespace-nowrap">
@@ -72,15 +79,17 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 p-2 overflow-hidden">
         {visibleItems.map((item) => {
           const Icon = item.icon;
+          const isCollapsed = !isMobile && collapsed;
           return (
             <NavLink
               key={item.to}
               to={item.to}
-              title={collapsed ? item.label : undefined}
+              title={isCollapsed ? item.label : undefined}
+              onClick={isMobile ? onMobileClose : undefined}
               className={({ isActive }) =>
                 cn(
                   'flex items-center rounded-md px-2 py-2 text-sm font-medium transition-colors',
-                  collapsed ? 'justify-center' : 'gap-3',
+                  isCollapsed ? 'justify-center' : 'gap-3',
                   isActive
                     ? 'bg-brand-800/50 text-brand-300'
                     : 'text-gray-300 hover:bg-brand-800/30 hover:text-white'
@@ -88,30 +97,32 @@ export function Sidebar() {
               }
             >
               <Icon size={18} className="shrink-0" />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!isCollapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           );
         })}
       </nav>
 
-      {/* Toggle button */}
-      <div className="border-t border-brand-800/50 p-2">
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
-          className={cn(
-            'flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-400 hover:bg-brand-800/30 hover:text-white transition-colors',
-            collapsed ? 'justify-center' : 'gap-3'
-          )}
-        >
-          {collapsed ? <ChevronRight size={18} /> : (
-            <>
-              <ChevronLeft size={18} className="shrink-0" />
-              <span>Recolher</span>
-            </>
-          )}
-        </button>
-      </div>
+      {/* Toggle button — hidden on mobile drawer */}
+      {!isMobile && (
+        <div className="border-t border-brand-800/50 p-2">
+          <button
+            onClick={() => setCollapsed((c) => !c)}
+            title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+            className={cn(
+              'flex w-full items-center rounded-md px-2 py-2 text-sm text-gray-400 hover:bg-brand-800/30 hover:text-white transition-colors',
+              collapsed ? 'justify-center' : 'gap-3'
+            )}
+          >
+            {collapsed ? <ChevronRight size={18} /> : (
+              <>
+                <ChevronLeft size={18} className="shrink-0" />
+                <span>Recolher</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }

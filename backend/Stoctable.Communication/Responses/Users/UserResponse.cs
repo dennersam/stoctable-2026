@@ -7,5 +7,6 @@ public record UserResponse(
     string FullName,
     string Role,
     bool IsActive,
+    string? AvatarUrl,
     DateTimeOffset? LastLoginAt,
     DateTimeOffset CreatedAt);

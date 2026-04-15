@@ -12,4 +12,5 @@ public record UserResponse(
     string FullName,
     string Email,
     string Role,
-    List<string> BranchIds);
+    List<string> BranchIds,
+    string? AvatarUrl = null);

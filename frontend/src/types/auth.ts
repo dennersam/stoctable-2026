@@ -7,6 +7,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   branchIds: string[];
+  avatarUrl?: string | null;
 }
 
 export interface AuthTokenResponse {

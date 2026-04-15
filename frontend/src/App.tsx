@@ -10,12 +10,9 @@ import { AdminDashboard } from '@/pages/dashboard/AdminDashboard';
 import { AtendenteDashboard } from '@/pages/dashboard/AtendenteDashboard';
 import { CaixaDashboard } from '@/pages/dashboard/CaixaDashboard';
 import { ProductListPage } from '@/pages/products/ProductListPage';
-import { ProductFormPage } from '@/pages/products/ProductFormPage';
 import { CustomerListPage } from '@/pages/customers/CustomerListPage';
-import { CustomerFormPage } from '@/pages/customers/CustomerFormPage';
 import { CustomerDetailPage } from '@/pages/customers/CustomerDetailPage';
 import { SupplierListPage } from '@/pages/suppliers/SupplierListPage';
-import { SupplierFormPage } from '@/pages/suppliers/SupplierFormPage';
 import { QuotationListPage } from '@/pages/quotations/QuotationListPage';
 import { QuotationEditorPage } from '@/pages/quotations/QuotationEditorPage';
 import { QuotationDetailPage } from '@/pages/quotations/QuotationDetailPage';
@@ -60,22 +57,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/products/new"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <ProductFormPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/products/:id/edit"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <ProductFormPage />
-              </ProtectedRoute>
-            }
-          />
 
           {/* Customers */}
           <Route
@@ -87,26 +68,10 @@ function App() {
             }
           />
           <Route
-            path="/customers/new"
-            element={
-              <ProtectedRoute roles={['admin', 'atendente']}>
-                <CustomerFormPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/customers/:id"
             element={
               <ProtectedRoute roles={['admin', 'atendente']}>
                 <CustomerDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/customers/:id/edit"
-            element={
-              <ProtectedRoute roles={['admin', 'atendente']}>
-                <CustomerFormPage />
               </ProtectedRoute>
             }
           />
@@ -181,22 +146,6 @@ function App() {
             element={
               <ProtectedRoute roles={['admin']}>
                 <SupplierListPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/suppliers/new"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <SupplierFormPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/suppliers/:id/edit"
-            element={
-              <ProtectedRoute roles={['admin']}>
-                <SupplierFormPage />
               </ProtectedRoute>
             }
           />

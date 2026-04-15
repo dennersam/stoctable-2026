@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { quotationService } from '@/services/quotationService';
@@ -26,6 +26,11 @@ export function QuotationEditorPage() {
   const [quotation, setQuotation] = useState<Quotation | null>(null);
   const [cart, setCart] = useState<CartRow[]>([]);
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  // Customer selected before the quotation was created is stored here and
+  // applied as soon as the quotation is lazily created.
+  const pendingCustomerRef = useRef<Customer | null>(null);
 
   const [productSearch, setProductSearch] = useState('');
   const [productResults, setProductResults] = useState<Product[]>([]);
@@ -46,31 +51,32 @@ export function QuotationEditorPage() {
 
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const q = await quotationService.create({ customerId: undefined });
-        setQuotation(q);
-      } catch {
-        toast.error('Erro ao criar orçamento.');
-        navigate('/quotations');
+  // ── Lazy creation ────────────────────────────────────────────────────────────
+  // The quotation is only created when the user actually adds a product (or
+  // selects a customer while items are already being added).  This prevents
+  // orphan draft records when the user opens the page and navigates away.
+  const ensureQuotation = useCallback(async (): Promise<Quotation | null> => {
+    if (quotation) return quotation;
+    setCreating(true);
+    try {
+      const q = await quotationService.create({ customerId: undefined });
+      setQuotation(q);
+      setCart([]);
+      // Apply a customer that was selected before the quotation existed
+      if (pendingCustomerRef.current) {
+        try {
+          await quotationService.setCustomer(q.id, pendingCustomerRef.current.id);
+        } catch { /* non-critical — customer can be set again */ }
       }
-    };
-    init();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (!quotation) return;
-    setCart(quotation.items.map(i => ({
-      productId: i.productId,
-      sku: i.productSku,
-      name: i.productName,
-      quantity: i.quantity,
-      unitPrice: i.unitPrice,
-      discountPct: i.discountPct,
-      lineTotal: i.lineTotal,
-    })));
-  }, [quotation]);
+      return q;
+    } catch {
+      toast.error('Erro ao criar orçamento.');
+      navigate('/quotations');
+      return null;
+    } finally {
+      setCreating(false);
+    }
+  }, [quotation, navigate]);
 
   const handleProductSearch = useCallback((value: string) => {
     setProductSearch(value);
@@ -86,16 +92,26 @@ export function QuotationEditorPage() {
   }, []);
 
   const handleAddProduct = async (product: Product) => {
-    if (!quotation) return;
     setShowProductDropdown(false);
     setProductSearch('');
+    const q = await ensureQuotation();
+    if (!q) return;
     try {
-      const updated = await quotationService.addItem(quotation.id, {
+      const updated = await quotationService.addItem(q.id, {
         productId: product.id,
         quantity: 1,
         discountPct: 0,
       });
       setQuotation(updated);
+      setCart(updated.items.map(i => ({
+        productId: i.productId,
+        sku: i.productSku,
+        name: i.productName,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discountPct: i.discountPct,
+        lineTotal: i.lineTotal,
+      })));
       toast.success(`${product.name} adicionado.`);
     } catch (err: any) {
       toast.error(err?.response?.data?.detail ?? 'Erro ao adicionar item.');
@@ -107,6 +123,15 @@ export function QuotationEditorPage() {
     try {
       const updated = await quotationService.addItem(quotation.id, { productId, quantity, discountPct: 0 });
       setQuotation(updated);
+      setCart(updated.items.map(i => ({
+        productId: i.productId,
+        sku: i.productSku,
+        name: i.productName,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discountPct: i.discountPct,
+        lineTotal: i.lineTotal,
+      })));
     } catch (err: any) {
       toast.error(err?.response?.data?.detail ?? 'Erro ao atualizar quantidade.');
     }
@@ -117,6 +142,15 @@ export function QuotationEditorPage() {
     try {
       const updated = await quotationService.removeItem(quotation.id, itemId);
       setQuotation(updated);
+      setCart(updated.items.map(i => ({
+        productId: i.productId,
+        sku: i.productSku,
+        name: i.productName,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discountPct: i.discountPct,
+        lineTotal: i.lineTotal,
+      })));
     } catch {
       toast.error('Erro ao remover item.');
     }
@@ -140,17 +174,22 @@ export function QuotationEditorPage() {
     setCustomer(c);
     setCustomerSearch(c.fullName);
     setShowCustomerDropdown(false);
-    if (!quotation) return;
-    try {
-      await quotationService.setCustomer(quotation.id, c.id);
-    } catch {
-      toast.error('Erro ao vincular cliente ao orçamento.');
+    if (quotation) {
+      try {
+        await quotationService.setCustomer(quotation.id, c.id);
+      } catch {
+        toast.error('Erro ao vincular cliente ao orçamento.');
+      }
+    } else {
+      // Store for when the quotation is lazily created
+      pendingCustomerRef.current = c;
     }
   };
 
   const handleRemoveCustomer = async () => {
     setCustomer(null);
     setCustomerSearch('');
+    pendingCustomerRef.current = null;
     if (!quotation) return;
     try {
       await quotationService.setCustomer(quotation.id, null);
@@ -166,6 +205,15 @@ export function QuotationEditorPage() {
         notes: finalizeNotes || undefined,
       });
       setQuotation(updated);
+      setCart(updated.items.map(i => ({
+        productId: i.productId,
+        sku: i.productSku,
+        name: i.productName,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        discountPct: i.discountPct,
+        lineTotal: i.lineTotal,
+      })));
       setShowFinalize(false);
       toast.success(`Orçamento ${updated.quotationNumber} finalizado!`);
       navigate('/quotations');
@@ -177,7 +225,12 @@ export function QuotationEditorPage() {
   };
 
   const handleCancel = async () => {
-    if (!quotation || !cancelReason.trim()) {
+    if (!quotation) {
+      // No quotation created yet — just go back without leaving any orphan
+      navigate('/quotations');
+      return;
+    }
+    if (!cancelReason.trim()) {
       toast.error('Informe o motivo do cancelamento.');
       return;
     }
@@ -197,10 +250,6 @@ export function QuotationEditorPage() {
   const discountAmount = subtotal * discountPct / 100;
   const total = subtotal - discountAmount;
 
-  if (!quotation) {
-    return <div className="flex h-64 items-center justify-center text-gray-500 dark:text-gray-400">Criando orçamento...</div>;
-  }
-
   return (
     <div className="flex h-full flex-col gap-4 lg:flex-row">
       {/* Left: item search + cart */}
@@ -208,7 +257,12 @@ export function QuotationEditorPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             Novo Orçamento
-            <span className="ml-2 text-sm font-normal text-gray-400 dark:text-gray-500">{quotation.quotationNumber}</span>
+            {quotation && (
+              <span className="ml-2 text-sm font-normal text-gray-400 dark:text-gray-500">{quotation.quotationNumber}</span>
+            )}
+            {creating && (
+              <span className="ml-2 text-sm font-normal text-gray-400 dark:text-gray-500 animate-pulse">criando...</span>
+            )}
           </h1>
         </div>
 
@@ -307,7 +361,7 @@ export function QuotationEditorPage() {
                 </tr>
               ) : (
                 cart.map(row => {
-                  const item = quotation.items.find(i => i.productId === row.productId);
+                  const item = quotation?.items.find(i => i.productId === row.productId);
                   return (
                     <tr key={row.productId}>
                       <td className="px-3 py-2">
@@ -379,10 +433,10 @@ export function QuotationEditorPage() {
 
         <button
           disabled={saving}
-          onClick={() => setShowCancel(true)}
+          onClick={() => quotation ? setShowCancel(true) : navigate('/quotations')}
           className="w-full rounded-md border border-red-200 dark:border-red-800 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
         >
-          Cancelar orçamento
+          {quotation ? 'Cancelar orçamento' : 'Voltar'}
         </button>
       </div>
 

@@ -14,6 +14,13 @@ public class ProductRepository(StoctableDbContext context) : Repository<Product>
             .Include(p => p.Supplier)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
 
+    // Carrega o produto sem rastreamento — use quando apenas leitura é necessária
+    // (ex: obter SalePrice para criar QuotationItem) para evitar relationship fixup
+    // indesejado entre Product.QuotationItems e o QuotationItem recém-criado,
+    // que causava DbUpdateConcurrencyException no EF Core 9 + Npgsql 9.
+    public async Task<Product?> GetByIdNoTrackingAsync(Guid id, CancellationToken ct = default)
+        => await DbSet.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id, ct);
+
     public override async Task<IEnumerable<Product>> GetAllAsync(CancellationToken ct = default)
         => await DbSet
             .Include(p => p.Category)

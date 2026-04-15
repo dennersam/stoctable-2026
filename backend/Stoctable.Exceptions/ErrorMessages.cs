@@ -15,6 +15,7 @@ public static class ErrorMessages
         public const string NotFound = "Usuário não encontrado.";
         public const string UsernameAlreadyExists = "Nome de usuário já está em uso.";
         public const string EmailAlreadyExists = "E-mail já está em uso.";
+        public const string IncorrectPassword = "Senha atual incorreta.";
     }
 
     public static class Product

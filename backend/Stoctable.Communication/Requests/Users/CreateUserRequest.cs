@@ -14,3 +14,9 @@ public record UpdateUserRequest(
     string? Password = null,
     string? Role = null,
     bool? IsActive = null);
+
+public record UpdateProfileRequest(
+    string? FullName = null,
+    string? AvatarUrl = null,
+    string? CurrentPassword = null,
+    string? NewPassword = null);

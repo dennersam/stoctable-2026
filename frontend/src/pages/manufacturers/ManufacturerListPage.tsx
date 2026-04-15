@@ -203,15 +203,14 @@ export function ManufacturerListPage() {
           <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
         ) : (
           <>
-            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-brand-800/50">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
                 <thead className="bg-gray-50 dark:bg-brand-900/40">
                   <tr>
-                    {['Nome', 'Observações', 'Status', ''].map((h) => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">
-                        {h}
-                      </th>
-                    ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">Nome</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70 hidden sm:table-cell">Observações</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">Status</th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
@@ -225,7 +224,7 @@ export function ManufacturerListPage() {
                     manufacturers.map((m) => (
                       <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
                         <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{m.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate hidden sm:table-cell">
                           {m.notes ?? '—'}
                         </td>
                         <td className="px-4 py-3">

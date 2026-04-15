@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Stoctable.Application.Services.Users;
 using Stoctable.Communication.Requests.Users;
 
@@ -7,6 +8,28 @@ public static class UserEndpoints
 {
     public static void MapUserEndpoints(this IEndpointRouteBuilder app)
     {
+        var meGroup = app.MapGroup("/api/users/me")
+            .WithTags("Users")
+            .RequireAuthorization();
+
+        meGroup.MapGet("/", async (ClaimsPrincipal principal, UserService service, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await service.GetMeAsync(userId, ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("GetMe");
+
+        meGroup.MapPut("/", async (UpdateProfileRequest request, ClaimsPrincipal principal, UserService service, CancellationToken ct) =>
+        {
+            var userId = Guid.Parse(principal.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var result = await service.UpdateProfileAsync(userId, request, ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("UpdateMe");
+
         var group = app.MapGroup("/api/users")
             .WithTags("Users")
             .RequireAuthorization("AdminOnly");
