@@ -17,6 +17,8 @@ public class Sale : BaseEntity
     public decimal AmountPaid { get; set; }
     public string? Notes { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
+    public DateTimeOffset? CancelledAt { get; set; }
+    public string? CancellationReason { get; set; }
 
     public Customer? Customer { get; set; }
     public User? Salesperson { get; set; }

@@ -20,7 +20,25 @@
       "Bash(sed -i 's/bg-white dark:bg-gray-900 transition-all/bg-white dark:bg-brand-950 transition-all/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
       "Bash(sed -i 's/hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900/hover:bg-brand-50 dark:hover:bg-brand-900\\\\/20 hover:text-brand-700/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
       "Bash(sed -i 's/'\\\\''text-gray-600 dark:text-gray-300 hover/'\\\\''text-gray-600 dark:text-gray-200 hover/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
-      "Bash(sed -i 's/hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200/hover:bg-brand-50 dark:hover:bg-brand-900\\\\/20 hover:text-brand-700 dark:hover:text-white/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)"
+      "Bash(sed -i 's/hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200/hover:bg-brand-50 dark:hover:bg-brand-900\\\\/20 hover:text-brand-700 dark:hover:text-white/' /c/Users/Denner/Dev/Stoctable/frontend/src/components/base/Sidebar.tsx)",
+      "Bash(dotnet run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000/health)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5000/)",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\" http://localhost:5000/health)",
+      "Bash(dotnet list *)",
+      "Bash(dotnet clean *)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(find ~/.nuget/packages/npgsql.entityframeworkcore.postgresql -name \"*.dll\" 2>/dev/null | head -5)",
+      "Read(//c/Users/Denner/.nuget/packages/npgsql.entityframeworkcore.postgresql/**)",
+      "PowerShell(dotnet build Stoctable.slnx --nologo 2>&1)",
+      "PowerShell(dotnet restore Stoctable.Tests 2>&1)",
+      "PowerShell(dotnet build Stoctable.Tests --nologo 2>&1)",
+      "PowerShell(docker info 2>&1)",
+      "PowerShell(dotnet test Stoctable.Tests --no-build --nologo --logger \"console;verbosity=normal\" 2>&1)",
+      "PowerShell(dotnet ef migrations has-pending-model-changes --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)",
+      "PowerShell(dotnet ef migrations add InvestigatePending --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)",
+      "PowerShell(dotnet ef migrations remove --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)",
+      "PowerShell(dotnet test Stoctable.Tests --nologo --logger \"console;verbosity=minimal\" 2>&1)"
     ]
   }
 }

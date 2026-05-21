@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Stoctable.Domain.Contracts;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Contracts.Services;
 using Stoctable.Infrastructure.Context;
@@ -53,6 +54,8 @@ public static class DependencyInjectionExtension
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();
         services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
+
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         return services;
     }

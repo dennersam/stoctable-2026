@@ -12,4 +12,12 @@ public interface IProductRepository : IRepository<Product>
     Task<int> GetNextSkuAsync(CancellationToken ct = default);
     Task<(IEnumerable<Product> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, string? search, CancellationToken ct = default);
+
+    /// <summary>
+    /// Decrementa stock_quantity e stock_reserved atomicamente em uma única
+    /// SQL UPDATE com guarda WHERE stock_quantity &gt;= quantity. Retorna
+    /// true se a linha foi atualizada (estoque havia), false caso contrário —
+    /// previne oversell sob concorrência sem precisar de optimistic lock.
+    /// </summary>
+    Task<bool> TryDecrementStockAsync(Guid productId, decimal quantity, CancellationToken ct = default);
 }

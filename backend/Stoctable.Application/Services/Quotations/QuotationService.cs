@@ -1,6 +1,7 @@
 using Stoctable.Application.Results;
 using Stoctable.Communication.Requests.Quotations;
 using Stoctable.Communication.Responses.Quotations;
+using Stoctable.Domain.Contracts;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
 using Stoctable.Domain.Enums;
@@ -12,7 +13,8 @@ public class QuotationService(
     IQuotationRepository quotationRepository,
     IProductRepository productRepository,
     IInventoryRepository inventoryRepository,
-    ISaleRepository saleRepository)
+    ISaleRepository saleRepository,
+    IUnitOfWork unitOfWork)
 {
     public async Task<Result<IEnumerable<QuotationResponse>>> GetByStatusAsync(QuotationStatus status, CancellationToken ct = default)
     {
@@ -220,7 +222,10 @@ public class QuotationService(
 
     /// <summary>
     /// Converte o orçamento em venda. Retorna apenas o ID da venda criada.
-    /// A criação completa da Sale é feita pelo SaleService.
+    /// Toda a operação roda em uma única transação — se qualquer passo
+    /// falhar nada é persistido. A baixa de estoque usa UPDATE atômico
+    /// com guarda (stock_quantity >= quantity), prevenindo oversell sob
+    /// concorrência.
     /// </summary>
     public async Task<Result<Guid>> ConvertToSaleAsync(Guid quotationId, Guid cashierId, CancellationToken ct = default)
     {
@@ -232,64 +237,81 @@ public class QuotationService(
             return Result<Guid>.Failure(
                 string.Format(ErrorMessages.Quotation.CannotModify, quotation.Status));
 
-        var saleNumber = await saleRepository.GenerateNextNumberAsync(ct);
-
-        var saleItems = quotation.Items.Select(i => new SaleItem
+        try
         {
-            ProductId = i.ProductId,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice,
-            DiscountPct = i.DiscountPct,
-            LineTotal = i.LineTotal
-        }).ToList();
-
-        var sale = new Sale
-        {
-            SaleNumber = saleNumber,
-            QuotationId = quotationId,
-            CustomerId = quotation.CustomerId,
-            SalespersonId = quotation.SalespersonId,
-            CashierId = cashierId,
-            Subtotal = quotation.Subtotal,
-            DiscountAmount = quotation.DiscountAmount,
-            TotalAmount = quotation.TotalAmount,
-            Notes = quotation.Notes,
-            Status = SaleStatus.PendingPayment,
-            Items = saleItems
-        };
-
-        await saleRepository.AddAsync(sale, ct);
-
-        // Decrement actual stock and release reservations
-        foreach (var item in quotation.Items)
-        {
-            var product = await productRepository.GetByIdAsync(item.ProductId, ct);
-            if (product is null) continue;
-
-            product.StockQuantity -= item.Quantity;
-            product.StockReserved -= item.Quantity;
-            await productRepository.UpdateAsync(product, ct);
-
-            var movement = new InventoryMovement
+            var result = await unitOfWork.ExecuteInTransactionAsync<Result<Guid>>(async innerCt =>
             {
-                ProductId = item.ProductId,
-                MovementType = MovementType.Sale,
-                Quantity = -item.Quantity,
-                QuantityBefore = product.StockQuantity + item.Quantity,
-                QuantityAfter = product.StockQuantity,
-                ReferenceType = "sale",
-                ReferenceId = sale.Id
-            };
-            await inventoryRepository.AddMovementAsync(movement, ct);
+                var saleNumber = await saleRepository.GenerateNextNumberAsync(innerCt);
+
+                var saleItems = quotation.Items.Select(i => new SaleItem
+                {
+                    ProductId = i.ProductId,
+                    Quantity = i.Quantity,
+                    UnitPrice = i.UnitPrice,
+                    DiscountPct = i.DiscountPct,
+                    LineTotal = i.LineTotal
+                }).ToList();
+
+                var sale = new Sale
+                {
+                    SaleNumber = saleNumber,
+                    QuotationId = quotationId,
+                    CustomerId = quotation.CustomerId,
+                    SalespersonId = quotation.SalespersonId,
+                    CashierId = cashierId,
+                    Subtotal = quotation.Subtotal,
+                    DiscountAmount = quotation.DiscountAmount,
+                    TotalAmount = quotation.TotalAmount,
+                    Notes = quotation.Notes,
+                    Status = SaleStatus.PendingPayment,
+                    Items = saleItems
+                };
+
+                await saleRepository.AddAsync(sale, innerCt);
+
+                foreach (var item in quotation.Items)
+                {
+                    var productBefore = await productRepository.GetByIdNoTrackingAsync(item.ProductId, innerCt);
+                    if (productBefore is null)
+                        throw new InvalidOperationException(ErrorMessages.Product.NotFound);
+
+                    var ok = await productRepository.TryDecrementStockAsync(item.ProductId, item.Quantity, innerCt);
+                    if (!ok)
+                        throw new InsufficientStockException(
+                            string.Format(ErrorMessages.Product.InsufficientStock, productBefore.Name));
+
+                    var movement = new InventoryMovement
+                    {
+                        ProductId = item.ProductId,
+                        MovementType = MovementType.Sale,
+                        Quantity = -item.Quantity,
+                        QuantityBefore = productBefore.StockQuantity,
+                        QuantityAfter = productBefore.StockQuantity - item.Quantity,
+                        ReferenceType = "sale",
+                        ReferenceId = sale.Id
+                    };
+                    await inventoryRepository.AddMovementAsync(movement, innerCt);
+                }
+
+                await ReleaseReservationsAsync(quotationId, innerCt);
+
+                quotation.Status = QuotationStatus.Converted;
+                quotation.ConvertedToSaleId = sale.Id;
+                await quotationRepository.UpdateAsync(quotation, innerCt);
+
+                return Result<Guid>.Success(sale.Id);
+            }, ct);
+
+            return result;
         }
-
-        await ReleaseReservationsAsync(quotationId, ct);
-
-        quotation.Status = QuotationStatus.Converted;
-        quotation.ConvertedToSaleId = sale.Id;
-        await quotationRepository.UpdateAsync(quotation, ct);
-
-        return Result<Guid>.Success(sale.Id);
+        catch (InsufficientStockException ex)
+        {
+            return Result<Guid>.Conflict(ex.Message);
+        }
+        catch (ConcurrencyConflictException)
+        {
+            return Result<Guid>.Conflict(ErrorMessages.Quotation.ConcurrentStockChange);
+        }
     }
 
     private async Task ReleaseReservationsAsync(Guid quotationId, CancellationToken ct)

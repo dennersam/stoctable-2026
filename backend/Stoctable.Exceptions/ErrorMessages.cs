@@ -40,6 +40,7 @@ public static class ErrorMessages
         public const string CannotCancel = "Orçamento não pode ser cancelado no status atual: {0}.";
         public const string AlreadyConverted = "Orçamento já foi convertido em venda.";
         public const string EmptyItems = "Orçamento deve ter pelo menos um item.";
+        public const string ConcurrentStockChange = "O estoque de um dos produtos foi alterado por outra operação. Recarregue o orçamento e tente novamente.";
     }
 
     public static class Sale

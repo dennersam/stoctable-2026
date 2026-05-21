@@ -96,4 +96,34 @@ public class ProductRepository(StoctableDbContext context) : Repository<Product>
             .Max();
         return maxInt + 1;
     }
+
+    public async Task<bool> TryDecrementStockAsync(Guid productId, decimal quantity, CancellationToken ct = default)
+    {
+        // UPDATE atômico — a guarda WHERE stock_quantity >= quantity garante
+        // que dois caixas convertendo orçamentos do mesmo produto nunca
+        // resultem em estoque negativo, mesmo sem optimistic lock.
+        // Apenas stock_quantity é tocado aqui; stock_reserved é liberado
+        // separadamente em StockReservation via ReleaseReservationsAsync.
+        var rowsAffected = await Context.Database.ExecuteSqlInterpolatedAsync(
+            $@"UPDATE products
+                  SET stock_quantity = stock_quantity - {quantity},
+                      updated_at     = NOW()
+                WHERE id = {productId}
+                  AND stock_quantity >= {quantity}", ct);
+
+        if (rowsAffected == 1)
+        {
+            // Mantém o estado em memória coerente caso a entidade esteja
+            // sendo rastreada pelo DbContext desta scope.
+            var tracked = Context.ChangeTracker.Entries<Product>()
+                .FirstOrDefault(e => e.Entity.Id == productId);
+            if (tracked is not null)
+            {
+                tracked.Entity.StockQuantity -= quantity;
+                tracked.State = EntityState.Unchanged;
+            }
+        }
+
+        return rowsAffected == 1;
+    }
 }
