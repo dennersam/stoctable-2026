@@ -48,6 +48,8 @@ public static class ErrorMessages
         public const string NotFound = "Venda não encontrada.";
         public const string AlreadyPaid = "Venda já foi paga.";
         public const string PaymentExceedsTotal = "Valor do pagamento excede o total da venda.";
+        public const string AlreadyCancelled = "Venda já foi cancelada.";
+        public const string CancellationReasonRequired = "Informe o motivo do cancelamento.";
     }
 
     public static class Manufacturer

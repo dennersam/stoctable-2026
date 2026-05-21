@@ -126,4 +126,26 @@ public class ProductRepository(StoctableDbContext context) : Repository<Product>
 
         return rowsAffected == 1;
     }
+
+    public async Task<bool> IncrementStockAsync(Guid productId, decimal quantity, CancellationToken ct = default)
+    {
+        var rowsAffected = await Context.Database.ExecuteSqlInterpolatedAsync(
+            $@"UPDATE products
+                  SET stock_quantity = stock_quantity + {quantity},
+                      updated_at     = NOW()
+                WHERE id = {productId}", ct);
+
+        if (rowsAffected == 1)
+        {
+            var tracked = Context.ChangeTracker.Entries<Product>()
+                .FirstOrDefault(e => e.Entity.Id == productId);
+            if (tracked is not null)
+            {
+                tracked.Entity.StockQuantity += quantity;
+                tracked.State = EntityState.Unchanged;
+            }
+        }
+
+        return rowsAffected == 1;
+    }
 }

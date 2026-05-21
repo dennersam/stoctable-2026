@@ -34,5 +34,13 @@ public static class SaleEndpoints
                 ? Results.Ok(result.Data)
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).WithName("ProcessPayment");
+
+        group.MapPost("/{id:guid}/cancel", async (Guid id, CancelSaleRequest request, SaleService service, CancellationToken ct) =>
+        {
+            var result = await service.CancelAsync(id, request, ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("CancelSale");
     }
 }

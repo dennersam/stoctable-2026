@@ -18,6 +18,8 @@ public record SaleResponse(
     decimal AmountRemaining,
     string? Notes,
     DateTimeOffset? CompletedAt,
+    DateTimeOffset? CancelledAt,
+    string? CancellationReason,
     List<SaleItemResponse> Items,
     List<PaymentResponse> Payments,
     DateTimeOffset CreatedAt);
@@ -40,4 +42,5 @@ public record PaymentResponse(
     int Installments,
     string Status,
     string? TransactionRef,
-    DateTimeOffset? PaidAt);
+    DateTimeOffset? PaidAt,
+    DateTimeOffset? RefundedAt);

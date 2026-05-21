@@ -22,6 +22,7 @@ export interface Payment {
   status: PaymentStatus;
   transactionRef?: string;
   paidAt?: string;
+  refundedAt?: string;
 }
 
 export interface PaymentMethod {
@@ -49,6 +50,8 @@ export interface Sale {
   amountPaid: number;
   notes?: string;
   completedAt?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
   items: SaleItem[];
   payments: Payment[];
   createdAt: string;
@@ -61,4 +64,8 @@ export interface ProcessPaymentRequest {
     installments?: number;
     transactionRef?: string;
   }[];
+}
+
+export interface CancelSaleRequest {
+  cancellationReason: string;
 }

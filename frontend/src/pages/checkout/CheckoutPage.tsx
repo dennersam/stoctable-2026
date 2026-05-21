@@ -26,6 +26,10 @@ export function CheckoutPage() {
     { paymentMethodId: '', amount: 0, installments: 1, transactionRef: '' },
   ]);
 
+  const [showCancel, setShowCancel] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+
   useEffect(() => {
     if (!saleId) return;
     const load = async () => {
@@ -72,6 +76,25 @@ export function CheckoutPage() {
     setPayments(prev => prev.map((p, i) => i === idx ? { ...p, [field]: value } : p));
   };
 
+  const handleCancel = async () => {
+    if (!sale || !cancelReason.trim()) {
+      toast.error('Informe o motivo do cancelamento.');
+      return;
+    }
+    setCancelling(true);
+    try {
+      const updated = await saleService.cancel(sale.id, { cancellationReason: cancelReason });
+      setSale(updated);
+      toast.success('Venda cancelada. Estoque devolvido.');
+      setShowCancel(false);
+      setCancelReason('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? 'Erro ao cancelar venda.');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const handleProcess = async () => {
     if (!sale) return;
     if (payments.some(p => !p.paymentMethodId || Number(p.amount) <= 0)) {
@@ -111,12 +134,23 @@ export function CheckoutPage() {
 
   const amountDue = sale.totalAmount - sale.amountPaid;
   const isPaid = sale.status === 'paid';
+  const isCancelled = sale.status === 'cancelled';
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Checkout</h1>
-        <span className="text-sm text-gray-400 dark:text-gray-500 font-mono">{sale.saleNumber}</span>
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-400 dark:text-gray-500 font-mono">{sale.saleNumber}</span>
+          {!isCancelled && (
+            <button
+              onClick={() => setShowCancel(true)}
+              className="rounded border border-red-300 dark:border-red-700 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              Cancelar venda
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Sale summary */}
@@ -182,7 +216,7 @@ export function CheckoutPage() {
       </div>
 
       {/* Payment form */}
-      {!isPaid && (
+      {!isPaid && !isCancelled && (
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-4">
           <h2 className="font-semibold text-gray-900 dark:text-white">Formas de pagamento</h2>
 
@@ -283,6 +317,64 @@ export function CheckoutPage() {
           >
             Voltar ao caixa
           </button>
+        </div>
+      )}
+
+      {isCancelled && (
+        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6 text-center space-y-2">
+          <div className="font-semibold text-red-800 dark:text-red-400">Venda cancelada</div>
+          {sale.cancellationReason && (
+            <div className="text-sm text-red-600 dark:text-red-500">
+              Motivo: {sale.cancellationReason}
+            </div>
+          )}
+          <div className="text-xs text-red-500 dark:text-red-400">
+            Estoque devolvido{sale.payments.some(p => p.status === 'refunded') && ', pagamentos estornados'}.
+          </div>
+          <button
+            onClick={() => navigate('/checkout')}
+            className="mt-2 rounded-md bg-gray-700 dark:bg-gray-600 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:hover:bg-gray-700"
+          >
+            Voltar ao caixa
+          </button>
+        </div>
+      )}
+
+      {showCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
+            <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">Cancelar venda</h3>
+            {sale.amountPaid > 0 && (
+              <div className="rounded border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-800 dark:text-orange-300">
+                Esta venda tem R$ {sale.amountPaid.toFixed(2)} em pagamentos. Eles serão marcados como estornados.
+              </div>
+            )}
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Motivo *</label>
+              <textarea
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                rows={3}
+                className={fieldCls}
+                placeholder="Informe o motivo do cancelamento..."
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => { setShowCancel(false); setCancelReason(''); }}
+                className="rounded border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelling || !cancelReason.trim()}
+                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                {cancelling ? 'Cancelando...' : 'Confirmar cancelamento'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

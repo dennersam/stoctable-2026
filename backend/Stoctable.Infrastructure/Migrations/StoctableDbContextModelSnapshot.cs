@@ -441,6 +441,26 @@ namespace Stoctable.Infrastructure.Migrations
                     b.ToTable("manufacturers", (string)null);
                 });
 
+            modelBuilder.Entity("Stoctable.Domain.Entities.NumberSequence", b =>
+                {
+                    b.Property<string>("Prefix")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("prefix");
+
+                    b.Property<long>("CurrentValue")
+                        .HasColumnType("bigint")
+                        .HasColumnName("current_value");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Prefix");
+
+                    b.ToTable("number_sequences", (string)null);
+                });
+
             modelBuilder.Entity("Stoctable.Domain.Entities.Payment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -474,6 +494,10 @@ namespace Stoctable.Infrastructure.Migrations
                     b.Property<Guid>("PaymentMethodId")
                         .HasColumnType("uuid")
                         .HasColumnName("payment_method_id");
+
+                    b.Property<DateTimeOffset?>("RefundedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refunded_at");
 
                     b.Property<Guid>("SaleId")
                         .HasColumnType("uuid")
@@ -674,12 +698,6 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)")
                         .HasColumnName("updated_by");
-
-                    b.Property<uint>("xmin")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("xid")
-                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -919,6 +937,14 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("amount_paid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasColumnType("text")
+                        .HasColumnName("cancellation_reason");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelled_at");
 
                     b.Property<Guid?>("CashierId")
                         .HasColumnType("uuid")

@@ -6,7 +6,8 @@ using Stoctable.Infrastructure.Context;
 
 namespace Stoctable.Infrastructure.Repositories;
 
-public class SaleRepository(StoctableDbContext context) : Repository<Sale>(context), ISaleRepository
+public class SaleRepository(StoctableDbContext context, NumberSequenceGenerator sequenceGenerator)
+    : Repository<Sale>(context), ISaleRepository
 {
     public async Task<Sale?> GetWithDetailsAsync(Guid id, CancellationToken ct = default)
         => await DbSet
@@ -26,9 +27,8 @@ public class SaleRepository(StoctableDbContext context) : Repository<Sale>(conte
 
     public async Task<string> GenerateNextNumberAsync(CancellationToken ct = default)
     {
-        var today = DateTime.UtcNow;
-        var prefix = $"VDA{today:yyyyMM}";
-        var count = await DbSet.CountAsync(s => s.SaleNumber.StartsWith(prefix), ct);
-        return $"{prefix}{(count + 1):D4}";
+        var prefix = $"VDA{DateTime.UtcNow:yyyyMM}";
+        var next = await sequenceGenerator.NextAsync(prefix, ct);
+        return $"{prefix}{next:D4}";
     }
 }

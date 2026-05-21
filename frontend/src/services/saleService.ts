@@ -1,5 +1,5 @@
 import api from '@/lib/api';
-import type { Sale, PaymentMethod, ProcessPaymentRequest } from '@/types/sale';
+import type { Sale, PaymentMethod, ProcessPaymentRequest, CancelSaleRequest } from '@/types/sale';
 
 export const saleService = {
   getAll: async (params?: { status?: string }) => {
@@ -14,6 +14,11 @@ export const saleService = {
 
   processPayment: async (saleId: string, data: ProcessPaymentRequest) => {
     const response = await api.post<Sale>(`/sales/${saleId}/payments`, data);
+    return response.data;
+  },
+
+  cancel: async (saleId: string, data: CancelSaleRequest) => {
+    const response = await api.post<Sale>(`/sales/${saleId}/cancel`, data);
     return response.data;
   },
 

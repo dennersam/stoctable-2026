@@ -24,6 +24,7 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<NumberSequence> NumberSequences => Set<NumberSequence>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -178,6 +179,7 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
                     s => Enum.Parse<Domain.Enums.PaymentStatus>(s, true));
             p.Property(x => x.TransactionRef).HasColumnName("transaction_ref").HasMaxLength(100);
             p.Property(x => x.PaidAt).HasColumnName("paid_at");
+            p.Property(x => x.RefundedAt).HasColumnName("refunded_at");
             p.Property(x => x.CreatedAt).HasColumnName("created_at");
             p.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
             p.Property(x => x.UpdatedAt).HasColumnName("updated_at");

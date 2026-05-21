@@ -15,6 +15,7 @@ public class Payment : BaseEntity
     public string? TransactionRef { get; set; }
 
     public DateTimeOffset? PaidAt { get; set; }
+    public DateTimeOffset? RefundedAt { get; set; }
 
     public Sale? Sale { get; set; }
     public PaymentMethod? PaymentMethod { get; set; }

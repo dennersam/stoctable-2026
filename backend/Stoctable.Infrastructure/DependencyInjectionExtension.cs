@@ -56,6 +56,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<IPaymentMethodRepository, PaymentMethodRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<NumberSequenceGenerator>();
 
         return services;
     }

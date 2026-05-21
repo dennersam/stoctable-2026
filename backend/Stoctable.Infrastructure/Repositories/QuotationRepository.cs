@@ -6,7 +6,8 @@ using Stoctable.Infrastructure.Context;
 
 namespace Stoctable.Infrastructure.Repositories;
 
-public class QuotationRepository(StoctableDbContext context) : Repository<Quotation>(context), IQuotationRepository
+public class QuotationRepository(StoctableDbContext context, NumberSequenceGenerator sequenceGenerator)
+    : Repository<Quotation>(context), IQuotationRepository
 {
     public async Task<Quotation?> GetWithItemsAsync(Guid id, CancellationToken ct = default)
         => await DbSet
@@ -25,10 +26,9 @@ public class QuotationRepository(StoctableDbContext context) : Repository<Quotat
 
     public async Task<string> GenerateNextNumberAsync(CancellationToken ct = default)
     {
-        var today = DateTime.UtcNow;
-        var prefix = $"ORC{today:yyyyMM}";
-        var count = await DbSet.CountAsync(q => q.QuotationNumber.StartsWith(prefix), ct);
-        return $"{prefix}{(count + 1):D4}";
+        var prefix = $"ORC{DateTime.UtcNow:yyyyMM}";
+        var next = await sequenceGenerator.NextAsync(prefix, ct);
+        return $"{prefix}{next:D4}";
     }
 
     // Override: entity is already loaded and tracked via GetWithItemsAsync.

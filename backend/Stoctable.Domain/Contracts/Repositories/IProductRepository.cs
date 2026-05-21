@@ -20,4 +20,11 @@ public interface IProductRepository : IRepository<Product>
     /// previne oversell sob concorrência sem precisar de optimistic lock.
     /// </summary>
     Task<bool> TryDecrementStockAsync(Guid productId, decimal quantity, CancellationToken ct = default);
+
+    /// <summary>
+    /// Devolve quantidade ao stock_quantity em uma única SQL UPDATE.
+    /// Sem guarda — devolução de estoque (cancelar venda) sempre deve
+    /// proceder. Retorna true se a linha existe.
+    /// </summary>
+    Task<bool> IncrementStockAsync(Guid productId, decimal quantity, CancellationToken ct = default);
 }

@@ -38,7 +38,12 @@
       "PowerShell(dotnet ef migrations has-pending-model-changes --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)",
       "PowerShell(dotnet ef migrations add InvestigatePending --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)",
       "PowerShell(dotnet ef migrations remove --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)",
-      "PowerShell(dotnet test Stoctable.Tests --nologo --logger \"console;verbosity=minimal\" 2>&1)"
+      "PowerShell(dotnet test Stoctable.Tests --nologo --logger \"console;verbosity=minimal\" 2>&1)",
+      "PowerShell($PWD.Path)",
+      "PowerShell(dotnet build backend\\\\Stoctable.slnx --nologo 2>&1)",
+      "PowerShell(cd ..; $PWD.Path)",
+      "PowerShell(git checkout HEAD -- \"backend\\\\Stoctable.Infrastructure\\\\Migrations\\\\StoctableDbContextModelSnapshot.cs\" 2>&1)",
+      "PowerShell(dotnet ef migrations add SaleCancellationAndNumberSequence --project Stoctable.Infrastructure --startup-project Stoctable.Api --no-build 2>&1)"
     ]
   }
 }
