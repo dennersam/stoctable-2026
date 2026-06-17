@@ -300,7 +300,7 @@ export function SupplierListPage() {
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
+                <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-900/20">
                   {suppliers.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-gray-400 dark:text-gray-500">

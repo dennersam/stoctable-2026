@@ -256,7 +256,7 @@ export function InventoryPage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-950">
+            <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-900/20">
               {filtered.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-10 text-center text-gray-400 dark:text-gray-500">
