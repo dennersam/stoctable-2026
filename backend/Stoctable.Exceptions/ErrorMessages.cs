@@ -8,6 +8,8 @@ public static class ErrorMessages
         public const string InactiveUser = "Usuário inativo. Contate o administrador.";
         public const string InvalidRefreshToken = "Token de atualização inválido ou expirado.";
         public const string Unauthorized = "Acesso não autorizado.";
+        public const string InvalidResetToken = "Link inválido ou expirado. Solicite um novo.";
+        public const string WeakPassword = "A senha deve ter pelo menos 6 caracteres.";
     }
 
     public static class User

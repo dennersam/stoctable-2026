@@ -13,6 +13,12 @@ public class UserRepository(StoctableDbContext context) : Repository<User>(conte
     public async Task<User?> GetByRefreshTokenAsync(string refreshToken, CancellationToken ct = default)
         => await DbSet.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, ct);
 
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
+        => await DbSet.FirstOrDefaultAsync(u => u.Email == email, ct);
+
+    public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken ct = default)
+        => await DbSet.FirstOrDefaultAsync(u => u.PasswordResetTokenHash == tokenHash, ct);
+
     public async Task<bool> UsernameExistsAsync(string username, CancellationToken ct = default)
         => await DbSet.AnyAsync(u => u.Username == username, ct);
 

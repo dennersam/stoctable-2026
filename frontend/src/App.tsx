@@ -6,6 +6,8 @@ import { ProtectedRoute } from '@/components/base/ProtectedRoute';
 import { Layout } from '@/components/base/Layout';
 
 import { LoginPage } from '@/pages/auth/LoginPage';
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { AdminDashboard } from '@/pages/dashboard/AdminDashboard';
 import { AtendenteDashboard } from '@/pages/dashboard/AtendenteDashboard';
 import { CaixaDashboard } from '@/pages/dashboard/CaixaDashboard';
@@ -36,6 +38,8 @@ function App() {
       <Routes>
         {/* Public */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected */}
         <Route

@@ -28,5 +28,34 @@ public static class AuthEndpoints
         })
         .AllowAnonymous()
         .WithName("RefreshToken");
+
+        group.MapPost("/forgot-password", async (ForgotPasswordRequest request, PasswordResetService service, CancellationToken ct) =>
+        {
+            await service.RequestResetAsync(request, ct);
+            // Resposta neutra — não revela se o email existe.
+            return Results.Ok(new { message = "Se o email estiver cadastrado, enviaremos um link de redefinição." });
+        })
+        .AllowAnonymous()
+        .WithName("ForgotPassword");
+
+        group.MapGet("/reset-password/validate", async (string token, PasswordResetService service, CancellationToken ct) =>
+        {
+            var result = await service.ValidateTokenAsync(token, ct);
+            return result.IsSuccess
+                ? Results.Ok(new { valid = true })
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        })
+        .AllowAnonymous()
+        .WithName("ValidateResetToken");
+
+        group.MapPost("/reset-password", async (ResetPasswordRequest request, PasswordResetService service, CancellationToken ct) =>
+        {
+            var result = await service.ResetPasswordAsync(request, ct);
+            return result.IsSuccess
+                ? Results.Ok(new { message = "Senha definida com sucesso." })
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        })
+        .AllowAnonymous()
+        .WithName("ResetPassword");
     }
 }

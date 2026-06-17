@@ -5,6 +5,7 @@ using Stoctable.Domain.Contracts;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Contracts.Services;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Email;
 using Stoctable.Infrastructure.Interceptors;
 using Stoctable.Infrastructure.Repositories;
 using Stoctable.Infrastructure.Tenancy;
@@ -57,6 +58,9 @@ public static class DependencyInjectionExtension
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<NumberSequenceGenerator>();
+
+        // Email (dev: loga o conteúdo; trocar por provedor real depois)
+        services.AddScoped<IEmailService, LoggingEmailService>();
 
         return services;
     }

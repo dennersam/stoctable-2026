@@ -17,6 +17,7 @@ public static class DependencyInjectionExtension
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<AuthService>();
+        services.AddScoped<PasswordResetService>();
         services.AddScoped<ManufacturerService>();
         services.AddScoped<ProductService>();
         services.AddScoped<CustomerService>();

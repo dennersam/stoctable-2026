@@ -15,4 +15,6 @@ public class User : BaseEntity
     public string? AvatarUrl { get; set; }
     public string? RefreshToken { get; set; }
     public DateTimeOffset? RefreshTokenExpiresAt { get; set; }
+    public string? PasswordResetTokenHash { get; set; }
+    public DateTimeOffset? PasswordResetTokenExpiresAt { get; set; }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -89,6 +89,11 @@ export function LoginPage() {
               {errors.password && (
                 <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>
               )}
+              <div className="mt-1.5 text-right">
+                <Link to="/forgot-password" className="text-xs text-brand-300 hover:text-brand-200">
+                  Esqueci minha senha
+                </Link>
+              </div>
             </div>
 
             {error && (

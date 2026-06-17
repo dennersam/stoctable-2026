@@ -1,11 +1,12 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, X, User, Camera, KeyRound, Eye, EyeOff, Check, Menu } from 'lucide-react';
+import { LogOut, Settings, X, User, Users, Camera, KeyRound, Eye, EyeOff, Check, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { useBranchStore } from '@/store/branchStore';
 import { useThemeStore } from '@/store/themeStore';
 import { profileService, resizeImageToBase64, mergeProfileIntoUser } from '@/services/profileService';
+import { UsersTab } from '@/components/settings/UsersTab';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -59,17 +60,22 @@ function Avatar({ avatarUrl, fullName, size = 'sm' }: { avatarUrl?: string | nul
 
 // ─── Settings modal — Suas Informações tab ────────────────────────────────────
 
-type SettingsTab = 'profile';
+type SettingsTab = 'profile' | 'users';
 
 interface SettingsModalProps {
   onClose: () => void;
 }
 
 function SettingsModal({ onClose }: SettingsModalProps) {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
 
   const tabs: { id: SettingsTab; label: string; icon: React.ReactNode }[] = [
     { id: 'profile', label: 'Suas Informações', icon: <User size={15} /> },
+    ...(isAdmin
+      ? [{ id: 'users' as SettingsTab, label: 'Usuários do Sistema', icon: <Users size={15} /> }]
+      : []),
   ];
 
   return (
@@ -77,7 +83,7 @@ function SettingsModal({ onClose }: SettingsModalProps) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-brand-900 shadow-xl flex flex-col overflow-hidden"
+      <div className={`w-full ${activeTab === 'users' ? 'max-w-4xl' : 'max-w-2xl'} rounded-2xl bg-white dark:bg-brand-900 shadow-xl flex flex-col overflow-hidden`}
         style={{ maxHeight: '90vh' }}>
 
         {/* Modal header */}
@@ -118,6 +124,7 @@ function SettingsModal({ onClose }: SettingsModalProps) {
           {/* Right content */}
           <div className="flex-1 overflow-y-auto p-6">
             {activeTab === 'profile' && <ProfileTab />}
+            {activeTab === 'users' && isAdmin && <UsersTab />}
           </div>
         </div>
       </div>

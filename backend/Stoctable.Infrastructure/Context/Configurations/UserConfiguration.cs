@@ -23,6 +23,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.LastLoginAt).HasColumnName("last_login_at");
         builder.Property(u => u.RefreshToken).HasColumnName("refresh_token").HasMaxLength(500);
         builder.Property(u => u.RefreshTokenExpiresAt).HasColumnName("refresh_token_expires_at");
+        builder.Property(u => u.PasswordResetTokenHash).HasColumnName("password_reset_token_hash").HasMaxLength(255);
+        builder.Property(u => u.PasswordResetTokenExpiresAt).HasColumnName("password_reset_token_expires_at");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at");
         builder.Property(u => u.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
         builder.Property(u => u.UpdatedAt).HasColumnName("updated_at");

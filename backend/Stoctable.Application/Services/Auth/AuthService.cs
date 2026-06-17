@@ -19,7 +19,8 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
     {
         var user = await userRepository.GetByUsernameAsync(request.Username, ct);
 
-        if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user is null || string.IsNullOrEmpty(user.PasswordHash)
+            || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
             return Result<AuthTokenResponse>.Unauthorized(ErrorMessages.Auth.InvalidCredentials);
 
         if (!user.IsActive)

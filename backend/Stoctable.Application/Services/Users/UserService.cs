@@ -1,4 +1,5 @@
 using Stoctable.Application.Results;
+using Stoctable.Application.Services.Auth;
 using Stoctable.Communication.Requests.Users;
 using Stoctable.Communication.Responses.Users;
 using Stoctable.Domain.Contracts.Repositories;
@@ -8,7 +9,7 @@ using Stoctable.Exceptions;
 
 namespace Stoctable.Application.Services.Users;
 
-public class UserService(IUserRepository userRepository)
+public class UserService(IUserRepository userRepository, PasswordResetService passwordResetService)
 {
     public async Task<Result<IEnumerable<UserResponse>>> GetAllAsync(CancellationToken ct = default)
     {
@@ -41,10 +42,14 @@ public class UserService(IUserRepository userRepository)
             Username = request.Username,
             Email = request.Email,
             FullName = request.FullName,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            // Sem senha definida pelo admin — o usuário define a própria via convite.
+            PasswordHash = string.Empty,
             Role = role,
             IsActive = true
         };
+
+        // Gera token de convite (em memória) e envia o email antes de persistir.
+        await passwordResetService.SendInviteAsync(user, ct);
 
         await userRepository.AddAsync(user, ct);
         return Result<UserResponse>.Success(MapToResponse(user), 201);
@@ -62,7 +67,6 @@ public class UserService(IUserRepository userRepository)
 
         if (request.FullName is not null) user.FullName = request.FullName;
         if (request.Email is not null) user.Email = request.Email;
-        if (request.Password is not null) user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         if (request.IsActive is not null) user.IsActive = request.IsActive.Value;
 
         if (request.Role is not null)
