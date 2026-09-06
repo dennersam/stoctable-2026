@@ -340,13 +340,13 @@ export function CustomerListPage() {
           <div className="space-y-3">
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
-                <thead className="bg-gray-50 dark:bg-brand-900/40">
+                <thead className="bg-brand-50 dark:bg-brand-900/40">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">Nome</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70 hidden sm:table-cell">CPF/CNPJ</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">Telefone</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70 hidden sm:table-cell">Cidade</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-gray-500 dark:text-brand-300/70">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Nome</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70 hidden sm:table-cell">CPF/CNPJ</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Telefone</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70 hidden sm:table-cell">Cidade</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Status</th>
                     {isAdmin && <th className="px-4 py-3" />}
                   </tr>
                 </thead>

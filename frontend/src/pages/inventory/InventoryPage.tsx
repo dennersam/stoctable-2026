@@ -244,12 +244,12 @@ export function InventoryPage() {
       ) : (
         <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
-            <thead className="bg-gray-50 dark:bg-brand-900/40">
+            <thead className="bg-brand-50 dark:bg-brand-900/40">
               <tr>
                 {['SKU', 'Nome', 'Total', 'Reservado', 'Disponível', 'Mínimo', 'Status', ''].map((h) => (
                   <th
                     key={h}
-                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-brand-300/70"
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-300/70"
                   >
                     {h}
                   </th>

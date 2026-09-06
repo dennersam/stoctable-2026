@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Search;
 using Testcontainers.PostgreSql;
 
 namespace Stoctable.Tests.Integration;
@@ -21,11 +22,16 @@ public class PostgresFixture : IAsyncLifetime
 
     public string ConnectionString => _container.GetConnectionString();
 
-    public async Task InitializeAsync()
+    public virtual async Task InitializeAsync()
     {
         await _container.StartAsync();
         await using var ctx = CreateContext();
         await ctx.Database.EnsureCreatedAsync();
+
+        // EnsureCreated não roda migrations, então o DDL de busca (extensões,
+        // f_search_norm e índices GIN) precisa ser aplicado explicitamente —
+        // sem ele qualquer consulta de busca falha com "function does not exist".
+        await ctx.Database.ExecuteSqlRawAsync(SearchSchema.Up);
     }
 
     public async Task DisposeAsync() => await _container.DisposeAsync();

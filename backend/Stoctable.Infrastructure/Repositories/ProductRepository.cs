@@ -1,12 +1,22 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Search;
 
 namespace Stoctable.Infrastructure.Repositories;
 
 public class ProductRepository(StoctableDbContext context) : Repository<Product>(context), IProductRepository
 {
+    private static readonly Expression<Func<Product, string?>>[] SearchFields =
+    [
+        p => p.Name,
+        p => p.Sku,
+        p => p.Barcode,
+        p => p.Manufacturer!.Name,
+    ];
+
     public override async Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default)
         => await DbSet
             .Include(p => p.Category)
@@ -36,20 +46,15 @@ public class ProductRepository(StoctableDbContext context) : Repository<Product>
         => await DbSet.FirstOrDefaultAsync(p => p.Barcode == barcode, ct);
 
     public async Task<IEnumerable<Product>> SearchAsync(string query, CancellationToken ct = default)
-    {
-        var lower = query.ToLower();
-        return await DbSet
-            .Where(p => p.IsActive && (
-                p.Sku.ToLower().Contains(lower) ||
-                p.Name.ToLower().Contains(lower) ||
-                (p.Barcode != null && p.Barcode.Contains(lower)) ||
-                (p.Manufacturer != null && p.Manufacturer.Name.ToLower().Contains(lower))))
+        => await DbSet
+            .Where(p => p.IsActive)
+            .WhereMatchesAllTokens(query, SearchFields)
             .Include(p => p.Category)
             .Include(p => p.Manufacturer)
             .Include(p => p.Supplier)
+            .OrderBy(p => p.Name)
             .Take(50)
             .ToListAsync(ct);
-    }
 
     public async Task<IEnumerable<Product>> GetLowStockAsync(CancellationToken ct = default)
         => await DbSet
@@ -67,15 +72,7 @@ public class ProductRepository(StoctableDbContext context) : Repository<Product>
             .Include(p => p.Supplier)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var lower = search.ToLower();
-            query = query.Where(p =>
-                p.Sku.ToLower().Contains(lower) ||
-                p.Name.ToLower().Contains(lower) ||
-                (p.Barcode != null && p.Barcode.ToLower().Contains(lower)) ||
-                (p.Manufacturer != null && p.Manufacturer.Name.ToLower().Contains(lower)));
-        }
+        query = query.WhereMatchesAllTokens(search, SearchFields);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query

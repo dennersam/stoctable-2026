@@ -1,44 +1,41 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Search;
 
 namespace Stoctable.Infrastructure.Repositories;
 
 public class CustomerRepository(StoctableDbContext context) : Repository<Customer>(context), ICustomerRepository
 {
+    private static readonly Expression<Func<Customer, string?>>[] SearchFields =
+    [
+        c => c.FullName,
+        c => c.DocumentNumber,
+        c => c.Phone,
+        c => c.Mobile,
+        c => c.City,
+    ];
+
     public async Task<Customer?> GetByDocumentAsync(string documentNumber, CancellationToken ct = default)
         => await DbSet.FirstOrDefaultAsync(c => c.DocumentNumber == documentNumber, ct);
 
     public async Task<IEnumerable<Customer>> SearchAsync(string query, CancellationToken ct = default)
-    {
-        var lower = query.ToLower();
-        return await DbSet
-            .Where(c => c.IsActive && (
-                c.FullName.ToLower().Contains(lower) ||
-                (c.DocumentNumber != null && c.DocumentNumber.Contains(lower)) ||
-                (c.Phone != null && c.Phone.Contains(lower)) ||
-                (c.Mobile != null && c.Mobile.Contains(lower))))
+        => await DbSet
+            .Where(c => c.IsActive)
+            .WhereMatchesAllTokens(query, SearchFields)
             .Include(c => c.CustomerType)
+            .OrderBy(c => c.FullName)
             .Take(50)
             .ToListAsync(ct);
-    }
 
     public async Task<(IEnumerable<Customer> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, string? search, CancellationToken ct = default)
     {
         var query = DbSet.Include(c => c.CustomerType).AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var lower = search.ToLower();
-            query = query.Where(c =>
-                c.FullName.ToLower().Contains(lower) ||
-                (c.DocumentNumber != null && c.DocumentNumber.Contains(lower)) ||
-                (c.Phone != null && c.Phone.Contains(lower)) ||
-                (c.Mobile != null && c.Mobile.Contains(lower)) ||
-                (c.City != null && c.City.ToLower().Contains(lower)));
-        }
+        query = query.WhereMatchesAllTokens(search, SearchFields);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query

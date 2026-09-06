@@ -24,19 +24,36 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Endpoints de autenticação: um 401 aqui é credencial inválida, não sessão
+// expirada — deve chegar na tela para ser exibido, sem refresh nem redirect.
+const AUTH_PATHS = [
+  '/auth/login',
+  '/auth/refresh',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+];
+
+function isAuthRequest(url?: string) {
+  if (!url) return false;
+  return AUTH_PATHS.some((path) => url.includes(path));
+}
+
 // Response interceptor: handle 401 with token refresh
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as typeof error.config & { _retry?: boolean };
 
+    if (isAuthRequest(originalRequest?.url)) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) {
-        clearAuth();
-        window.location.href = '/login';
+        redirectToLogin();
         return Promise.reject(error);
       }
 
@@ -55,8 +72,7 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch {
-        clearAuth();
-        window.location.href = '/login';
+        redirectToLogin();
         return Promise.reject(error);
       }
     }
@@ -68,7 +84,15 @@ api.interceptors.response.use(
 function clearAuth() {
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
+  localStorage.removeItem('authUser');
   localStorage.removeItem('branchId');
+}
+
+function redirectToLogin() {
+  clearAuth();
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
 }
 
 export default api;

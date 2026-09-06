@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker info *)",
+      "PowerShell($p = Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue; if \\($p\\) { \"Docker Desktop process running\" } else { \"not running\" }; $exe = 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe'; \"exe exists: $\\(Test-Path $exe\\)\")",
+      "PowerShell(Start-Process 'C:\\\\Program Files\\\\Docker\\\\Docker\\\\Docker Desktop.exe')",
+      "Bash(dotnet test *)",
+      "Bash(docker run --rm postgres:16-alpine sh -c ' *)",
+      "Bash(docker run *)",
+      "Bash(docker exec *)",
+      "Bash(docker rm *)"
+    ]
+  }
+}

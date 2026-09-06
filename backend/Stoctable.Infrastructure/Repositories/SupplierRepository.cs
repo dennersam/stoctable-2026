@@ -1,40 +1,37 @@
+using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Entities;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Search;
 
 namespace Stoctable.Infrastructure.Repositories;
 
 public class SupplierRepository(StoctableDbContext context) : Repository<Supplier>(context), ISupplierRepository
 {
+    private static readonly Expression<Func<Supplier, string?>>[] SearchFields =
+    [
+        s => s.CompanyName,
+        s => s.TradeName,
+        s => s.Cnpj,
+        s => s.Phone,
+    ];
+
     public async Task<Supplier?> GetByCnpjAsync(string cnpj, CancellationToken ct = default)
         => await DbSet.FirstOrDefaultAsync(s => s.Cnpj == cnpj, ct);
 
     public async Task<IEnumerable<Supplier>> SearchAsync(string query, CancellationToken ct = default)
-    {
-        var lower = query.ToLower();
-        return await DbSet
-            .Where(s => s.IsActive && (
-                s.CompanyName.ToLower().Contains(lower) ||
-                (s.TradeName != null && s.TradeName.ToLower().Contains(lower)) ||
-                (s.Cnpj != null && s.Cnpj.Contains(lower))))
+        => await DbSet
+            .Where(s => s.IsActive)
+            .WhereMatchesAllTokens(query, SearchFields)
+            .OrderBy(s => s.CompanyName)
             .Take(50)
             .ToListAsync(ct);
-    }
 
     public async Task<(IEnumerable<Supplier> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, string? search, CancellationToken ct = default)
     {
-        var query = DbSet.AsQueryable();
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var lower = search.ToLower();
-            query = query.Where(s =>
-                s.CompanyName.ToLower().Contains(lower) ||
-                (s.TradeName != null && s.TradeName.ToLower().Contains(lower)) ||
-                (s.Cnpj != null && s.Cnpj.Contains(lower)) ||
-                (s.Phone != null && s.Phone.Contains(lower)));
-        }
+        var query = DbSet.AsQueryable().WhereMatchesAllTokens(search, SearchFields);
         var totalCount = await query.CountAsync(ct);
         var items = await query
             .OrderBy(s => s.CompanyName)

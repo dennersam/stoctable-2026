@@ -43,7 +43,12 @@ export function LoginPage() {
       navigate('/dashboard');
     } catch (err) {
       if (isAxiosError(err) && err.response) {
-        setError('Usuário ou senha inválidos.');
+        const status = err.response.status;
+        if (status === 401 || status === 400) {
+          setError('Usuário ou senha inválidos.');
+        } else {
+          setError('Erro ao entrar. Tente novamente mais tarde.');
+        }
       } else {
         setError('Serviço indisponível no momento. Tente novamente mais tarde.');
       }

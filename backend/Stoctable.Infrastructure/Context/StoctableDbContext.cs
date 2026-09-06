@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Domain.Entities;
 using Stoctable.Infrastructure.Context.Configurations;
+using Stoctable.Infrastructure.Search;
 
 namespace Stoctable.Infrastructure.Context;
 
@@ -32,6 +33,13 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
 
         // Aplica todas as IEntityTypeConfiguration<T> deste assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(StoctableDbContext).Assembly);
+
+        // Função de normalização usada pela busca textual (ver SearchSchema).
+        // Não usamos EF.Functions.Unaccent do Npgsql porque ela mapeia para o
+        // unaccent() não-imutável, que não consegue usar os índices GIN.
+        modelBuilder
+            .HasDbFunction(typeof(DbSearchFunctions).GetMethod(nameof(DbSearchFunctions.Normalize))!)
+            .HasName(SearchSchema.FunctionName);
 
         // Mapeamentos simples sem configuração separada
         modelBuilder.Entity<Branch>(b =>
