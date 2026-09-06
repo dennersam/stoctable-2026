@@ -12,7 +12,7 @@ terraform {
     resource_group_name  = "stoctable-tfstate"
     storage_account_name = "stoctabletfstate"
     container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
+    key                  = "dev.terraform.tfstate"
   }
 }
 
@@ -23,35 +23,25 @@ provider "azurerm" {
 data "azurerm_client_config" "current" {}
 
 locals {
-  location   = "brazilsouth"
-  prefix     = "stoctable"
-  branch_ids = ["001", "002"] # adicione IDs de filiais conforme necessário
+  location = "brazilsouth"
+  prefix   = "stoctable"
   tags = {
-    environment = "production"
+    environment = "development"
     project     = "stoctable"
   }
 }
 
 resource "azurerm_resource_group" "main" {
-  name     = "Stoctable-Prod"
+  name     = "Stoctable-Dev"
   location = local.location
   tags     = local.tags
 }
 
-module "postgresql" {
-  source              = "../../modules/postgresql"
-  name                = "${local.prefix}-psql"
-  resource_group_name = azurerm_resource_group.main.name
-  location            = local.location
-  admin_username      = var.db_admin_username
-  admin_password      = var.db_admin_password
-  branch_databases    = local.branch_ids
-  tags                = local.tags
-}
-
+# O banco fica no Neon — nenhum azurerm_postgresql_* é criado neste ambiente.
+# As connection strings entram no Key Vault via var.branch_connection_strings.
 module "key_vault" {
   source              = "../../modules/key_vault"
-  name                = "${local.prefix}-kv"
+  name                = "${local.prefix}-kv-dev"
   resource_group_name = azurerm_resource_group.main.name
   location            = local.location
   tenant_id           = data.azurerm_client_config.current.tenant_id
@@ -60,28 +50,36 @@ module "key_vault" {
   secrets = merge(
     {
       # O provider de configuração do Key Vault converte '--' em ':', então
-      # este segredo chega na aplicação como Jwt:Secret — que é o que
-      # Program.cs lê. Com o nome antigo (STOCTABLE-JWT-SECRET) a chave nunca
-      # era encontrada e a aplicação falhava no startup.
+      # este segredo chega na aplicação como a chave Jwt:Secret, que é o que
+      # Program.cs lê. Um nome sem '--' nunca seria encontrado.
       "Jwt--Secret" = var.jwt_secret
+
+      # Usada nos caminhos em que o tenant ainda não foi resolvido:
+      # /api/auth, o DbSeeder no startup e o design-time factory.
+      "DefaultBranchConnectionString" = var.default_branch_connection_string
     },
     {
-      for branch_id in local.branch_ids :
-      "STOCTABLE-CONN-${upper(branch_id)}" => "Host=${module.postgresql.server_fqdn};Database=stoctable_branch_${branch_id};Username=${var.db_admin_username};Password=${var.db_admin_password};SSL Mode=VerifyFull;"
+      # TenantResolutionMiddleware busca STOCTABLE-CONN-{ID} em maiúsculas.
+      for branch_id, conn in var.branch_connection_strings :
+      "STOCTABLE-CONN-${upper(branch_id)}" => conn
     }
   )
 }
 
 module "app_service" {
   source                 = "../../modules/app_service"
-  name                   = "${local.prefix}-api"
+  name                   = "${local.prefix}-api-dev"
   resource_group_name    = azurerm_resource_group.main.name
   location               = local.location
-  sku_name               = "P1v3"
-  always_on              = true
-  aspnetcore_environment = "Production"
+  sku_name               = "F1"
+  always_on              = false
+  aspnetcore_environment = "Development"
   key_vault_url          = module.key_vault.vault_uri
   tags                   = local.tags
+
+  app_settings = {
+    "Cors__AllowedOrigins" = "https://${module.static_web_app.default_host_name}"
+  }
 }
 
 # Fora dos módulos de propósito: é o que quebra o ciclo app_service <-> key_vault.
@@ -93,27 +91,12 @@ resource "azurerm_role_assignment" "app_kv_secrets" {
 
 module "static_web_app" {
   source              = "../../modules/static_web_app"
-  name                = "${local.prefix}-web"
+  name                = "${local.prefix}-web-dev"
   resource_group_name = azurerm_resource_group.main.name
   location            = "eastus2" # Static Web Apps não existe em brazilsouth
-  sku_tier            = "Standard"
-  sku_size            = "Standard"
+  sku_tier            = "Free"
+  sku_size            = "Free"
   tags                = local.tags
-}
-
-variable "db_admin_username" {
-  type      = string
-  sensitive = true
-}
-
-variable "db_admin_password" {
-  type      = string
-  sensitive = true
-}
-
-variable "jwt_secret" {
-  type      = string
-  sensitive = true
 }
 
 output "api_url" {
@@ -122,10 +105,6 @@ output "api_url" {
 
 output "web_url" {
   value = "https://${module.static_web_app.default_host_name}"
-}
-
-output "db_fqdn" {
-  value = module.postgresql.server_fqdn
 }
 
 output "kv_uri" {

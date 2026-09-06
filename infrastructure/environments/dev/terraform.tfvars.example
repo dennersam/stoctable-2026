@@ -1,0 +1,14 @@
+# Copie para terraform.tfvars e preencha com os valores reais.
+# terraform.tfvars é ignorado pelo git — nunca commite as credenciais.
+
+jwt_secret = "troque-por-um-segredo-de-no-minimo-32-caracteres"
+
+# Connection strings do Neon, uma por filial.
+# Pegue no painel do Neon e converta para o formato Npgsql (chave=valor),
+# e não para a URL postgres://.
+branch_connection_strings = {
+  "001" = "Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=stoctable_branch_001;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"
+  "002" = "Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=stoctable_branch_002;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"
+}
+
+default_branch_connection_string = "Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=stoctable_branch_001;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"

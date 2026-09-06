@@ -7,16 +7,25 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      target_environment:
+        description: 'Ambiente alvo'
+        type: choice
+        options: [dev, prod]
+        default: dev
       branch_ids:
-        description: 'Comma-separated branch IDs to migrate (leave empty for all)'
+        description: 'IDs de filial separados por vírgula (vazio = todas)'
         required: false
 
 jobs:
   migrate:
     runs-on: ubuntu-latest
+    # O encadeamento automático só vale para o Backend CI/CD disparado por push
+    # (ou seja, o deploy de dev). Sem o filtro de event, um deploy manual de
+    # produção também dispararia esta migration logo em seguida.
     if: >
       github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push')
 
     steps:
       - uses: actions/checkout@v4
@@ -29,31 +38,51 @@ jobs:
       - name: Install EF Core tools
         run: dotnet tool install --global dotnet-ef
 
-      - name: Build Infrastructure project
-        run: dotnet build backend/Stoctable.Infrastructure/Stoctable.Infrastructure.csproj --configuration Release
+      # O startup-project é o Api, então ele também precisa estar buildado —
+      # antes só o Infrastructure era compilado e o --no-build falhava.
+      - name: Build
+        run: dotnet build backend/Stoctable.Api/Stoctable.Api.csproj --configuration Release
 
       - name: Run migrations for each branch
         working-directory: backend
         env:
-          BRANCH_CONN_STRINGS: ${{ secrets.BRANCH_CONNECTION_STRINGS_JSON }}
-          SPECIFIC_BRANCH_IDS: ${{ github.event.inputs.branch_ids }}
+          # Disparo automático (push em main) sempre migra o ambiente de dev.
+          BRANCH_CONN_STRINGS: ${{ (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'prod') && secrets.BRANCH_CONNECTION_STRINGS_JSON || secrets.BRANCH_CONNECTION_STRINGS_JSON_DEV }}
+          SPECIFIC_BRANCH_IDS: ${{ inputs.branch_ids }}
         run: |
-          # BRANCH_CONNECTION_STRINGS_JSON format: {"branch-uuid-1": "connstr1", "branch-uuid-2": "connstr2"}
+          set -euo pipefail
+
+          if [ -z "${BRANCH_CONN_STRINGS:-}" ]; then
+            echo "::error::Secret de connection strings vazio para este ambiente."
+            exit 1
+          fi
+
+          # Formato: {"001": "Host=...;Database=...", "002": "..."}
           if [ -n "$SPECIFIC_BRANCH_IDS" ]; then
-            # Filter to specific branch IDs if provided
-            FILTERED=$(echo "$BRANCH_CONN_STRINGS" | jq --arg ids "$SPECIFIC_BRANCH_IDS" \
-              'to_entries | map(select(.key as $k | ($ids | split(",") | map(ltrimstr(" ")) | contains([$k])))) | from_entries')
-            CONN_STRINGS="$FILTERED"
+            CONN_STRINGS=$(echo "$BRANCH_CONN_STRINGS" | jq --arg ids "$SPECIFIC_BRANCH_IDS" \
+              'to_entries
+               | map(select(.key as $k
+                   | ($ids | split(",") | map(gsub("^\\s+|\\s+$";"")) | index($k)) != null))
+               | from_entries')
           else
             CONN_STRINGS="$BRANCH_CONN_STRINGS"
           fi
 
-          echo "$CONN_STRINGS" | jq -r 'to_entries[] | "\(.key)\t\(.value)"' | while IFS=$'\t' read -r branch_id conn_str; do
-            echo "Migrating branch: $branch_id"
+          COUNT=$(echo "$CONN_STRINGS" | jq 'length')
+          if [ "$COUNT" -eq 0 ]; then
+            echo "::error::Nenhuma filial corresponde ao filtro informado."
+            exit 1
+          fi
+          echo "Migrando $COUNT filial(is)."
+
+          # Sem pipe para o while: um subshell engoliria o exit code de falha.
+          while IFS=$'\t' read -r branch_id conn_str; do
+            echo "::group::Filial $branch_id"
             DEFAULT_CONN_STRING="$conn_str" dotnet ef database update \
               --project Stoctable.Infrastructure/Stoctable.Infrastructure.csproj \
               --startup-project Stoctable.Api/Stoctable.Api.csproj \
-              --no-build \
-              --verbose
-            echo "✓ Branch $branch_id migrated successfully"
-          done
+              --configuration Release \
+              --no-build
+            echo "✓ Filial $branch_id migrada"
+            echo "::endgroup::"
+          done < <(echo "$CONN_STRINGS" | jq -r 'to_entries[] | "\(.key)\t\(.value)"')

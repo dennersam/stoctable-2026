@@ -8,7 +8,22 @@
       "Bash(docker run --rm postgres:16-alpine sh -c ' *)",
       "Bash(docker run *)",
       "Bash(docker exec *)",
-      "Bash(docker rm *)"
+      "Bash(docker rm *)",
+      "Bash(command -v terraform)",
+      "Bash(terraform version *)",
+      "Bash(terraform init *)",
+      "Bash(terraform validate *)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(echo \"=== dev exit: $? ===\")",
+      "Bash(terraform fmt *)",
+      "Bash(cd /tmp)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v /tmp:/w -w /w ghcr.io/jqlang/jq:latest --arg ids \"001, 003\" -f f.jq m.json)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad:/w' -w /w ghcr.io/jqlang/jq:latest --arg ids '001, 003' -f f.jq m.json)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad:/w' -w /w ghcr.io/jqlang/jq:latest --arg ids 999 -f f.jq m.json)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad:/w' -w /w ghcr.io/jqlang/jq:latest length m.json)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad:/w' -w /w ghcr.io/jqlang/jq:latest -r 'to_entries[] | \"\\\\\\(.key\\)\\\\t\\\\\\(.value\\)\"' m.json)",
+      "Bash(git add *)",
+      "Bash(python -c ' *)"
     ]
   }
 }
