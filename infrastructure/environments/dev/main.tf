@@ -17,14 +17,30 @@ terraform {
 }
 
 provider "azurerm" {
-  features {}
+  features {
+    key_vault {
+      # A mudança de região recria o vault. Sem purge, o soft delete mantém o
+      # nome reservado por 90 dias e a recriação falha. E recover fica false
+      # de propósito: recuperar o vault antigo o traria de volta na região
+      # original (brazilsouth), silenciosamente errada.
+      purge_soft_delete_on_destroy    = true
+      recover_soft_deleted_key_vaults = false
+    }
+  }
 }
 
 data "azurerm_client_config" "current" {}
 
 locals {
-  location = "brazilsouth"
-  prefix   = "stoctable"
+  # East US 2 e não brazilsouth: a subscription não tem cota de VMs F1
+  # liberada na região do Brasil. Produção segue em brazilsouth.
+  location = "eastus2"
+
+  # Static Web Apps só existe em algumas regiões. Coincide com location hoje,
+  # mas fica separado para que mudar a região do App Service não quebre a SWA.
+  swa_location = "eastus2"
+
+  prefix = "stoctable"
   tags = {
     environment = "development"
     project     = "stoctable"
@@ -37,9 +53,22 @@ resource "azurerm_resource_group" "main" {
   tags     = local.tags
 }
 
+# O vault usa RBAC, então quem roda o Terraform também precisa de permissão de
+# PLANO DE DADOS para gravar os segredos — sem isso o apply falha com 403 em
+# azurerm_key_vault_secret. Ser Owner da subscription não basta: Owner é plano
+# de controle. O escopo é o resource group, e não o vault, de propósito: assim
+# o módulo key_vault pode declarar depends_on sem formar ciclo.
+resource "azurerm_role_assignment" "operator_kv_secrets" {
+  scope                = azurerm_resource_group.main.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
 # O banco fica no Neon — nenhum azurerm_postgresql_* é criado neste ambiente.
 # As connection strings entram no Key Vault via var.branch_connection_strings.
 module "key_vault" {
+  depends_on = [azurerm_role_assignment.operator_kv_secrets]
+
   source              = "../../modules/key_vault"
   name                = "${local.prefix}-kv-dev"
   resource_group_name = azurerm_resource_group.main.name
@@ -89,11 +118,12 @@ resource "azurerm_role_assignment" "app_kv_secrets" {
   principal_id         = module.app_service.principal_id
 }
 
+
 module "static_web_app" {
   source              = "../../modules/static_web_app"
   name                = "${local.prefix}-web-dev"
   resource_group_name = azurerm_resource_group.main.name
-  location            = "eastus2" # Static Web Apps não existe em brazilsouth
+  location            = local.swa_location
   sku_tier            = "Free"
   sku_size            = "Free"
   tags                = local.tags

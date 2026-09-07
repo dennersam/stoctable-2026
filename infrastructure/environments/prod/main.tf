@@ -49,7 +49,20 @@ module "postgresql" {
   tags                = local.tags
 }
 
+# O vault usa RBAC, então quem roda o Terraform também precisa de permissão de
+# PLANO DE DADOS para gravar os segredos — sem isso o apply falha com 403 em
+# azurerm_key_vault_secret. Ser Owner da subscription não basta: Owner é plano
+# de controle. O escopo é o resource group, e não o vault, de propósito: assim
+# o módulo key_vault pode declarar depends_on sem formar ciclo.
+resource "azurerm_role_assignment" "operator_kv_secrets" {
+  scope                = azurerm_resource_group.main.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id
+}
+
 module "key_vault" {
+  depends_on = [azurerm_role_assignment.operator_kv_secrets]
+
   source              = "../../modules/key_vault"
   name                = "${local.prefix}-kv"
   resource_group_name = azurerm_resource_group.main.name

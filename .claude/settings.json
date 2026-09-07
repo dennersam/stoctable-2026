@@ -23,7 +23,22 @@
       "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad:/w' -w /w ghcr.io/jqlang/jq:latest length m.json)",
       "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad:/w' -w /w ghcr.io/jqlang/jq:latest -r 'to_entries[] | \"\\\\\\(.key\\)\\\\t\\\\\\(.value\\)\"' m.json)",
       "Bash(git add *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(command -v az)",
+      "Bash(az version *)",
+      "Bash(az account *)",
+      "Bash(az rest *)",
+      "Bash(az appservice *)",
+      "Bash(az resource *)",
+      "Bash(terraform state *)",
+      "Bash(az role *)",
+      "Bash(az keyvault *)",
+      "Bash(terraform plan *)",
+      "Bash(az provider *)",
+      "Bash(az vm *)",
+      "Bash(az group *)",
+      "Bash(terraform output *)",
+      "Bash(az webapp *)"
     ]
   }
 }
