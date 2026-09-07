@@ -38,7 +38,10 @@
       "Bash(az vm *)",
       "Bash(az group *)",
       "Bash(terraform output *)",
-      "Bash(az webapp *)"
+      "Bash(az webapp *)",
+      "Bash(npm ci *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(npm run *)"
     ]
   }
 }
