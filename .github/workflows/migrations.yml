@@ -27,6 +27,14 @@ jobs:
       (github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.event == 'push')
 
+    # O environment define de onde vem o secret, então BRANCH_CONNECTION_STRINGS_JSON
+    # tem o mesmo nome nos dois e valores diferentes. Isso elimina a chance de
+    # cair no banco errado e faz a migration de produção herdar as regras de
+    # proteção do environment (ex: aprovação obrigatória).
+    environment: >-
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'prod')
+          && 'production' || 'development' }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -46,8 +54,9 @@ jobs:
       - name: Run migrations for each branch
         working-directory: backend
         env:
-          # Disparo automático (push em main) sempre migra o ambiente de dev.
-          BRANCH_CONN_STRINGS: ${{ (github.event_name == 'workflow_dispatch' && inputs.target_environment == 'prod') && secrets.BRANCH_CONNECTION_STRINGS_JSON || secrets.BRANCH_CONNECTION_STRINGS_JSON_DEV }}
+          # Resolvido pelo environment do job: development em disparo automático,
+          # production apenas quando escolhido manualmente.
+          BRANCH_CONN_STRINGS: ${{ secrets.BRANCH_CONNECTION_STRINGS_JSON }}
           SPECIFIC_BRANCH_IDS: ${{ inputs.branch_ids }}
         run: |
           set -euo pipefail

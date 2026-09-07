@@ -84,13 +84,23 @@ Neon no plano gratuito também hiberna. Não é defeito.
 | `AZURE_STATIC_WEB_APPS_TOKEN` | deploy prod do frontend |
 | `VITE_API_BASE_URL_DEV` | build do frontend (dev) |
 | `VITE_API_BASE_URL` | build do frontend (prod) |
-| `BRANCH_CONNECTION_STRINGS_JSON_DEV` | migrations no Neon |
-| `BRANCH_CONNECTION_STRINGS_JSON` | migrations em prod |
-
-Os dois últimos são um JSON `{"001": "Host=...", "002": "Host=..."}`.
-
 Criar também os *environments* `development` e `production` em
 Settings → Environments do repositório.
+
+### Secret de environment (não de repositório)
+
+`BRANCH_CONNECTION_STRINGS_JSON` é definido **dentro de cada environment**, com
+o mesmo nome e valores diferentes — o job de migrations escolhe o environment e
+o GitHub resolve o valor certo. Não crie este como secret de repositório: o job
+leria o valor do ambiente errado.
+
+| Onde | Valor |
+|---|---|
+| Environment `development` | JSON com as strings do **Neon** |
+| Environment `production` | JSON com as strings do **Postgres da Azure** |
+
+Formato: `{"001": "Host=...;Database=...", "002": "Host=..."}` — as chaves são
+os IDs de filial enviados no header `X-Branch-Id`.
 
 ## Fluxo de deploy
 
