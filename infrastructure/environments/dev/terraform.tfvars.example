@@ -1,14 +1,36 @@
-# Copie para terraform.tfvars e preencha com os valores reais.
-# terraform.tfvars é ignorado pelo git — nunca commite as credenciais.
+# Este ambiente NÃO usa terraform.tfvars para segredos.
+#
+# jwt_secret, neon_host, neon_username e neon_password não têm default, então o
+# Terraform pergunta cada um no terminal a cada plan/apply. Nenhuma credencial
+# fica gravada em arquivo.
+#
+# Se você já tem um terraform.tfvars com connection strings, apague-o:
+#
+#     rm infrastructure/environments/dev/terraform.tfvars
+#
+# Para não redigitar a cada execução (ou para rodar em CI), exporte variáveis de
+# ambiente — o Terraform as lê sozinho e elas não tocam o disco:
+#
+#     export TF_VAR_jwt_secret='...'
+#     export TF_VAR_neon_host='ep-....neon.tech'
+#     export TF_VAR_neon_username='neondb_owner'
+#     export TF_VAR_neon_password='...'
+#
+# No PowerShell:
+#
+#     $env:TF_VAR_neon_password = '...'
+#
+# ---------------------------------------------------------------------------
+# O que ainda pode ir num terraform.tfvars: apenas valores NÃO sensíveis, se
+# você quiser sobrescrever os defaults de variables.tf. Descomente se precisar.
+# ---------------------------------------------------------------------------
 
-jwt_secret = "troque-por-um-segredo-de-no-minimo-32-caracteres"
+# Mapa branch_id => nome do database no Neon.
+# A chave é o valor que o frontend envia no header X-Branch-Id.
+# branch_databases = {
+#   "001" = "stoctable_branch_001"
+#   "002" = "stoctable_branch_002"
+# }
 
-# Connection strings do Neon, uma por filial.
-# Pegue no painel do Neon e converta para o formato Npgsql (chave=valor),
-# e não para a URL postgres://.
-branch_connection_strings = {
-  "001" = "Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=stoctable_branch_001;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"
-  "002" = "Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=stoctable_branch_002;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"
-}
-
-default_branch_connection_string = "Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=stoctable_branch_001;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"
+# Database usado quando não há filial resolvida (/api/auth, seeding, design-time).
+# default_database = "neondb"

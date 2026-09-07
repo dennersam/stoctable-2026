@@ -69,6 +69,13 @@ resource "azurerm_linux_web_app" "this" {
       "KeyVault__Url"                       = var.key_vault_url
       "ASPNETCORE_ENVIRONMENT"              = var.aspnetcore_environment
       "WEBSITES_ENABLE_APP_SERVICE_STORAGE" = "false"
+
+      # O App Service termina o TLS no front end e repassa a requisição em HTTP,
+      # sinalizando o protocolo original em X-Forwarded-Proto. Sem isto o
+      # Request.IsHttps é falso, o UseHttpsRedirection do Program.cs devolve 307
+      # em toda requisição e o preflight de CORS morre no redirect — aparecendo
+      # no navegador como "No 'Access-Control-Allow-Origin' header".
+      "ASPNETCORE_FORWARDEDHEADERS_ENABLED" = "true"
     },
     var.app_settings
   )

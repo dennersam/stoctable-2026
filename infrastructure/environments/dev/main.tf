@@ -47,6 +47,22 @@ locals {
   }
 }
 
+# As connection strings são montadas aqui a partir dos valores perguntados no
+# terminal, em vez de virem prontas de um arquivo. Assim o prompt pede três
+# campos curtos em vez de um mapa JSON inteiro, e os erros de digitação que já
+# nos custaram dois deploys — aspas envolvendo o valor e placeholders não
+# substituídos — são barrados pelas validações em variables.tf.
+locals {
+  neon_suffix = "Username=${var.neon_username};Password=${var.neon_password};SSL Mode=VerifyFull;Channel Binding=Require;"
+
+  default_connection_string = "Host=${var.neon_host};Database=${var.default_database};${local.neon_suffix}"
+
+  branch_connection_strings = {
+    for branch_id, database in var.branch_databases :
+    branch_id => "Host=${var.neon_host};Database=${database};${local.neon_suffix}"
+  }
+}
+
 resource "azurerm_resource_group" "main" {
   name     = "Stoctable-Dev"
   location = local.location
@@ -65,7 +81,7 @@ resource "azurerm_role_assignment" "operator_kv_secrets" {
 }
 
 # O banco fica no Neon — nenhum azurerm_postgresql_* é criado neste ambiente.
-# As connection strings entram no Key Vault via var.branch_connection_strings.
+# As connection strings entram no Key Vault a partir de local.branch_connection_strings.
 module "key_vault" {
   depends_on = [azurerm_role_assignment.operator_kv_secrets]
 
@@ -85,22 +101,26 @@ module "key_vault" {
 
       # Usada nos caminhos em que o tenant ainda não foi resolvido:
       # /api/auth, o DbSeeder no startup e o design-time factory.
-      "DefaultBranchConnectionString" = var.default_branch_connection_string
+      "DefaultBranchConnectionString" = local.default_connection_string
     },
     {
       # TenantResolutionMiddleware busca STOCTABLE-CONN-{ID} em maiúsculas.
-      for branch_id, conn in var.branch_connection_strings :
+      for branch_id, conn in local.branch_connection_strings :
       "STOCTABLE-CONN-${upper(branch_id)}" => conn
     }
   )
 }
 
 module "app_service" {
-  source                 = "../../modules/app_service"
-  name                   = "${local.prefix}-api-dev"
-  resource_group_name    = azurerm_resource_group.main.name
-  location               = local.location
-  sku_name               = "F1"
+  source              = "../../modules/app_service"
+  name                = "${local.prefix}-api-dev"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = local.location
+  # B1 e não F1: a cota de 60 min de CPU/dia do plano gratuito se esgotou em
+  # poucas horas e a Azure suspendeu o site (state QuotaExceeded), derrubando o
+  # ambiente até a meia-noite UTC. O B1 não tem essa cota e habilita Always On,
+  # o que também elimina o cold start de 20-40s.
+  sku_name               = "B1"
   always_on              = false
   aspnetcore_environment = "Development"
   key_vault_url          = module.key_vault.vault_uri

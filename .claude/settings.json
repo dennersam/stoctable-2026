@@ -51,7 +51,13 @@
       "Bash(cp package-lock.json /c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen/../lock-windows-backup.json)",
       "Bash(cp /c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen/package-lock.json package-lock.json)",
       "Bash(rm -rf node_modules)",
-      "Bash(timeout 25 npx vite build --mode development)"
+      "Bash(timeout 25 npx vite build --mode development)",
+      "Bash(curl -s -o /dev/null -w 'status=%{http_code} tempo=%{time_total}s\\\\n' --max-time 120 https://stoctable-api-dev.azurewebsites.net/health)",
+      "Bash(curl -s -i -X OPTIONS --max-time 120 -H 'Origin: https://green-moss-01cba7e0f.5.azurestaticapps.net' -H 'Access-Control-Request-Method: POST' -H 'Access-Control-Request-Headers: content-type' https://stoctable-api-dev.azurewebsites.net/api/auth/login)",
+      "Bash(echo \"--- exit: $? ---\")",
+      "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host=ep-divine-sky-ae4edken-pooler.c-2.us-east-2.aws.neon.tech TF_VAR_neon_username=neondb_owner TF_VAR_neon_password=senha-de-teste terraform plan -input=false -no-color)",
+      "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host='\"Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=neondb;\"' TF_VAR_neon_username=USUARIO TF_VAR_neon_password=SENHA terraform plan -input=false -no-color)",
+      "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host=ep-real.neon.tech TF_VAR_neon_username=u TF_VAR_neon_password=p terraform plan -input=false -no-color)"
     ]
   }
 }

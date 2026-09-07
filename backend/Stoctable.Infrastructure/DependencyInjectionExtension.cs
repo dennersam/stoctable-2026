@@ -39,10 +39,20 @@ public static class DependencyInjectionExtension
                   ?? "Host=localhost;Database=stoctable_branch_dev;Username=postgres;Password=postgres";
 
             options.UseNpgsql(connectionString)
-                   .AddInterceptors(auditInterceptor)
-                   .EnableSensitiveDataLogging()
-                   .EnableDetailedErrors()
-                   .LogTo(msg => System.Console.WriteLine(msg), Microsoft.Extensions.Logging.LogLevel.Information);
+                   .AddInterceptors(auditInterceptor);
+
+            // Desligado por padrão: estas opções despejam parâmetros de query e
+            // trechos de connection string no log, e os logs do App Service são
+            // legíveis por qualquer pessoa com acesso ao recurso. Não dá para
+            // condicionar a ASPNETCORE_ENVIRONMENT porque o ambiente na Azure
+            // também roda como Development. Habilite via user secrets:
+            //   dotnet user-secrets set "Database:EnableSensitiveDataLogging" "true"
+            if (bool.TryParse(config["Database:EnableSensitiveDataLogging"], out var verboseSql) && verboseSql)
+            {
+                options.EnableSensitiveDataLogging()
+                       .EnableDetailedErrors()
+                       .LogTo(msg => System.Console.WriteLine(msg), Microsoft.Extensions.Logging.LogLevel.Information);
+            }
         });
 
         // Repositories

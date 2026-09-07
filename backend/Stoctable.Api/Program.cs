@@ -145,7 +145,21 @@ try
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<StoctableDbContext>();
         var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        await DbSeeder.SeedAsync(db, seedLogger);
+
+        // Falha no seed não derruba a aplicação: uma connection string errada ou
+        // um banco indisponível provocava crash no startup, reinício automático e
+        // um ciclo que esgotou a cota de CPU do App Service. Registrando o erro e
+        // seguindo, /health continua respondendo e o log mostra o que houve.
+        try
+        {
+            await DbSeeder.SeedAsync(db, seedLogger);
+        }
+        catch (Exception seedEx)
+        {
+            seedLogger.LogError(seedEx,
+                "Falha ao aplicar migrations/seed no startup. A API vai subir, mas os " +
+                "endpoints que dependem do banco falharão até a conexão ser corrigida.");
+        }
     }
 
     app.Run();
