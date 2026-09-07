@@ -41,7 +41,17 @@
       "Bash(az webapp *)",
       "Bash(npm ci *)",
       "Bash(echo \"exit: $?\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(rm -rf \"/c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen\")",
+      "Bash(mkdir -p \"/c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen\")",
+      "Bash(cp /c/Users/Denner/Dev/Stoctable/frontend/package.json \"/c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen/\")",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v 'C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\620e8925-0c15-4e31-8b80-ee5d0c2b09ba\\\\scratchpad\\\\lockgen:/app' -w /app node:20 sh -c 'npm install --no-audit --no-fund >/dev/null 2>&1 && echo '\\\\''install OK'\\\\'' && npm ci --no-audit --no-fund >/dev/null 2>&1 && echo '\\\\''npm ci: OK'\\\\'' || echo '\\\\''npm ci: FALHOU'\\\\''')",
+      "Bash(python - /c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen/package-lock.json)",
+      "Bash(python - /c/Users/Denner/Dev/Stoctable/frontend/package-lock.json)",
+      "Bash(cp package-lock.json /c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen/../lock-windows-backup.json)",
+      "Bash(cp /c/Users/Denner/AppData/Local/Temp/claude/c--Users-Denner-Dev-Stoctable/620e8925-0c15-4e31-8b80-ee5d0c2b09ba/scratchpad/lockgen/package-lock.json package-lock.json)",
+      "Bash(rm -rf node_modules)",
+      "Bash(timeout 25 npx vite build --mode development)"
     ]
   }
 }
