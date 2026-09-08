@@ -137,8 +137,60 @@ VITE_API_BASE_URL=http://localhost:5000
 |--------|-----------|
 | `AZURE_APP_SERVICE_PUBLISH_PROFILE` | Publish profile do App Service |
 | `AZURE_STATIC_WEB_APPS_TOKEN` | Token do Static Web Apps |
-| `BRANCH_CONNECTION_STRINGS_JSON` | JSON: `{"branch-id": "connstr"}` |
+| `CONTROL_PLANE_CONNECTION_STRING` | Connection string **pura** do banco de controle |
+| `BRANCH_CONNECTION_STRINGS_JSON` | **Objeto JSON** `{"filial": "connstr"}` |
 | `VITE_API_BASE_URL` | URL da API para o build do frontend |
+
+Os dois secrets de banco ficam nos **environments** `development` e `production`
+(mesmo nome, valores diferentes) — é o `environment:` do job em
+`.github/workflows/migrations.yml` que escolhe de onde vêm.
+
+### Formato das connection strings de migração
+
+Os dois têm formatos **diferentes**, e trocá-los é o erro que já quebrou a
+pipeline duas vezes. Errar o formato do JSON não dá uma mensagem útil: o passo
+morre com `jq: parse error: Invalid numeric literal`, apontando para a coluna do
+primeiro `;` da connection string.
+
+**`CONTROL_PLANE_CONNECTION_STRING`** — string pura, sem JSON, uma linha só:
+
+```
+Host=ep-XXXX.REGIAO.aws.neon.tech;Database=stoctable_control;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;
+```
+
+**`BRANCH_CONNECTION_STRINGS_JSON`** — objeto JSON mapeando filial → connection
+string. As chaves `{ }` e as aspas duplas fazem parte do valor:
+
+```json
+{"001":"Host=ep-XXXX.REGIAO.aws.neon.tech;Database=neondb;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"}
+```
+
+Mais de uma filial é o mesmo objeto com mais entradas:
+`{"001":"...","002":"..."}`.
+
+Regras que valem para os dois:
+
+- **Use o host DIRETO, sem `-pooler`.** Criar banco e aplicar migrations não
+  funciona pelo pooler do Neon em modo transaction. O Terraform já faz essa
+  remoção para o control plane (`main.tf`), mas monta
+  `branch_connection_strings` com o host cru — se copiar de lá, tire o
+  `-pooler` na mão.
+- Tudo em uma linha, sem quebras.
+- Não envolva o valor inteiro em aspas ao colar no GitHub.
+- O nome do database é o que **já está em uso**, não o default do Terraform:
+  hoje a filial `001` aponta para `neondb`, que é o banco tenant da Megamotos.
+
+Valide o JSON antes de salvar:
+
+```bash
+echo '<valor>' | jq .
+```
+
+⚠️ **Nunca escreva senha em arquivo versionado.** `backend/Stoctable.Migration/appsettings.json`
+é versionado (o `.gitignore` só cobre `appsettings.*.json`, com sufixo) e já
+carregou uma senha do Neon por engano. Ele lê `DEFAULT_CONN_STRING` e
+`CONTROL_PLANE_CONN_STRING` do ambiente; chave vazia no JSON conta como ausente,
+justamente para o arquivo poder ficar sem segredo.
 
 ## Estrutura de Pastas
 ```

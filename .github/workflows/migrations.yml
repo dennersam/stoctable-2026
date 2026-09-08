@@ -54,6 +54,14 @@ jobs:
       # O control plane é o banco de empresas, filiais e contas de login. Migra
       # primeiro: se ele falhar, migrar os tenants não adianta nada — a API não
       # sobe sem ele.
+      # Formato de CONTROL_PLANE_CONNECTION_STRING — connection string PURA,
+      # sem JSON, numa linha só:
+      #
+      #   Host=ep-XXXX.REGIAO.aws.neon.tech;Database=stoctable_control;
+      #   Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;
+      #
+      # Use o host DIRETO, sem "-pooler": aplicar migrations pelo pooler do Neon
+      # em modo transaction não funciona.
       - name: Run control plane migrations
         working-directory: backend
         env:
@@ -73,6 +81,21 @@ jobs:
             --configuration Release \
             --no-build
 
+      # Formato de BRANCH_CONNECTION_STRINGS_JSON — OBJETO JSON, e não uma
+      # connection string solta (é o formato do outro secret, e trocar os dois é
+      # o erro que já quebrou esta pipeline):
+      #
+      #   {"001":"Host=ep-XXXX.REGIAO.aws.neon.tech;Database=neondb;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;"}
+      #
+      # As chaves { } e as aspas duplas fazem parte do valor; tudo em uma linha.
+      # Mais filiais = mais entradas no mesmo objeto: {"001":"...","002":"..."}.
+      # Host DIRETO, sem "-pooler", pelo mesmo motivo do passo anterior.
+      #
+      # Colar uma connection string crua aqui mata o passo em
+      #   jq: parse error: Invalid numeric literal
+      # apontando para a coluna do primeiro ";" — a validação abaixo troca isso
+      # por uma mensagem que diz o que fazer.
+      #
       # NOTA: este passo ainda itera por FILIAL, do modelo antigo em que cada
       # filial tinha um banco. Hoje o banco é por EMPRESA, e o secret precisa
       # mapear empresa => connection string. Enquanto houver um cliente só o
@@ -90,6 +113,16 @@ jobs:
 
           if [ -z "${BRANCH_CONN_STRINGS:-}" ]; then
             echo "::error::Secret de connection strings vazio para este ambiente."
+            exit 1
+          fi
+
+          # Sem esta checagem, um secret no formato errado morre com o
+          # "Invalid numeric literal" do jq, que não diz o que corrigir.
+          if ! echo "$BRANCH_CONN_STRINGS" | jq -e 'type == "object"' > /dev/null 2>&1; then
+            echo "::error::BRANCH_CONNECTION_STRINGS_JSON não é um objeto JSON válido."
+            echo "::error::Esperado um mapa filial => connection string, em uma linha:"
+            echo "::error::  {\"001\":\"Host=ep-XXXX.REGIAO.aws.neon.tech;Database=neondb;Username=USUARIO;Password=SENHA;SSL Mode=VerifyFull;Channel Binding=Require;\"}"
+            echo "::error::Uma connection string solta aqui é o formato do OUTRO secret (CONTROL_PLANE_CONNECTION_STRING)."
             exit 1
           fi
 
