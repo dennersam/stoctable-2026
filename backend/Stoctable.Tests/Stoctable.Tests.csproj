@@ -15,7 +15,9 @@
     <PackageReference Include="FluentAssertions" Version="7.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
+    <!-- 10.0.6 para acompanhar o Configuration.Json que o Stoctable.Migration
+         puxa; abaixo disso o restore falha por downgrade. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.6" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
     <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="4.1.0" />
@@ -35,6 +37,8 @@
     <ProjectReference Include="..\Stoctable.Application\Stoctable.Application.csproj" />
     <ProjectReference Include="..\Stoctable.Domain\Stoctable.Domain.csproj" />
     <ProjectReference Include="..\Stoctable.Infrastructure\Stoctable.Infrastructure.csproj" />
+    <!-- O runner de migracao: o teste do corte de estoque exercita o SQL real dele. -->
+    <ProjectReference Include="..\Stoctable.Migration\Stoctable.Migration.csproj" />
   </ItemGroup>
 
 </Project>

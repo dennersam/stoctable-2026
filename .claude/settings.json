@@ -82,7 +82,9 @@
       "Bash(grep -E \"^C:\\\\\\\\\\\\\\\\.*\\\\.tsx?:\")",
       "Bash(git stash *)",
       "Bash(DEFAULT_CONN_STRING=\"Host=localhost;Database=stoctable_dev;Username=postgres;Password=postgres\" dotnet ef migrations add AddMinimumToProductStocks --context StoctableDbContext --project Stoctable.Infrastructure --startup-project Stoctable.Api)",
-      "Bash(DEFAULT_CONN_STRING=\"Host=localhost;Database=stoctable_dev;Username=postgres;Password=postgres\" dotnet ef migrations add AddStockTransfers --context StoctableDbContext --project Stoctable.Infrastructure --startup-project Stoctable.Api)"
+      "Bash(DEFAULT_CONN_STRING=\"Host=localhost;Database=stoctable_dev;Username=postgres;Password=postgres\" dotnet ef migrations add AddStockTransfers --context StoctableDbContext --project Stoctable.Infrastructure --startup-project Stoctable.Api)",
+      "Bash(python -)",
+      "Bash(DEFAULT_CONN_STRING=\"Host=localhost;Database=x;Username=x;Password=x\" dotnet run --project Stoctable.Migration -- ajuda)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Denner\\Dev\\Stoctable"

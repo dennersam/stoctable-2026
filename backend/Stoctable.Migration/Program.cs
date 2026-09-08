@@ -40,9 +40,13 @@ try
             await RunVerificationAsync();
             break;
 
+        case "stock-cutover":
+            await RunStockCutoverAsync();
+            break;
+
         default:
             Console.WriteLine($"Comando desconhecido: '{command}'");
-            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify]");
+            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify|stock-cutover [apply]]");
             Environment.Exit(1);
             break;
     }
@@ -80,6 +84,37 @@ async Task RunVerificationAsync()
     var ok = await verification.RunAsync();
 
     // Código de saída != 0 para que dê para agendar isto e ser avisado.
+    if (!ok) Environment.Exit(2);
+}
+
+async Task RunStockCutoverAsync()
+{
+    // Sem "apply" é só relatório — o padrão seguro, porque este comando decide
+    // qual saldo cada loja passa a ter.
+    var apply = args.Skip(1).Any(a => a.Equals("apply", StringComparison.OrdinalIgnoreCase));
+
+    Console.WriteLine("╔══════════════════════════════════════════╗");
+    Console.WriteLine("║  Corte do estoque → product_stocks       ║");
+    Console.WriteLine("╚══════════════════════════════════════════╝");
+    Console.WriteLine($"  Control plane: {GetDatabaseName(ControlPlaneConnStr())}");
+    Console.WriteLine($"  Tenant       : {GetDatabaseName(pgConnStr)}");
+    Console.WriteLine($"  Modo         : {(apply ? "APLICAR (escreve)" : "verificação (só leitura)")}");
+    Console.WriteLine();
+
+    if (apply)
+    {
+        Console.WriteLine("  O saldo de products.stock_quantity vira o estoque da filial MEGA.");
+        Console.WriteLine("  As outras lojas não são tocadas.");
+        Console.WriteLine();
+        Console.Write("Pressione ENTER para aplicar ou Ctrl+C para cancelar... ");
+        Console.ReadLine();
+    }
+
+    var cutover = new StockCutover(ControlPlaneConnStr(), pgConnStr);
+    var ok = await cutover.RunAsync(apply);
+
+    // Código de saída != 0 para que um pipeline consiga barrar o deploy que
+    // derruba as colunas enquanto ainda houver divergência.
     if (!ok) Environment.Exit(2);
 }
 
