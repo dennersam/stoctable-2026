@@ -183,3 +183,12 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+/// <summary>
+/// Torna a classe gerada pelas top-level statements visível para os testes.
+/// Sem isto, WebApplicationFactory&lt;Program&gt; não compila — e é ele que
+/// permite exercitar o pipeline HTTP de verdade (ordem dos middlewares,
+/// políticas de autorização, resolução de tenant), que nenhum teste de serviço
+/// alcança.
+/// </summary>
+public partial class Program;

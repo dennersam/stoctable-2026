@@ -74,7 +74,10 @@
       "PowerShell($API=\"https://stoctable-api-dev.azurewebsites.net\"; \"health : \" + \\(Invoke-WebRequest \"$API/health\" -UseBasicParsing -TimeoutSec 30\\).Content; try { $r = Invoke-WebRequest \"$API/api/products\" -UseBasicParsing -TimeoutSec 30 } catch { \"products \\(sem auth\\): HTTP \" + [int]$_.Exception.Response.StatusCode })",
       "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; git push origin main 2>&1 | Select-Object -Last 3; \"---\"; $API=\"https://stoctable-api-dev.azurewebsites.net\"; try { $r = Invoke-WebRequest \"$API/api/products\" -UseBasicParsing -TimeoutSec 30; \"products: \" + $r.StatusCode } catch { \"products \\(sem auth\\): HTTP \" + [int]$_.Exception.Response.StatusCode })",
       "Bash(git commit *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(& \"C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\4d388f56-da16-47af-a9a5-ef4f3c5ad94d\\\\scratchpad\\\\wait-fix.ps1\")",
+      "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; git log --oneline -3; \"--- deploy do backend em voo? ---\"; $API=\"https://stoctable-api-dev.azurewebsites.net\"; try { $r = Invoke-WebRequest \"$API/health\" -UseBasicParsing -TimeoutSec 30; \"health: \" + $r.Content } catch { \"health: HTTP \" + [int]$_.Exception.Response.StatusCode })",
+      "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; $env:STOCTABLE_TMP_NOFIX='1'; dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~AuthPipelineTests\" --nologo -v q 2>&1 | Select-String -Pattern \"Passed!|Failed!|\\\\[FAIL\\\\]\" | Select-Object -First 15; $env:STOCTABLE_TMP_NOFIX=$null)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Denner\\Dev\\Stoctable"
