@@ -51,7 +51,34 @@ jobs:
       - name: Build
         run: dotnet build backend/Stoctable.Api/Stoctable.Api.csproj --configuration Release
 
-      - name: Run migrations for each branch
+      # O control plane é o banco de empresas, filiais e contas de login. Migra
+      # primeiro: se ele falhar, migrar os tenants não adianta nada — a API não
+      # sobe sem ele.
+      - name: Run control plane migrations
+        working-directory: backend
+        env:
+          CONTROL_PLANE_CONN_STRING: ${{ secrets.CONTROL_PLANE_CONNECTION_STRING }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${CONTROL_PLANE_CONN_STRING:-}" ]; then
+            echo "::error::Secret CONTROL_PLANE_CONNECTION_STRING vazio para este ambiente."
+            exit 1
+          fi
+
+          dotnet ef database update \
+            --context ControlPlaneDbContext \
+            --project Stoctable.Infrastructure/Stoctable.Infrastructure.csproj \
+            --startup-project Stoctable.Api/Stoctable.Api.csproj \
+            --configuration Release \
+            --no-build
+
+      # NOTA: este passo ainda itera por FILIAL, do modelo antigo em que cada
+      # filial tinha um banco. Hoje o banco é por EMPRESA, e o secret precisa
+      # mapear empresa => connection string. Enquanto houver um cliente só o
+      # efeito é o mesmo, mas isto tem de ser reescrito para ler as empresas do
+      # control plane antes de existir a segunda.
+      - name: Run migrations for each tenant database
         working-directory: backend
         env:
           # Resolvido pelo environment do job: development em disparo automático,
@@ -87,7 +114,10 @@ jobs:
           # Sem pipe para o while: um subshell engoliria o exit code de falha.
           while IFS=$'\t' read -r branch_id conn_str; do
             echo "::group::Filial $branch_id"
+            # --context obrigatório: o projeto tem dois DbContext desde que o
+            # control plane existe, e sem ele o CLI aborta com ambiguidade.
             DEFAULT_CONN_STRING="$conn_str" dotnet ef database update \
+              --context StoctableDbContext \
               --project Stoctable.Infrastructure/Stoctable.Infrastructure.csproj \
               --startup-project Stoctable.Api/Stoctable.Api.csproj \
               --configuration Release \
