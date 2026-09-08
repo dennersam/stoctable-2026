@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import { useThemeStore } from '@/store/themeStore';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 
 export function Layout() {
-  const { isDark } = useThemeStore();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -13,8 +11,10 @@ export function Layout() {
     setMobileOpen(false);
   }, [location.pathname]);
 
+  // A classe .dark agora vive no <html> (ver themeStore): fora daqui, para que
+  // login e portal público também respeitem o tema escolhido.
   return (
-    <div className={`${isDark ? 'dark' : ''} flex h-screen`}>
+    <div className="flex h-screen">
       <div className="flex h-screen w-full bg-gray-300 dark:bg-zinc-900 p-2 gap-2">
 
         {/* Sidebar desktop — hidden below md */}

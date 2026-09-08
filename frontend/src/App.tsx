@@ -1,10 +1,14 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 import { useAuthStore } from '@/store/authStore';
 import { ProtectedRoute } from '@/components/base/ProtectedRoute';
 import { Layout } from '@/components/base/Layout';
+import { PublicLayout } from '@/components/base/PublicLayout';
 
+import { LandingPage } from '@/pages/public/LandingPage';
+import { SignupPage } from '@/pages/public/SignupPage';
+import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
@@ -36,7 +40,13 @@ function App() {
     <BrowserRouter>
       <Toaster position="top-right" />
       <Routes>
-        {/* Public */}
+        {/* Portal público — sem shell da aplicação e sem autenticação */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/cadastro" element={<SignupPage />} />
+        </Route>
+
+        {/* Autenticação — telas próprias, sem o shell */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -49,7 +59,6 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardRouter />} />
 
           {/* Products */}
@@ -181,7 +190,7 @@ function App() {
           />
         </Route>
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
