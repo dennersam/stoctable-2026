@@ -1,11 +1,15 @@
 using Microsoft.Extensions.Configuration;
+using Stoctable.Infrastructure.Tenancy;
 using Stoctable.Migration;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
+// Variáveis de ambiente por último, para sobrescrever o arquivo: é assim que
+// se aponta a ferramenta para produção sem gravar credencial em disco.
 var config = new ConfigurationBuilder()
     .SetBasePath(AppContext.BaseDirectory)
     .AddJsonFile("appsettings.json", optional: false)
+    .AddEnvironmentVariables()
     .Build();
 
 // A variável de ambiente vem primeiro: assim dá para apontar para produção sem
@@ -71,7 +75,8 @@ async Task RunSicMigrationAsync()
 
 async Task RunVerificationAsync()
 {
-    var verification = new ControlPlaneVerification(ControlPlaneConnStr(), pgConnStr);
+    var verification = new ControlPlaneVerification(
+        ControlPlaneConnStr(), pgConnStr, new ConnectionStringProtector(config));
     var ok = await verification.RunAsync();
 
     // Código de saída != 0 para que dê para agendar isto e ser avisado.
@@ -94,7 +99,8 @@ async Task RunControlPlaneBackfillAsync()
     Console.Write("Pressione ENTER para iniciar ou Ctrl+C para cancelar... ");
     Console.ReadLine();
 
-    var backfill = new ControlPlaneBackfill(controlConnStr, pgConnStr);
+    var backfill = new ControlPlaneBackfill(
+        controlConnStr, pgConnStr, new ConnectionStringProtector(config));
     await backfill.RunAsync();
 }
 

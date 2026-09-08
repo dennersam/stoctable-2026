@@ -4,6 +4,7 @@ import { LogOut, Settings, X, User, Users, Camera, KeyRound, Eye, EyeOff, Check,
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { useBranchStore } from '@/store/branchStore';
+import { BranchSwitcher } from './BranchSwitcher';
 import { useThemeStore } from '@/store/themeStore';
 import { profileService, resizeImageToBase64, mergeProfileIntoUser } from '@/services/profileService';
 import { UsersTab } from '@/components/settings/UsersTab';
@@ -374,7 +375,8 @@ interface HeaderProps {
 
 export function Header({ onMobileMenuOpen }: HeaderProps) {
   const { user, clearAuth } = useAuthStore();
-  const { branchName } = useBranchStore();
+  const { branches, activeBranchId } = useBranchStore();
+  const activeBranch = branches.find((b) => b.id === activeBranchId) ?? null;
   const { isDark, toggle } = useThemeStore();
   const navigate = useNavigate();
 
@@ -416,8 +418,12 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
             <Menu size={20} />
           </button>
 
-          {branchName && (
-            <span className="hidden sm:block text-sm text-gray-400">— {branchName}</span>
+          {/* Seletor de filial. Some sozinho quando a conta só tem uma loja,
+              então o caso comum não ganha ruído na barra. */}
+          <BranchSwitcher />
+
+          {activeBranch && branches.length === 1 && (
+            <span className="hidden sm:block text-sm text-gray-400">— {activeBranch.name}</span>
           )}
         </div>
 

@@ -10,6 +10,7 @@ import { LandingPage } from '@/pages/public/LandingPage';
 import { SignupPage } from '@/pages/public/SignupPage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import { LoginPage } from '@/pages/auth/LoginPage';
+import { SelectBranchPage } from '@/pages/auth/SelectBranchPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage';
 import { AdminDashboard } from '@/pages/dashboard/AdminDashboard';
@@ -48,6 +49,7 @@ function App() {
 
         {/* Autenticação — telas próprias, sem o shell */}
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/select-branch" element={<SelectBranchPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 

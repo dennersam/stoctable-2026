@@ -1,10 +1,15 @@
+using Stoctable.Domain.Entities.Base;
 using Stoctable.Domain.Enums;
 
 namespace Stoctable.Domain.Entities;
 
-public class AuditLog
+public class AuditLog : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    /// <summary>Filial em que a alteração aconteceu.</summary>
+    public Guid BranchId { get; set; }
+
     public string EntityName { get; set; } = string.Empty;
     public string EntityId { get; set; } = string.Empty;
     public AuditAction Action { get; set; }

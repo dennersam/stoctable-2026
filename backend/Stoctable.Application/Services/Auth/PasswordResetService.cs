@@ -5,7 +5,7 @@ using Stoctable.Application.Results;
 using Stoctable.Communication.Requests.Auth;
 using Stoctable.Domain.Contracts.Repositories;
 using Stoctable.Domain.Contracts.Services;
-using Stoctable.Domain.Entities;
+using Stoctable.Domain.Entities.ControlPlane;
 using Stoctable.Exceptions;
 
 namespace Stoctable.Application.Services.Auth;
@@ -14,9 +14,15 @@ namespace Stoctable.Application.Services.Auth;
 /// Mecanismo único de definição de senha por link emailado, usado tanto pelo
 /// convite de novos usuários quanto pelo fluxo "esqueci minha senha".
 /// O token cru vai no email; armazenamos apenas o hash no banco.
+///
+/// Opera sobre <see cref="Account"/>, no control plane: a senha mora lá desde
+/// que o login passou a acontecer antes de saber qual banco de empresa abrir.
+/// Enquanto isto apontava para a tabela do tenant, redefinir a senha gravava
+/// num lugar que a autenticação não lia — o usuário trocava a senha e continuava
+/// sem conseguir entrar.
 /// </summary>
 public class PasswordResetService(
-    IUserRepository userRepository,
+    IAccountRepository accountRepository,
     IEmailService emailService,
     IConfiguration configuration)
 {
@@ -25,22 +31,22 @@ public class PasswordResetService(
     private const int MinPasswordLength = 6;
 
     /// <summary>
-    /// Gera um token de convite no usuário (em memória) e envia o email de convite.
-    /// O chamador é responsável por persistir o usuário.
+    /// Gera um token de convite na conta (em memória) e envia o email.
+    /// O chamador é responsável por persistir.
     /// </summary>
-    public async Task SendInviteAsync(User user, CancellationToken ct = default)
+    public async Task SendInviteAsync(Account account, CancellationToken ct = default)
     {
-        var rawToken = AssignToken(user, InviteTokenLifetime);
+        var rawToken = AssignToken(account, InviteTokenLifetime);
         var link = BuildResetLink(rawToken);
 
         var body = $"""
-            <p>Olá, {user.FullName}!</p>
+            <p>Olá, {account.FullName}!</p>
             <p>Uma conta foi criada para você no Stoctable. Defina sua senha de acesso pelo link abaixo:</p>
             <p><a href="{link}">Definir minha senha</a></p>
             <p>Este link expira em 48 horas.</p>
             """;
 
-        await emailService.SendAsync(user.Email, "Bem-vindo ao Stoctable — defina sua senha", body, ct);
+        await emailService.SendAsync(account.Email, "Bem-vindo ao Stoctable — defina sua senha", body, ct);
     }
 
     /// <summary>
@@ -49,22 +55,22 @@ public class PasswordResetService(
     /// </summary>
     public async Task<Result<bool>> RequestResetAsync(ForgotPasswordRequest request, CancellationToken ct = default)
     {
-        var user = await userRepository.GetByEmailAsync(request.Email, ct);
+        var account = await accountRepository.GetByEmailAsync(request.Email, ct);
 
-        if (user is not null && user.IsActive)
+        if (account is not null && account.IsActive)
         {
-            var rawToken = AssignToken(user, ResetTokenLifetime);
-            await userRepository.UpdateAsync(user, ct);
+            var rawToken = AssignToken(account, ResetTokenLifetime);
+            await accountRepository.SaveAsync(ct);
 
             var link = BuildResetLink(rawToken);
             var body = $"""
-                <p>Olá, {user.FullName}!</p>
+                <p>Olá, {account.FullName}!</p>
                 <p>Recebemos uma solicitação para redefinir sua senha. Use o link abaixo:</p>
                 <p><a href="{link}">Redefinir minha senha</a></p>
                 <p>Este link expira em 1 hora. Se você não fez esta solicitação, ignore este email.</p>
                 """;
 
-            await emailService.SendAsync(user.Email, "Redefinição de senha — Stoctable", body, ct);
+            await emailService.SendAsync(account.Email, "Redefinição de senha — Stoctable", body, ct);
         }
 
         return Result<bool>.Success(true);
@@ -72,8 +78,8 @@ public class PasswordResetService(
 
     public async Task<Result<bool>> ValidateTokenAsync(string token, CancellationToken ct = default)
     {
-        var user = await FindByTokenAsync(token, ct);
-        return user is null
+        var account = await FindByTokenAsync(token, ct);
+        return account is null
             ? Result<bool>.Failure(ErrorMessages.Auth.InvalidResetToken)
             : Result<bool>.Success(true);
     }
@@ -83,38 +89,45 @@ public class PasswordResetService(
         if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < MinPasswordLength)
             return Result<bool>.Failure(ErrorMessages.Auth.WeakPassword);
 
-        var user = await FindByTokenAsync(request.Token, ct);
-        if (user is null)
+        var account = await FindByTokenAsync(request.Token, ct);
+        if (account is null)
             return Result<bool>.Failure(ErrorMessages.Auth.InvalidResetToken);
 
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-        user.PasswordResetTokenHash = null;
-        user.PasswordResetTokenExpiresAt = null;
-        await userRepository.UpdateAsync(user, ct);
+        account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        account.PasswordResetTokenHash = null;
+        account.PasswordResetTokenExpiresAt = null;
+
+        // Definir senha nova encerra as sessões abertas: se o motivo da
+        // redefinição foi uma senha vazada, deixar o refresh token antigo valendo
+        // manteria o invasor dentro.
+        account.RefreshTokenHash = null;
+        account.RefreshTokenExpiresAt = null;
+
+        await accountRepository.SaveAsync(ct);
 
         return Result<bool>.Success(true);
     }
 
-    private async Task<User?> FindByTokenAsync(string token, CancellationToken ct)
+    private async Task<Account?> FindByTokenAsync(string token, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(token))
             return null;
 
         var hash = HashToken(token);
-        var user = await userRepository.GetByPasswordResetTokenHashAsync(hash, ct);
+        var account = await accountRepository.GetByPasswordResetTokenHashAsync(hash, ct);
 
-        if (user is null || user.PasswordResetTokenExpiresAt is null
-            || user.PasswordResetTokenExpiresAt < DateTimeOffset.UtcNow)
+        if (account is null || account.PasswordResetTokenExpiresAt is null
+            || account.PasswordResetTokenExpiresAt < DateTimeOffset.UtcNow)
             return null;
 
-        return user;
+        return account;
     }
 
-    private static string AssignToken(User user, TimeSpan lifetime)
+    private static string AssignToken(Account account, TimeSpan lifetime)
     {
         var rawToken = GenerateToken();
-        user.PasswordResetTokenHash = HashToken(rawToken);
-        user.PasswordResetTokenExpiresAt = DateTimeOffset.UtcNow.Add(lifetime);
+        account.PasswordResetTokenHash = HashToken(rawToken);
+        account.PasswordResetTokenExpiresAt = DateTimeOffset.UtcNow.Add(lifetime);
         return rawToken;
     }
 

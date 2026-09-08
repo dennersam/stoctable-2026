@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 
   backend "azurerm" {
@@ -30,6 +34,21 @@ provider "azurerm" {
 }
 
 data "azurerm_client_config" "current" {}
+
+# Chave AES-GCM de 256 bits para cifrar as connection strings dos tenants.
+#
+# random_bytes e não random_password: a aplicação faz Convert.FromBase64String
+# e exige exatamente 32 bytes decodificados. Uma senha alfanumérica de 32
+# caracteres decodificaria para 24 bytes e a API se recusaria a subir.
+resource "random_bytes" "tenant_encryption_key" {
+  length = 32
+
+  # NÃO regenerar. Trocar esta chave torna ilegíveis todas as connection
+  # strings já cifradas, e recuperar exige recifrar cada empresa à mão.
+  lifecycle {
+    ignore_changes = all
+  }
+}
 
 locals {
   # East US 2 e não brazilsouth: a subscription não tem cota de VMs F1
@@ -56,6 +75,11 @@ locals {
   neon_suffix = "Username=${var.neon_username};Password=${var.neon_password};SSL Mode=VerifyFull;Channel Binding=Require;"
 
   default_connection_string = "Host=${var.neon_host};Database=${var.default_database};${local.neon_suffix}"
+
+  # O control plane é outro database no MESMO projeto Neon, então só muda o
+  # Database. Usa o endpoint DIRETO (sem "-pooler") porque criar banco e aplicar
+  # migrations não funciona através do pooler em modo transaction.
+  control_plane_connection_string = "Host=${replace(var.neon_host, "-pooler.", ".")};Database=${var.control_plane_database};${local.neon_suffix}"
 
   branch_connection_strings = {
     for branch_id, database in var.branch_databases :
@@ -102,6 +126,22 @@ module "key_vault" {
       # Usada nos caminhos em que o tenant ainda não foi resolvido:
       # /api/auth, o DbSeeder no startup e o design-time factory.
       "DefaultBranchConnectionString" = local.default_connection_string
+
+      # Banco de controle do SaaS: empresas, filiais, contas de login e
+      # provisionamento. É o único banco cuja connection string o Terraform
+      # continua possuindo — as dos tenants ficam cifradas dentro dele.
+      "ControlPlaneConnectionString" = local.control_plane_connection_string
+
+      # Chave AES-GCM que cifra as connection strings dos tenants na coluna
+      # companies.connection_string_encrypted.
+      #
+      # Uma chave só protege todas as empresas — é isso que torna viável ter
+      # milhares de tenants sem um segredo por tenant no vault, onde o soft
+      # delete de 90 dias e o limite de escrita inviabilizariam o modelo.
+      #
+      # Gerada pelo Terraform e mantida no state; rotacioná-la exige recifrar
+      # as linhas existentes, então não é um valor descartável.
+      "TenantConnectionEncryptionKey" = random_bytes.tenant_encryption_key.base64
     },
     {
       # TenantResolutionMiddleware busca STOCTABLE-CONN-{ID} em maiúsculas.

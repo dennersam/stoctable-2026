@@ -1,34 +1,43 @@
 import { create } from 'zustand';
-import type { AuthUser } from '@/types/auth';
+import type { AuthUser, Company } from '@/types/auth';
 import type { UserRole } from '@/types/common';
 
 interface AuthState {
   user: AuthUser | null;
+  company: Company | null;
   accessToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
+  setAuth: (user: AuthUser, accessToken: string, refreshToken: string, company?: Company | null) => void;
   clearAuth: () => void;
   hasRole: (...roles: UserRole[]) => boolean;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
+  company: null,
   accessToken: null,
   isAuthenticated: false,
 
-  setAuth: (user, accessToken, refreshToken) => {
+  setAuth: (user, accessToken, refreshToken, company = null) => {
     localStorage.setItem('accessToken', accessToken);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('authUser', JSON.stringify(user));
-    set({ user, accessToken, isAuthenticated: true });
+    if (company) localStorage.setItem('authCompany', JSON.stringify(company));
+    set({ user, company: company ?? get().company, accessToken, isAuthenticated: true });
   },
 
   clearAuth: () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('authUser');
+    localStorage.removeItem('authCompany');
+    localStorage.removeItem('stoctable-branches');
+    // Resquício do modelo antigo, em que a filial era um header escolhido pelo
+    // cliente. Removido também na limpeza para não confundir quem inspecionar
+    // o storage.
     localStorage.removeItem('branchId');
-    set({ user: null, accessToken: null, isAuthenticated: false });
+    localStorage.removeItem('branchName');
+    set({ user: null, company: null, accessToken: null, isAuthenticated: false });
   },
 
   hasRole: (...roles) => {
@@ -51,8 +60,32 @@ export function hydrateAuth() {
     if (payload.exp && payload.exp < now) return;
 
     const user: AuthUser = JSON.parse(storedUser);
-    useAuthStore.getState().setAuth(user, token, localStorage.getItem('refreshToken') ?? '');
+    const storedCompany = localStorage.getItem('authCompany');
+    const company: Company | null = storedCompany ? JSON.parse(storedCompany) : null;
+
+    useAuthStore
+      .getState()
+      .setAuth(user, token, localStorage.getItem('refreshToken') ?? '', company);
   } catch {
     // Invalid token or corrupted stored user — ignore
+  }
+}
+
+/**
+ * Lê a filial ativa direto do token, sem confiar no que está guardado.
+ *
+ * A filial passou a ser uma claim assinada: se o storage disser uma coisa e o
+ * token disser outra, quem manda é o token — o servidor vai obedecer ao token
+ * de qualquer forma.
+ */
+export function branchIdFromToken(): string | null {
+  const token = localStorage.getItem('accessToken');
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.branch_id ?? null;
+  } catch {
+    return null;
   }
 }

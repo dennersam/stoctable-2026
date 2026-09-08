@@ -16,7 +16,10 @@ public static class DependencyInjectionExtension
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<AuthService>();
+        // Autentica contra o control plane. Substituiu o AuthService, que
+        // validava senha dentro do banco de uma empresa — impossível num SaaS,
+        // porque o login acontece antes de saber qual banco abrir.
+        services.AddScoped<AccountService>();
         services.AddScoped<PasswordResetService>();
         services.AddScoped<ManufacturerService>();
         services.AddScoped<ProductService>();

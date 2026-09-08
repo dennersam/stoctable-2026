@@ -145,7 +145,7 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
 
     private static QuotationService BuildService(StoctableDbContext ctx)
     {
-        var seq = new NumberSequenceGenerator(ctx);
+        var seq = new NumberSequenceGenerator(ctx, new BranchContext());
         var productRepo = new ProductRepository(ctx, new BranchContext());
         var quotationRepo = new QuotationRepository(ctx, seq);
         var saleRepo = new SaleRepository(ctx, seq);

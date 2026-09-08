@@ -81,14 +81,22 @@ legível antes de existir tenant e guarda as connection strings de todos eles.
 Connection string do tenant fica cifrada na coluna `companies.connection_string_encrypted`,
 não no Key Vault.
 
-**Como está hoje** (a ser substituído nas fases 3+):
-- O frontend envia o header `X-Branch-Id` em cada request
-- `TenantResolutionMiddleware` resolve `STOCTABLE-CONN-{BRANCH_ID}` no Key Vault
-  e popula `TenantContext` (scoped)
-- `StoctableDbContext` usa o connection string do `TenantContext` dinamicamente
-- ⚠️ O middleware roda **antes** de `UseAuthentication()`, então o header é
-  confiado sem verificar se o usuário pertence à filial. A correção (filial vira
-  claim assinada no JWT) é a fase 3
+**Como funciona (fase 3 aplicada):**
+- Login em `/api/auth/login` é por **e-mail**, contra `accounts` no control plane
+- Conta com uma filial recebe token de sessão direto; com várias, recebe um
+  token de **pré-filial** (5 min, sem papel) e chama `/api/auth/select-branch`
+- A filial é uma **claim assinada** (`branch_id`) — o header `X-Branch-Id` é
+  ignorado. `TenantResolutionMiddleware` roda **depois** de `UseAuthentication()`
+- Conexão do tenant: `CompanyConnectionResolver` lê
+  `companies.connection_string_encrypted` (AES-GCM) e cacheia por 10 min
+- Isolamento de linhas: `BranchContext` + query filters globais no
+  `StoctableDbContext`; `BranchScopeSaveChangesInterceptor` carimba `branch_id`
+
+⚠️ **Armadilha ao mexer nos query filters:** o filtro precisa ler o campo de
+instância `_branch` do DbContext. Copiar o valor para uma variável local congela
+a filial da primeira requisição no modelo cacheado do EF, e todas as seguintes
+enxergam os dados dela — falha silenciosa. `BranchIsolationTests` existe para
+pegar isso.
 
 ### Autenticação
 - JWT Bearer com BCrypt para hash de senhas

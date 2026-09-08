@@ -10,6 +10,12 @@ public static class ErrorMessages
         public const string Unauthorized = "Acesso não autorizado.";
         public const string InvalidResetToken = "Link inválido ou expirado. Solicite um novo.";
         public const string WeakPassword = "A senha deve ter pelo menos 6 caracteres.";
+        public const string BranchNotAllowed = "Você não tem acesso a esta filial.";
+        public const string NoBranchAssigned = "Sua conta não está vinculada a nenhuma filial. Contate o administrador.";
+        public const string BranchNotSelected = "Selecione uma filial para continuar.";
+        public const string CompanyProvisioning = "Estamos preparando o ambiente da sua empresa. Tente novamente em instantes.";
+        public const string CompanySuspended = "O acesso da sua empresa está suspenso. Contate o suporte.";
+        public const string CompanyUnavailable = "O ambiente da sua empresa está indisponível. Contate o suporte.";
     }
 
     public static class User

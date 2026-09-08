@@ -11,6 +11,7 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
     {
         builder.ToTable("audit_logs");
         builder.HasKey(a => a.Id);
+        builder.Property(a => a.BranchId).HasColumnName("branch_id");
         builder.Property(a => a.Id).HasColumnName("id");
         builder.Property(a => a.EntityName).HasColumnName("entity_name").HasMaxLength(100).IsRequired();
         builder.Property(a => a.EntityId).HasColumnName("entity_id").HasMaxLength(100).IsRequired();
@@ -25,5 +26,6 @@ public class AuditLogConfiguration : IEntityTypeConfiguration<AuditLog>
 
         builder.HasIndex(a => new { a.EntityName, a.EntityId });
         builder.HasIndex(a => a.OccurredAt);
+        builder.HasIndex(a => new { a.BranchId, a.OccurredAt });
     }
 }

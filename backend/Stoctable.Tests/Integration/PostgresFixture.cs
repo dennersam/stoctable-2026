@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Infrastructure.Context;
+using Stoctable.Infrastructure.Interceptors;
 using Stoctable.Infrastructure.Search;
+using Stoctable.Infrastructure.Tenancy;
 using Testcontainers.PostgreSql;
 
 namespace Stoctable.Tests.Integration;
@@ -36,11 +38,17 @@ public class PostgresFixture : IAsyncLifetime
 
     public async Task DisposeAsync() => await _container.DisposeAsync();
 
-    public StoctableDbContext CreateContext()
+    /// <summary>
+    /// Cria um contexto amarrado a uma filial. Sem argumento usa a filial
+    /// padrão do BranchContext, que é o que a maioria dos testes quer; passar
+    /// uma explícita é como se testa isolamento entre lojas.
+    /// </summary>
+    public StoctableDbContext CreateContext(BranchContext? branch = null)
     {
         var opts = new DbContextOptionsBuilder<StoctableDbContext>()
             .UseNpgsql(ConnectionString)
+            .AddInterceptors(new BranchScopeSaveChangesInterceptor(branch ?? new BranchContext()))
             .Options;
-        return new StoctableDbContext(opts);
+        return new StoctableDbContext(opts, branch);
     }
 }

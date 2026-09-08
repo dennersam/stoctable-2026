@@ -11,6 +11,8 @@ public class InventoryMovementConfiguration : IEntityTypeConfiguration<Inventory
     {
         builder.ToTable("inventory_movements");
         builder.HasKey(m => m.Id);
+        builder.Property(m => m.BranchId).HasColumnName("branch_id");
+        builder.HasIndex(m => new { m.BranchId, m.ProductId });
         builder.Property(m => m.Id).HasColumnName("id");
         builder.Property(m => m.ProductId).HasColumnName("product_id");
         builder.Property(m => m.MovementType).HasColumnName("movement_type")

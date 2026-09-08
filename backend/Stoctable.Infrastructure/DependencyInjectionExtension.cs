@@ -16,8 +16,11 @@ public static class DependencyInjectionExtension
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
-        // Tenancy — BranchConnectionCache é singleton (cache em memória)
+        // Tenancy — caches em memória são singleton
         services.AddSingleton<BranchConnectionCache>();
+        services.AddSingleton<CompanyConnectionCache>();
+        services.AddSingleton<IConnectionStringProtector, ConnectionStringProtector>();
+        services.AddScoped<ICompanyConnectionResolver, CompanyConnectionResolver>();
         services.AddScoped<TenantContext>();
 
         // Filial ativa da requisição. Hoje sempre a mesma (cada banco tem uma
@@ -28,22 +31,40 @@ public static class DependencyInjectionExtension
         // Audit interceptor
         services.AddScoped<AuditSaveChangesInterceptor>();
 
+        // Carimba branch_id nas entidades novas de escopo de filial.
+        services.AddScoped<BranchScopeSaveChangesInterceptor>();
+
         // DbContext com connection string resolvida dinamicamente via TenantContext
         services.AddDbContext<StoctableDbContext>((sp, options) =>
         {
             var tenantContext = sp.GetRequiredService<TenantContext>();
             var auditInterceptor = sp.GetRequiredService<AuditSaveChangesInterceptor>();
+            var branchInterceptor = sp.GetRequiredService<BranchScopeSaveChangesInterceptor>();
             var config = sp.GetRequiredService<IConfiguration>();
 
-            // Prioridade: TenantContext (runtime) → user-secrets/appsettings → env var → localhost
+            // A connection string vem do tenant resolvido pelas claims. O
+            // fallback que existia aqui — cair no DefaultBranchConnectionString
+            // quando o tenant não estava resolvido — era um vazamento à espera
+            // de acontecer: qualquer caminho que escapasse do middleware
+            // passaria a ler o banco de uma empresa qualquer sem erro nenhum.
+            //
+            // Agora só sobra o fallback de desenvolvimento local, e apenas
+            // porque migrations e ferramentas de linha de comando constroem o
+            // contexto fora de uma requisição HTTP.
             var connectionString = tenantContext.IsResolved
                 ? tenantContext.ConnectionString!
                 : config["DefaultBranchConnectionString"]
                   ?? Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
-                  ?? "Host=localhost;Database=stoctable_branch_dev;Username=postgres;Password=postgres";
+                  ?? throw new InvalidOperationException(
+                      "Nenhum tenant resolvido e nenhuma connection string padrão configurada. "
+                      + "Em requisição autenticada isso indica que o TenantResolutionMiddleware "
+                      + "não rodou ou não encontrou as claims de empresa e filial.");
 
+            // A ORDEM importa: o interceptor de auditoria CRIA linhas de
+            // AuditLog, e o de filial precisa rodar depois para carimbá-las
+            // também. Invertido, todo registro de auditoria nasceria sem filial.
             options.UseNpgsql(connectionString)
-                   .AddInterceptors(auditInterceptor);
+                   .AddInterceptors(auditInterceptor, branchInterceptor);
 
             // Desligado por padrão: estas opções despejam parâmetros de query e
             // trechos de connection string no log, e os logs do App Service são
@@ -78,7 +99,11 @@ public static class DependencyInjectionExtension
                 npg.MigrationsHistoryTable("__EFMigrationsHistory_ControlPlane"));
         });
 
+        services.AddScoped<ICurrentTenant, CurrentTenant>();
+        services.AddScoped<IUserProjectionWriter, UserProjectionWriter>();
+
         // Repositories
+        services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IManufacturerRepository, ManufacturerRepository>();
         services.AddScoped<IProductRepository, ProductRepository>();

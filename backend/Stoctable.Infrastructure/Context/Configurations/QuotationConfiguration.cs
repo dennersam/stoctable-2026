@@ -11,6 +11,7 @@ public class QuotationConfiguration : IEntityTypeConfiguration<Quotation>
     {
         builder.ToTable("quotations");
         builder.HasKey(q => q.Id);
+        builder.Property(q => q.BranchId).HasColumnName("branch_id");
         builder.Property(q => q.Id).HasColumnName("id");
         builder.Property(q => q.QuotationNumber).HasColumnName("quotation_number").HasMaxLength(20).IsRequired();
         builder.Property(q => q.CustomerId).HasColumnName("customer_id");
@@ -35,6 +36,7 @@ public class QuotationConfiguration : IEntityTypeConfiguration<Quotation>
         builder.Property(q => q.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
 
         builder.HasIndex(q => q.QuotationNumber).IsUnique();
+        builder.HasIndex(q => new { q.BranchId, q.CreatedAt });
 
         builder.HasOne(q => q.Customer).WithMany(c => c.Quotations).HasForeignKey(q => q.CustomerId);
         builder.HasOne(q => q.Salesperson).WithMany().HasForeignKey(q => q.SalespersonId);

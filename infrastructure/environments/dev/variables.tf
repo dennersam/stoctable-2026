@@ -83,3 +83,9 @@ variable "default_database" {
   description = "Database usado quando não há filial resolvida (/api/auth, seeding no startup, design-time)."
   default     = "neondb"
 }
+
+variable "control_plane_database" {
+  type        = string
+  description = "Banco de controle do SaaS: empresas, filiais, contas de login e provisionamento."
+  default     = "stoctable_control"
+}

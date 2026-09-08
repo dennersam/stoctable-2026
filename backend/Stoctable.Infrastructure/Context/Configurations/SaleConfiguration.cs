@@ -11,6 +11,7 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
     {
         builder.ToTable("sales");
         builder.HasKey(s => s.Id);
+        builder.Property(s => s.BranchId).HasColumnName("branch_id");
         builder.Property(s => s.Id).HasColumnName("id");
         builder.Property(s => s.SaleNumber).HasColumnName("sale_number").HasMaxLength(20).IsRequired();
         builder.Property(s => s.QuotationId).HasColumnName("quotation_id");
@@ -35,6 +36,8 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.Property(s => s.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
 
         builder.HasIndex(s => s.SaleNumber).IsUnique();
+        // Toda listagem de venda filtra por filial e ordena por data.
+        builder.HasIndex(s => new { s.BranchId, s.CreatedAt });
 
         builder.HasOne(s => s.Customer).WithMany(c => c.Sales).HasForeignKey(s => s.CustomerId);
         builder.HasOne(s => s.Salesperson).WithMany().HasForeignKey(s => s.SalespersonId);

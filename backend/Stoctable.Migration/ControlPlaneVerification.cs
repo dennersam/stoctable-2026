@@ -1,4 +1,5 @@
 using Npgsql;
+using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Migration;
 
@@ -11,8 +12,24 @@ namespace Stoctable.Migration;
 /// diariamente por uma semana antes de derrubar as colunas antigas: qualquer
 /// divergência significa que alguma escrita mexeu numa fonte e não na outra.
 /// </summary>
-public class ControlPlaneVerification(string controlPlaneConnStr, string tenantConnStr)
+public class ControlPlaneVerification(
+    string controlPlaneConnStr,
+    string tenantConnStr,
+    IConnectionStringProtector protector)
 {
+    /// <summary>
+    /// Tabelas que ganharam <c>branch_id</c> na fase 3. Linha sobrando no id
+    /// legado é linha invisível: o filtro global não a alcança, então ela some
+    /// da aplicação sem nenhum erro.
+    /// </summary>
+    private static readonly string[] BranchScopedTables =
+    [
+        "product_stocks", "stock_reservations", "sales", "quotations",
+        "payments", "inventory_movements", "audit_logs", "number_sequences",
+    ];
+
+    private const string LegacyBranchId = "00000000-0000-0000-0000-000000000001";
+
     public async Task<bool> RunAsync()
     {
         await using var control = new NpgsqlConnection(controlPlaneConnStr);
@@ -40,6 +57,12 @@ public class ControlPlaneVerification(string controlPlaneConnStr, string tenantC
         await PrintAsync(control, """
             SELECT username, email, role, is_active FROM accounts ORDER BY username
             """);
+
+        Section("Connection string cifrada");
+        var okCrypto = await VerifyEncryptedConnectionAsync(control);
+
+        Section("Escopo de filial nas tabelas do tenant");
+        var okEscopo = await VerifyBranchScopeAsync(control, tenant);
 
         Section("Estoque");
         await PrintAsync(tenant, """
@@ -92,7 +115,115 @@ public class ControlPlaneVerification(string controlPlaneConnStr, string tenantC
         if (semLinha > 0)
             Warn($"  ⚠ {semLinha} produto(s) têm saldo em products mas nenhuma linha em product_stocks.");
 
-        return divergencias == 0 && semLinha == 0;
+        return divergencias == 0 && semLinha == 0 && okCrypto && okEscopo;
+    }
+
+    /// <summary>
+    /// Confere que a connection string cifrada decifra e aponta para o mesmo
+    /// banco que estamos usando. Sem isso, toda requisição autenticada responde
+    /// 503 — e o erro só apareceria no primeiro login depois do deploy.
+    /// </summary>
+    private async Task<bool> VerifyEncryptedConnectionAsync(NpgsqlConnection control)
+    {
+        await using var cmd = new NpgsqlCommand(
+            "SELECT razao_social, status, connection_string_encrypted FROM companies", control);
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        var tudoOk = true;
+
+        while (await reader.ReadAsync())
+        {
+            var razao = reader.GetString(0);
+            var status = reader.GetString(1);
+
+            if (await reader.IsDBNullAsync(2))
+            {
+                Warn($"  ⚠ {razao}: sem connection string gravada — login vai falhar com 503.");
+                tudoOk = false;
+                continue;
+            }
+
+            var payload = (byte[])reader.GetValue(2);
+
+            try
+            {
+                var decifrada = protector.Unprotect(payload);
+                var banco = new NpgsqlConnectionStringBuilder(decifrada).Database;
+                var esperado = new NpgsqlConnectionStringBuilder(tenantConnStr).Database;
+
+                if (banco == esperado)
+                    Ok($"  ✓ {razao} ({status}): decifra e aponta para '{banco}'");
+                else
+                {
+                    Warn($"  ⚠ {razao}: decifra, mas aponta para '{banco}' e não '{esperado}'.");
+                    tudoOk = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Warn($"  ⚠ {razao}: NÃO decifra ({ex.GetType().Name}). "
+                     + "A chave TenantConnectionEncryptionKey provavelmente mudou.");
+                tudoOk = false;
+            }
+        }
+
+        return tudoOk;
+    }
+
+    /// <summary>
+    /// Nenhuma linha pode ter ficado no id de filial provisório usado pelas
+    /// migrations — se ficou, ela existe no banco e é invisível na aplicação.
+    /// </summary>
+    private async Task<bool> VerifyBranchScopeAsync(NpgsqlConnection control, NpgsqlConnection tenant)
+    {
+        var filiais = new Dictionary<Guid, string>();
+        await using (var cmd = new NpgsqlCommand("SELECT id, code FROM branches", control))
+        await using (var reader = await cmd.ExecuteReaderAsync())
+        {
+            while (await reader.ReadAsync())
+                filiais[reader.GetGuid(0)] = reader.GetString(1);
+        }
+
+        var tudoOk = true;
+
+        foreach (var tabela in BranchScopedTables)
+        {
+            await using var cmd = new NpgsqlCommand(
+                $"SELECT branch_id, count(*) FROM {tabela} GROUP BY branch_id ORDER BY count(*) DESC", tenant);
+            await using var reader = await cmd.ExecuteReaderAsync();
+
+            var partes = new List<string>();
+            while (await reader.ReadAsync())
+            {
+                var branchId = reader.GetGuid(0);
+                var total = reader.GetInt64(1);
+
+                if (branchId == Guid.Parse(LegacyBranchId))
+                {
+                    partes.Add($"LEGADO={total}");
+                    tudoOk = false;
+                }
+                else if (filiais.TryGetValue(branchId, out var code))
+                {
+                    partes.Add($"{code}={total}");
+                }
+                else
+                {
+                    partes.Add($"DESCONHECIDA({branchId})={total}");
+                    tudoOk = false;
+                }
+            }
+
+            var resumo = partes.Count == 0 ? "vazia" : string.Join(", ", partes);
+            Console.WriteLine($"  {tabela,-20} {resumo}");
+        }
+
+        if (tudoOk)
+            Ok("  ✓ Toda linha pertence a uma filial real — nenhuma sobrou no id provisório.");
+        else
+            Warn("  ⚠ Há linhas em filial provisória ou desconhecida: invisíveis na aplicação.");
+
+        return tudoOk;
     }
 
     private static async Task PrintAsync(NpgsqlConnection conn, string sql)

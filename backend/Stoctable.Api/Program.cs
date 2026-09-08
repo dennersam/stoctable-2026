@@ -119,8 +119,19 @@ try
 
     app.UseHttpsRedirection();
     app.UseCors("AllowFrontend");
-    app.UseMiddleware<TenantResolutionMiddleware>();
+
+    // A ORDEM aqui é uma questão de segurança, não de estilo.
+    //
+    // A resolução de tenant precisa vir DEPOIS da autenticação, porque ela lê a
+    // empresa e a filial das claims — antes disso não existe ClaimsPrincipal.
+    // Enquanto rodou antes, o middleware confiava no header X-Branch-Id e
+    // qualquer usuário autenticado lia os dados de outra empresa trocando um
+    // cabeçalho.
+    //
+    // E antes da autorização, para que as policies possam contar com a filial
+    // já resolvida.
     app.UseAuthentication();
+    app.UseMiddleware<TenantResolutionMiddleware>();
     app.UseAuthorization();
 
     // ─── Endpoints ───────────────────────────────────────────────────────────────

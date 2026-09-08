@@ -1,4 +1,5 @@
 using Stoctable.Infrastructure.Repositories;
+using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Tests.Integration;
 
@@ -16,7 +17,7 @@ public class NumberSequenceTests : IClassFixture<PostgresFixture>
     public async Task NextAsync_SerialCalls_ReturnsIncreasingValues()
     {
         await using var ctx = _fixture.CreateContext();
-        var gen = new NumberSequenceGenerator(ctx);
+        var gen = new NumberSequenceGenerator(ctx, new BranchContext());
 
         var a = await gen.NextAsync("TST_SERIAL");
         var b = await gen.NextAsync("TST_SERIAL");
@@ -37,7 +38,7 @@ public class NumberSequenceTests : IClassFixture<PostgresFixture>
         var tasks = Enumerable.Range(0, taskCount).Select(_ => Task.Run(async () =>
         {
             await using var ctx = _fixture.CreateContext();
-            var gen = new NumberSequenceGenerator(ctx);
+            var gen = new NumberSequenceGenerator(ctx, new BranchContext());
             return await gen.NextAsync(prefix);
         })).ToArray();
 
@@ -52,7 +53,7 @@ public class NumberSequenceTests : IClassFixture<PostgresFixture>
     public async Task NextAsync_DifferentPrefixes_SequencesIndependent()
     {
         await using var ctx = _fixture.CreateContext();
-        var gen = new NumberSequenceGenerator(ctx);
+        var gen = new NumberSequenceGenerator(ctx, new BranchContext());
 
         Assert.Equal(1, await gen.NextAsync("PFX_A"));
         Assert.Equal(2, await gen.NextAsync("PFX_A"));

@@ -3,8 +3,15 @@ using Stoctable.Domain.Enums;
 
 namespace Stoctable.Domain.Entities;
 
-public class Payment : BaseEntity
+public class Payment : BaseEntity, IBranchScoped
 {
+    /// <summary>
+    /// Filial do recebimento. Redundante com Sale.BranchId de propósito: o
+    /// fechamento de caixa consulta pagamentos direto por período e filial, sem
+    /// passar pela venda, e é essa consulta que justifica o escopo por filial.
+    /// </summary>
+    public Guid BranchId { get; set; }
+
     public Guid SaleId { get; set; }
     public Guid PaymentMethodId { get; set; }
     public decimal Amount { get; set; }

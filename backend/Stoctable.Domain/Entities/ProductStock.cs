@@ -14,7 +14,7 @@ namespace Stoctable.Domain.Entities;
 /// escritas em paralelo, para que dê para reconciliar as duas fontes antes de
 /// derrubá-las. Ver o plano de migração.
 /// </summary>
-public class ProductStock : BaseEntity
+public class ProductStock : BaseEntity, IBranchScoped
 {
     public Guid BranchId { get; set; }
     public Guid ProductId { get; set; }

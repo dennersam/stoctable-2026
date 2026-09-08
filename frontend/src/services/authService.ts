@@ -7,8 +7,19 @@ export const authService = {
     return response.data;
   },
 
-  refresh: async (refreshToken: string): Promise<AuthTokenResponse> => {
-    const response = await api.post<AuthTokenResponse>('/auth/refresh', { refreshToken });
+  /**
+   * A filial ativa vai junto: sem ela, uma conta com várias lojas seria
+   * devolvida à tela de escolha a cada renovação de token. O servidor revalida
+   * a permissão contra o banco antes de devolvê-la.
+   */
+  refresh: async (refreshToken: string, branchId?: string | null): Promise<AuthTokenResponse> => {
+    const response = await api.post<AuthTokenResponse>('/auth/refresh', { refreshToken, branchId });
+    return response.data;
+  },
+
+  /** Troca o token atual por um amarrado à filial escolhida. */
+  selectBranch: async (branchId: string): Promise<AuthTokenResponse> => {
+    const response = await api.post<AuthTokenResponse>('/auth/select-branch', { branchId });
     return response.data;
   },
 

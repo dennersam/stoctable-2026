@@ -1,10 +1,15 @@
+using Stoctable.Domain.Entities.Base;
 using Stoctable.Domain.Enums;
 
 namespace Stoctable.Domain.Entities;
 
-public class InventoryMovement
+public class InventoryMovement : IBranchScoped
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    /// <summary>Filial onde o estoque se moveu. Carimbado no insert.</summary>
+    public Guid BranchId { get; set; }
+
     public Guid ProductId { get; set; }
     public MovementType MovementType { get; set; }
 

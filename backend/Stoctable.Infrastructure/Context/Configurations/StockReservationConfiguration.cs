@@ -10,6 +10,8 @@ public class StockReservationConfiguration : IEntityTypeConfiguration<StockReser
     {
         builder.ToTable("stock_reservations");
         builder.HasKey(r => r.Id);
+        builder.Property(r => r.BranchId).HasColumnName("branch_id");
+        builder.HasIndex(r => new { r.BranchId, r.ProductId });
         builder.Property(r => r.Id).HasColumnName("id");
         builder.Property(r => r.ProductId).HasColumnName("product_id");
         builder.Property(r => r.QuotationId).HasColumnName("quotation_id");

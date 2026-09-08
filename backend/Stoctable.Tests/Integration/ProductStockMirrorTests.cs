@@ -130,8 +130,11 @@ public class ProductStockMirrorTests : IClassFixture<PostgresFixture>
         await using (var ctx = _fixture.CreateContext())
             await new ProductRepository(ctx, villa).ReserveStockAsync(productId, 5m);
 
+        // IgnoreQueryFilters porque o objetivo aqui é justamente ver as duas
+        // filiais de uma vez; no uso normal o filtro global esconde a outra —
+        // é o que BranchIsolationTests verifica.
         await using var verify = _fixture.CreateContext();
-        var rows = await verify.ProductStocks.AsNoTracking()
+        var rows = await verify.ProductStocks.AsNoTracking().IgnoreQueryFilters()
             .Where(s => s.ProductId == productId).ToListAsync();
 
         // Duas linhas distintas: o catálogo é da empresa, o estoque é da loja.

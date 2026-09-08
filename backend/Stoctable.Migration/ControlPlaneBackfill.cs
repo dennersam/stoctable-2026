@@ -19,7 +19,10 @@ namespace Stoctable.Migration;
 /// É idempotente — rodar duas vezes não duplica nada. A verificação é pelo CNPJ
 /// da empresa, que é único.
 /// </summary>
-public class ControlPlaneBackfill(string controlPlaneConnStr, string tenantConnStr)
+public class ControlPlaneBackfill(
+    string controlPlaneConnStr,
+    string tenantConnStr,
+    IConnectionStringProtector protector)
 {
     /// <summary>
     /// As três lojas são três pessoas jurídicas distintas — raízes de CNPJ
@@ -68,8 +71,9 @@ public class ControlPlaneBackfill(string controlPlaneConnStr, string tenantConnS
 
         if (existing is not null)
         {
-            Log($"✓ Empresa já existe ({existing.RazaoSocial}) — nada a fazer.");
-            await RemapProductStocksAsync(existing, control);
+            Log($"✓ Empresa já existe ({existing.RazaoSocial}) — atualizando o que falta.");
+            await StoreConnectionStringAsync(existing, control);
+            await RemapBranchScopedRowsAsync(existing, control);
             return;
         }
 
@@ -103,11 +107,31 @@ public class ControlPlaneBackfill(string controlPlaneConnStr, string tenantConnS
         Log($"✓ Empresa criada: {company.RazaoSocial} ({company.Branches.Count} filiais)");
 
         await BackfillAccountsAsync(company, control);
-        await RemapProductStocksAsync(company, control);
+        await StoreConnectionStringAsync(company, control);
+        await RemapBranchScopedRowsAsync(company, control);
 
         Log("");
-        Log("Concluído. A connection string do tenant NÃO foi gravada cifrada —");
-        Log("isso acontece na fase de provisionamento, quando a cifragem existir.");
+        Log("Concluído.");
+    }
+
+    /// <summary>
+    /// Grava a connection string do tenant cifrada na empresa. Sem isto o
+    /// CompanyConnectionResolver não tem como abrir o banco e toda requisição
+    /// autenticada responde 503.
+    /// </summary>
+    private async Task StoreConnectionStringAsync(Company company, ControlPlaneDbContext control)
+    {
+        if (company.ConnectionStringEncrypted is { Length: > 0 })
+        {
+            Log("✓ Connection string cifrada já estava gravada.");
+            return;
+        }
+
+        company.ConnectionStringEncrypted = protector.Protect(tenantConnStr);
+        company.DatabaseName ??= DatabaseNameOf(tenantConnStr);
+        await control.SaveChangesAsync();
+
+        Log("✓ Connection string do tenant cifrada e gravada na empresa");
     }
 
     /// <summary>
@@ -196,32 +220,41 @@ public class ControlPlaneBackfill(string controlPlaneConnStr, string tenantConnS
     }
 
     /// <summary>
-    /// As linhas de <c>product_stocks</c> nasceram com o id provisório
-    /// <see cref="BranchContext.LegacySingleBranchId"/>, gravado literalmente na
-    /// migration. Agora que a filial real existe, elas passam para ela.
+    /// As linhas de escopo de filial nasceram com o id provisório
+    /// <see cref="BranchContext.LegacySingleBranchId"/>, gravado literalmente
+    /// nas migrations (que não podem referenciar código da aplicação). Agora que
+    /// a filial real existe, todas passam para ela.
+    ///
+    /// Todo o histórico é da MEGAMOTOS: era a única loja no sistema até aqui.
     /// </summary>
-    private async Task RemapProductStocksAsync(Company company, ControlPlaneDbContext control)
+    private async Task RemapBranchScopedRowsAsync(Company company, ControlPlaneDbContext control)
     {
         var owner = company.Branches.FirstOrDefault(b => b.Code == StockOwnerCode)
             ?? await control.Branches.FirstAsync(b => b.CompanyId == company.Id && b.Code == StockOwnerCode);
 
-        Log($"→ Reapontando estoque para a filial {owner.Code}...");
+        Log($"→ Reapontando dados de filial para {owner.NomeFantasia} ({owner.Code})...");
+
+        string[] tabelas =
+        [
+            "product_stocks", "stock_reservations", "sales", "quotations",
+            "payments", "inventory_movements", "audit_logs", "number_sequences",
+        ];
 
         await using var tenant = new NpgsqlConnection(tenantConnStr);
         await tenant.OpenAsync();
 
-        await using var cmd = new NpgsqlCommand(
-            """
-            UPDATE product_stocks
-               SET branch_id  = @branch_id,
-                   updated_at = NOW()
-             WHERE branch_id = @legacy_id
-            """, tenant);
-        cmd.Parameters.AddWithValue("branch_id", owner.Id);
-        cmd.Parameters.AddWithValue("legacy_id", BranchContext.LegacySingleBranchId);
+        foreach (var tabela in tabelas)
+        {
+            await using var cmd = new NpgsqlCommand(
+                $"UPDATE {tabela} SET branch_id = @branch_id WHERE branch_id = @legacy_id", tenant);
+            cmd.Parameters.AddWithValue("branch_id", owner.Id);
+            cmd.Parameters.AddWithValue("legacy_id", BranchContext.LegacySingleBranchId);
 
-        var rows = await cmd.ExecuteNonQueryAsync();
-        Log($"✓ {rows} linhas de estoque agora pertencem a {owner.NomeFantasia}");
+            var rows = await cmd.ExecuteNonQueryAsync();
+            if (rows > 0) Log($"    {tabela}: {rows} linha(s)");
+        }
+
+        Log("✓ Reapontamento concluído");
     }
 
     private ControlPlaneDbContext CreateControlContext()

@@ -5,12 +5,12 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isAxiosError } from 'axios';
 import { authService } from '@/services/authService';
-import { useAuthStore } from '@/store/authStore';
-import { useBranchStore } from '@/store/branchStore';
+import { applySession } from '@/lib/session';
 import { Logo } from '@/components/base/Logo';
 
 const loginSchema = z.object({
-  username: z.string().min(1, 'Usuário obrigatório'),
+  // O login passou a ser por e-mail: é a identidade única do SaaS inteiro.
+  username: z.string().min(1, 'E-mail obrigatório').email('Informe um e-mail válido'),
   password: z.string().min(1, 'Senha obrigatória'),
 });
 
@@ -18,8 +18,6 @@ type LoginForm = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { setAuth } = useAuthStore();
-  const { setBranch } = useBranchStore();
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -34,18 +32,20 @@ export function LoginPage() {
     setError(null);
     try {
       const response = await authService.login(data);
-      setAuth(response.user, response.accessToken, response.refreshToken);
+      applySession(response);
 
-      if (response.user.branchIds.length === 1) {
-        setBranch(response.user.branchIds[0], '');
-      }
-
-      navigate('/dashboard');
+      // Mais de uma loja: o token recebido é o de pré-filial e não abre nada
+      // além da escolha. Uma loja só já vem com a sessão pronta.
+      navigate(response.requiresBranchSelection ? '/select-branch' : '/dashboard');
     } catch (err) {
       if (isAxiosError(err) && err.response) {
         const status = err.response.status;
-        if (status === 401 || status === 400) {
-          setError('Usuário ou senha inválidos.');
+        if (status === 409) {
+          // A empresa existe, mas o ambiente ainda está sendo criado — não é
+          // erro de credencial, e dizer "senha inválida" aqui seria mentira.
+          setError('Estamos preparando o ambiente da sua empresa. Tente novamente em instantes.');
+        } else if (status === 401 || status === 400) {
+          setError('E-mail ou senha inválidos.');
         } else {
           setError('Erro ao entrar. Tente novamente mais tarde.');
         }
@@ -69,13 +69,13 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-brand-200 mb-1">Usuário</label>
+              <label className="block text-sm font-medium text-brand-200 mb-1">E-mail</label>
               <input
                 {...register('username')}
-                type="text"
-                autoComplete="username"
+                type="email"
+                autoComplete="email"
                 className="block w-full rounded-md border border-brand-700 bg-brand-800 text-white placeholder-brand-400 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                placeholder="Digite seu usuário"
+                placeholder="seu@email.com"
               />
               {errors.username && (
                 <p className="mt-1 text-xs text-red-400">{errors.username.message}</p>

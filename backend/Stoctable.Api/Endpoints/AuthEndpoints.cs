@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Stoctable.Application.Services.Auth;
 using Stoctable.Communication.Requests.Auth;
 
@@ -9,7 +10,7 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth").WithTags("Auth");
 
-        group.MapPost("/login", async (LoginRequest request, AuthService service, CancellationToken ct) =>
+        group.MapPost("/login", async (LoginRequest request, AccountService service, CancellationToken ct) =>
         {
             var result = await service.LoginAsync(request, ct);
             return result.IsSuccess
@@ -19,7 +20,7 @@ public static class AuthEndpoints
         .AllowAnonymous()
         .WithName("Login");
 
-        group.MapPost("/refresh", async (RefreshTokenRequest request, AuthService service, CancellationToken ct) =>
+        group.MapPost("/refresh", async (RefreshTokenRequest request, AccountService service, CancellationToken ct) =>
         {
             var result = await service.RefreshTokenAsync(request, ct);
             return result.IsSuccess
@@ -28,6 +29,27 @@ public static class AuthEndpoints
         })
         .AllowAnonymous()
         .WithName("RefreshToken");
+
+        // Exige autenticação, mas aceita o token de pré-filial — é o único
+        // endpoint que aceita. Note que não há RequireAuthorization com policy
+        // de papel: o token de seleção não carrega papel nenhum.
+        group.MapPost("/select-branch", async (
+            SelectBranchRequest request,
+            ClaimsPrincipal principal,
+            AccountService service,
+            CancellationToken ct) =>
+        {
+            var accountId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(accountId, out var id))
+                return Results.Unauthorized();
+
+            var result = await service.SelectBranchAsync(id, request, ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        })
+        .RequireAuthorization()
+        .WithName("SelectBranch");
 
         group.MapPost("/forgot-password", async (ForgotPasswordRequest request, PasswordResetService service, CancellationToken ct) =>
         {

@@ -3,8 +3,11 @@ using Stoctable.Domain.Enums;
 
 namespace Stoctable.Domain.Entities;
 
-public class Sale : BaseEntity
+public class Sale : BaseEntity, IBranchScoped
 {
+    /// <summary>Filial em que a venda foi feita. Carimbado no insert.</summary>
+    public Guid BranchId { get; set; }
+
     public string SaleNumber { get; set; } = string.Empty;
     public Guid? QuotationId { get; set; }
     public Guid? CustomerId { get; set; }

@@ -2,11 +2,35 @@ using Microsoft.EntityFrameworkCore;
 using Stoctable.Domain.Entities;
 using Stoctable.Infrastructure.Context.Configurations;
 using Stoctable.Infrastructure.Search;
+using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Infrastructure.Context;
 
-public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : DbContext(options)
+public class StoctableDbContext : DbContext
 {
+    /// <summary>
+    /// Filial ativa. É CAMPO DE INSTÂNCIA de propósito, e os filtros globais
+    /// mais abaixo leem através dele.
+    ///
+    /// ⚠️ Nunca copie este valor para uma variável local dentro de
+    /// OnModelCreating para usar no filtro. O modelo do EF é construído UMA VEZ
+    /// e cacheado por tipo de contexto: um valor copiado congela a filial da
+    /// primeira requisição do processo, e todas as seguintes passam a enxergar
+    /// os dados dela. A falha é silenciosa e passa numa suíte de teste de uma
+    /// filial só — por isso existe o BranchIsolationTests, que roda duas
+    /// filiais no mesmo processo.
+    /// </summary>
+    private readonly BranchContext _branch;
+
+    public StoctableDbContext(DbContextOptions<StoctableDbContext> options, BranchContext? branchContext = null)
+        : base(options)
+    {
+        // O parâmetro é opcional para o factory de design-time e para os testes,
+        // que constroem o contexto na mão. Em execução real o DI injeta o
+        // BranchContext com escopo de requisição.
+        _branch = branchContext ?? new BranchContext();
+    }
+
     public DbSet<User> Users => Set<User>();
     public DbSet<Manufacturer> Manufacturers => Set<Manufacturer>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
@@ -47,6 +71,24 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
         // (Domain/Entities/ControlPlane/Branch.cs). A tabela `branches` do tenant
         // nunca foi lida ou escrita por nada — a resolução de filial sempre usou
         // o nome do segredo no Key Vault, jamais esta tabela.
+
+        // ─── Isolamento por filial ──────────────────────────────────────────
+        // O banco é da empresa; estas tabelas são de cada loja. O filtro lê
+        // _branch (campo de instância) e o EF o reavalia a cada consulta, com o
+        // contexto da requisição — ver o aviso na declaração do campo.
+        modelBuilder.Entity<Sale>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+        modelBuilder.Entity<Payment>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+        modelBuilder.Entity<Quotation>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+        modelBuilder.Entity<InventoryMovement>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+        modelBuilder.Entity<StockReservation>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+        modelBuilder.Entity<ProductStock>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+        modelBuilder.Entity<AuditLog>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
+
+        // SaleItem e QuotationItem NÃO têm filtro nem branch_id: só são
+        // alcançáveis pelo pai, que já é filtrado. Uma coluna redundante criaria
+        // um invariante de consistência que ninguém manteria. O preço disso é
+        // que consultar context.SaleItems direto não filtra nada — por isso
+        // esses DbSet não devem sair do repositório do agregado.
 
         modelBuilder.Entity<ProductStock>(ps =>
         {
@@ -191,6 +233,8 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
             p.ToTable("payments");
             p.HasKey(x => x.Id);
             p.Property(x => x.Id).HasColumnName("id");
+            p.Property(x => x.BranchId).HasColumnName("branch_id");
+            p.HasIndex(x => new { x.BranchId, x.PaidAt });
             p.Property(x => x.SaleId).HasColumnName("sale_id");
             p.Property(x => x.PaymentMethodId).HasColumnName("payment_method_id");
             p.Property(x => x.Amount).HasColumnName("amount").HasPrecision(12, 2);

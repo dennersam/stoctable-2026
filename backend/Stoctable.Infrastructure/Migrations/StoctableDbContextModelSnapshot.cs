@@ -34,6 +34,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("action");
 
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
                     b.Property<string>("EntityId")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -75,6 +79,8 @@ namespace Stoctable.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OccurredAt");
+
+                    b.HasIndex("BranchId", "OccurredAt");
 
                     b.HasIndex("EntityName", "EntityId");
 
@@ -283,6 +289,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -333,6 +343,8 @@ namespace Stoctable.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("BranchId", "ProductId");
 
                     b.ToTable("inventory_movements", (string)null);
                 });
@@ -387,9 +399,13 @@ namespace Stoctable.Infrastructure.Migrations
 
             modelBuilder.Entity("Stoctable.Domain.Entities.NumberSequence", b =>
                 {
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
                     b.Property<string>("Prefix")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
                         .HasColumnName("prefix");
 
                     b.Property<long>("CurrentValue")
@@ -400,7 +416,7 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Prefix");
+                    b.HasKey("BranchId", "Prefix");
 
                     b.ToTable("number_sequences", (string)null);
                 });
@@ -416,6 +432,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("amount");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -471,6 +491,8 @@ namespace Stoctable.Infrastructure.Migrations
                     b.HasIndex("PaymentMethodId");
 
                     b.HasIndex("SaleId");
+
+                    b.HasIndex("BranchId", "PaidAt");
 
                     b.ToTable("payments", (string)null);
                 });
@@ -767,6 +789,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
                     b.Property<string>("CancellationReason")
                         .HasColumnType("text")
                         .HasColumnName("cancellation_reason");
@@ -858,6 +884,8 @@ namespace Stoctable.Infrastructure.Migrations
 
                     b.HasIndex("SalespersonId");
 
+                    b.HasIndex("BranchId", "CreatedAt");
+
                     b.ToTable("quotations", (string)null);
                 });
 
@@ -935,6 +963,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)")
                         .HasColumnName("amount_paid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
 
                     b.Property<string>("CancellationReason")
                         .HasColumnType("text")
@@ -1024,6 +1056,8 @@ namespace Stoctable.Infrastructure.Migrations
 
                     b.HasIndex("SalespersonId");
 
+                    b.HasIndex("BranchId", "CreatedAt");
+
                     b.ToTable("sales", (string)null);
                 });
 
@@ -1097,6 +1131,10 @@ namespace Stoctable.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("branch_id");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -1137,6 +1175,8 @@ namespace Stoctable.Infrastructure.Migrations
                     b.HasIndex("ProductId");
 
                     b.HasIndex("QuotationId");
+
+                    b.HasIndex("BranchId", "ProductId");
 
                     b.ToTable("stock_reservations", (string)null);
                 });

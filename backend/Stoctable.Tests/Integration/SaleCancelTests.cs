@@ -99,7 +99,7 @@ public class SaleCancelTests : IClassFixture<PostgresFixture>
 
     private static SaleService BuildService(StoctableDbContext ctx)
     {
-        var seq = new NumberSequenceGenerator(ctx);
+        var seq = new NumberSequenceGenerator(ctx, new BranchContext());
         var productRepo = new ProductRepository(ctx, new BranchContext());
         var saleRepo = new SaleRepository(ctx, seq);
         var inventoryRepo = new InventoryRepository(ctx);
