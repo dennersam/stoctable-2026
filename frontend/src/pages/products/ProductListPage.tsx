@@ -8,6 +8,7 @@ import type { Product, CreateProductRequest } from '@/types/product';
 import type { Manufacturer } from '@/types/manufacturer';
 import { useAuthStore } from '@/store/authStore';
 import { Pagination } from '@/components/base/Pagination';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 
 const PAGE_SIZE = 20;
 
@@ -250,11 +251,11 @@ function ProductModal({ productId, onClose, onSaved }: {
                 <section className="space-y-4">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Preços</h3>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <Field label="Preço de custo (R$)" required>
-                      <input type="number" min="0" step="0.01" value={form.costPrice} onChange={numericInput('costPrice')} className={inputCls} />
+                    <Field label="Preço de custo" required>
+                      <CurrencyInput value={form.costPrice} onValueChange={(v) => set('costPrice', v)} className={inputCls} />
                     </Field>
-                    <Field label="Preço de venda (R$)" required>
-                      <input type="number" min="0" step="0.01" value={form.salePrice} onChange={numericInput('salePrice')} className={inputCls} />
+                    <Field label="Preço de venda" required>
+                      <CurrencyInput value={form.salePrice} onValueChange={(v) => set('salePrice', v)} className={inputCls} />
                     </Field>
                   </div>
                   {(form.costPrice ?? 0) > 0 && (form.salePrice ?? 0) > 0 && (

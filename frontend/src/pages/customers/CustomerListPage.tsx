@@ -6,6 +6,7 @@ import { customerService } from '@/services/customerService';
 import type { Customer, CreateCustomerRequest } from '@/types/customer';
 import { useAuthStore } from '@/store/authStore';
 import { Pagination } from '@/components/base/Pagination';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 
 const PAGE_SIZE = 20;
 
@@ -159,9 +160,9 @@ export function CustomerModal({ customerId, onClose, onSaved }: {
                     <input value={form.documentNumber ?? ''} onChange={e => set('documentNumber', e.target.value)}
                       placeholder={form.documentType === 'CPF' ? '000.000.000-00' : '00.000.000/0001-00'} className={inputCls} />
                   </Field>
-                  <Field label="Limite de crédito (R$)">
-                    <input type="number" min="0" step="0.01" value={form.creditLimit ?? 0}
-                      onChange={e => set('creditLimit', parseFloat(e.target.value) || 0)} className={inputCls} />
+                  <Field label="Limite de crédito">
+                    <CurrencyInput value={form.creditLimit ?? 0}
+                      onValueChange={v => set('creditLimit', v)} className={inputCls} />
                   </Field>
                 </div>
               </section>

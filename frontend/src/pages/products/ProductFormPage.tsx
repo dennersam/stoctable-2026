@@ -6,6 +6,7 @@ import { manufacturerService } from '@/services/manufacturerService';
 import { supplierService, type SupplierOption } from '@/services/supplierService';
 import type { CreateProductRequest } from '@/types/product';
 import type { Manufacturer } from '@/types/manufacturer';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 
 // ─── constants ───────────────────────────────────────────────────────────────
 
@@ -343,23 +344,17 @@ export function ProductFormPage() {
               Preços
             </h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Preço de custo (R$)" required>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+              <Field label="Preço de custo" required>
+                <CurrencyInput
                   value={form.costPrice}
-                  onChange={numericInput('costPrice')}
+                  onValueChange={(v) => set('costPrice', v)}
                   className={inputCls}
                 />
               </Field>
-              <Field label="Preço de venda (R$)" required>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+              <Field label="Preço de venda" required>
+                <CurrencyInput
                   value={form.salePrice}
-                  onChange={numericInput('salePrice')}
+                  onValueChange={(v) => set('salePrice', v)}
                   className={inputCls}
                 />
               </Field>

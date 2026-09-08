@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { saleService } from '@/services/saleService';
 import type { Sale, PaymentMethod } from '@/types/sale';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 
 interface PaymentEntry {
   paymentMethodId: string;
@@ -237,13 +238,10 @@ export function CheckoutPage() {
                   </select>
                   <div className="flex gap-2">
                     <div className="flex-1">
-                      <label className="text-xs text-gray-400 dark:text-gray-500">Valor (R$)</label>
-                      <input
-                        type="number"
-                        min={0.01}
-                        step={0.01}
+                      <label className="text-xs text-gray-400 dark:text-gray-500">Valor</label>
+                      <CurrencyInput
                         value={p.amount}
-                        onChange={e => updatePayment(idx, 'amount', e.target.value)}
+                        onValueChange={v => updatePayment(idx, 'amount', v)}
                         className={fieldCls}
                       />
                     </div>

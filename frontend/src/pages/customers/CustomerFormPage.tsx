@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { customerService } from '@/services/customerService';
 import type { CreateCustomerRequest } from '@/types/customer';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -181,13 +182,10 @@ export function CustomerFormPage() {
                 className={inputCls}
               />
             </Field>
-            <Field label="Limite de crédito (R$)">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
+            <Field label="Limite de crédito">
+              <CurrencyInput
                 value={form.creditLimit ?? 0}
-                onChange={e => set('creditLimit', parseFloat(e.target.value) || 0)}
+                onValueChange={v => set('creditLimit', v)}
                 className={inputCls}
               />
             </Field>
