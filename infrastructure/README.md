@@ -6,14 +6,16 @@ Terraform para Azure, com dois ambientes independentes.
 |---|---|---|
 | Resource Group | `Stoctable-Dev` | `Stoctable-Prod` |
 | Banco de dados | **Neon** (externo) | Azure PostgreSQL Flexible Server |
-| App Service | `stoctable-api-dev` — **F1 (gratuito)** | `stoctable-api` — P1v3 |
+| App Service | `stoctable-api-dev` — **B1** | `stoctable-api` — P1v3 |
 | Static Web App | `stoctable-web-dev` — Free | `stoctable-web` — Standard |
 | Key Vault | `stoctable-kv-dev` | `stoctable-kv` |
 | State | `dev.terraform.tfstate` | `prod.terraform.tfstate` |
 
 O ambiente de dev **não cria banco na Azure** — o módulo `postgresql` não é
-instanciado lá. As connection strings do Neon entram no Key Vault através da
-variável `branch_connection_strings`.
+instanciado lá. As connection strings do Neon são **montadas** em
+`environments/dev/main.tf` (local `branch_connection_strings`) a partir de
+`neon_host`, `neon_username`, `neon_password` e do mapa `branch_databases`, e
+daí entram no Key Vault. Ninguém digita uma connection string inteira.
 
 ## Como o app encontra o banco
 
@@ -34,45 +36,133 @@ configuração do Key Vault converte `--` em `:`:
 > `STOCTABLE-JWT-SECRET`, e `Program.cs` lê `Jwt:Secret`. A aplicação falha no
 > startup com `InvalidOperationException("Jwt:Secret não configurado.")`.
 
-## Subindo o ambiente de dev
+### Toda filial usada precisa estar em `branch_databases`
 
-**Pré-requisitos**
+O mapa `branch_databases` (em `environments/dev/variables.tf`) é a **única**
+fonte dos segredos `STOCTABLE-CONN-*`. Um `X-Branch-Id` que não tenha entrada
+lá gera 404 no Key Vault em toda requisição. Hoje o mapa contém:
 
-1. Criar no Neon um database por filial (`stoctable_branch_001`, …) e coletar a
-   connection string de cada um no formato Npgsql (`Host=...;Database=...`),
-   e não a URL `postgres://`.
-2. Garantir que o storage do state existe:
-   ```bash
+| `X-Branch-Id` | Database no Neon | Origem do valor |
+|---|---|---|
+| `dev` | `neondb` | fallback embutido no frontend (`src/lib/api.ts`) |
+| `001` | `stoctable_branch_001` | filial escolhida no login |
+| `002` | `stoctable_branch_002` | filial escolhida no login |
+
+A entrada `dev` existe porque o cliente HTTP do frontend manda `X-Branch-Id: dev`
+enquanto nenhuma filial foi selecionada. Ao mudar esse default no frontend,
+mude o mapa junto — os dois têm de casar.
+
+## Subindo o ambiente de dev — passo a passo
+
+### 1. Pré-requisitos
+
+1. **Azure CLI autenticado na subscription certa** — o Terraform e o plano de
+   dados do Key Vault usam essa credencial:
+   ```powershell
+   az login
+   az account set --subscription "Stoctable-Development"
+   az account show --query name -o tsv
+   ```
+   A conta precisa ser Owner (ou Contributor + User Access Administrator) do
+   resource group: o apply cria uma role assignment.
+2. **Databases no Neon**, um por filial do mapa acima, mais o `neondb` padrão.
+   Anote apenas **host, usuário e senha** — não a URL `postgres://`.
+3. **Storage do state** (só na primeira vez):
+   ```powershell
    az group create -n stoctable-tfstate -l brazilsouth
    az storage account create -n stoctabletfstate -g stoctable-tfstate -l brazilsouth --sku Standard_LRS
    az storage container create -n tfstate --account-name stoctabletfstate
    ```
 
-**Apply**
+### 2. Apply
 
-```bash
+Não existe `terraform.tfvars` neste ambiente: os quatro valores sensíveis são
+perguntados no terminal a cada plan/apply. Como o Terraform **não oculta** o que
+se digita no prompt, prefira exportar as variáveis de ambiente:
+
+```powershell
 cd infrastructure/environments/dev
-cp terraform.tfvars.example terraform.tfvars   # preencha os valores
+
+$env:TF_VAR_jwt_secret    = '<32+ caracteres>'
+$env:TF_VAR_neon_host     = 'ep-....aws.neon.tech'   # só o host
+$env:TF_VAR_neon_username = 'neondb_owner'
+$env:TF_VAR_neon_password = '<senha do Neon>'
+
 terraform init
 terraform validate
 terraform plan
 terraform apply
 ```
 
-**Depois do apply**
+**Nunca envolva esses valores em aspas.** As validações em `variables.tf`
+barram aspas, URL `postgres://`, connection string inteira e os placeholders de
+exemplo (`ep-xxxx`, `REGIAO`, `USUARIO`) — cada uma dessas regras existe porque
+o erro correspondente já derrubou um deploy. Veja *Troubleshooting*.
 
-```bash
-API=$(terraform output -raw api_url)
-curl "$API/health"                              # {"status":"healthy",...}
-curl -i "$API/api/products"                     # 400 — header X-Branch-Id obrigatório
-curl -i -H "X-Branch-Id: 001" "$API/api/products"  # 401 (não 503)
+### 3. Reiniciar a API
+
+Os segredos são lidos no startup e ficam em cache. Depois de qualquer mudança
+no Key Vault, o restart é obrigatório — sem ele o app continua com o valor
+antigo:
+
+```powershell
+az webapp restart -g Stoctable-Dev -n stoctable-api-dev
 ```
 
-Um **503** em vez de 401 significa que o segredo `STOCTABLE-CONN-001` não foi
-encontrado ou que a managed identity não recebeu o papel `Key Vault Secrets User`.
+### 4. Verificar
 
-Na F1 a primeira requisição após ociosidade leva 20-40s (sem Always On), e o
-Neon no plano gratuito também hiberna. Não é defeito.
+```powershell
+$API = terraform output -raw api_url
+curl "$API/health"                                   # {"status":"healthy",...}
+curl -i "$API/api/products"                          # 400 — header X-Branch-Id obrigatório
+curl -i -H "X-Branch-Id: dev" "$API/api/products"    # 401 (não 503, não 404)
+```
+
+E confira o log de startup — o seeding roda antes de a API atender:
+
+```powershell
+az webapp log tail -g Stoctable-Dev -n stoctable-api-dev
+```
+
+Uma linha `Falha ao aplicar migrations/seed no startup` significa que o
+`DefaultBranchConnectionString` está inválido; a API sobe assim mesmo, e por
+isso o `/health` pode responder 200 com o banco inacessível.
+
+## Troubleshooting
+
+Os três erros abaixo aconteceram na configuração inicial e foram diagnosticados
+lendo os valores reais do vault. O comando que revela cada um:
+
+```powershell
+az keyvault secret list --vault-name stoctable-kv-dev --query "[].name" -o tsv
+$v = az keyvault secret show --vault-name stoctable-kv-dev --name DefaultBranchConnectionString --query value -o tsv
+"LEN=$($v.Length) FIRST=[$($v[0])] LAST=[$($v[-1])]"
+```
+
+**`ArgumentException: Format of the initialization string ... at index N`**
+O valor do segredo estava **envolvido em aspas duplas** — resquício de uma
+versão anterior em que a connection string inteira era digitada no prompt e foi
+colada com as aspas. O índice do erro aponta exatamente a aspa final. `FIRST` e
+`LAST` no comando acima têm de ser `H` e `;`, nunca `"`.
+
+**`SecretNotFound: STOCTABLE-CONN-XXX was not found`**
+O `X-Branch-Id` recebido não tem entrada em `branch_databases`. Foi o caso do
+`dev`, o fallback do frontend, que não estava no mapa. Acrescente a filial ao
+mapa e reaplique — não crie o segredo à mão, ou o próximo apply o remove.
+
+**Conecta, mas o host não resolve / autenticação falha**
+Os segredos ainda guardam os **placeholders de exemplo** (`ep-xxxx`, `REGIAO`,
+`USUARIO`) de um apply feito antes de as validações existirem. Reaplique com os
+valores reais.
+
+**503 em vez de 401** — o segredo não foi encontrado *ou* a managed identity do
+App Service não recebeu `Key Vault Secrets User` (`azurerm_role_assignment`
+`app_kv_secrets` em `main.tf`).
+
+**CORS: "No 'Access-Control-Allow-Origin' header"** — quase sempre é o
+`UseHttpsRedirection` devolvendo 307 no preflight. Exige
+`ASPNETCORE_FORWARDEDHEADERS_ENABLED=true` (já definido no módulo
+`app_service`) e `Cors__AllowedOrigins` apontando para o host da SWA.
 
 ## Secrets necessários no GitHub
 
@@ -129,16 +219,19 @@ no arquivo do workflow.
 Em pull request o frontend apenas roda lint e build, sem publicar: a SWA no
 plano Free não oferece preview environments.
 
-## Trocar F1 por B1
+## SKU do App Service de dev
 
-No `environments/dev/main.tf`, no módulo `app_service`:
+Hoje é **B1**. O F1 (gratuito) foi abandonado: a cota de 60 min de CPU/dia se
+esgotava em poucas horas e a Azure suspendia o site (`QuotaExceeded`) até a
+meia-noite UTC.
 
-```hcl
-  sku_name  = "B1"
-  always_on = true
-```
+Ao voltar para F1, `always_on` **precisa** virar `false` no mesmo commit — F1
+não suporta Always On e o apply falha. Os dois valores andam juntos.
 
-`always_on = true` com F1 faz o apply falhar — os dois valores andam juntos.
+O B1 suporta Always On, mas hoje está `always_on = false` — então o cold start
+de 20-40s após ociosidade continua existindo. Some-se a isso a hibernação do
+Neon no plano gratuito: a primeira requisição é lenta, e não é defeito. Para
+eliminar o cold start, basta `always_on = true`.
 
 ## Notas sobre os módulos
 

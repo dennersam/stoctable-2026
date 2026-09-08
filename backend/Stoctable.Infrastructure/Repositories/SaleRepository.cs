@@ -31,4 +31,32 @@ public class SaleRepository(StoctableDbContext context, NumberSequenceGenerator 
         var next = await sequenceGenerator.NextAsync(prefix, ct);
         return $"{prefix}{next:D4}";
     }
+
+    // Mesmo tratamento de QuotationRepository.UpdateAsync, aqui pelos Payments.
+    //
+    // EF Core 9: entidades novas cuja PK Guid já vem preenchida por BaseEntity
+    // (Id = Guid.NewGuid()) entram como Modified — e não Added — ao serem
+    // adicionadas a uma coleção rastreada, como em sale.Payments.Add(...) no
+    // ProcessPaymentAsync. O SaveChanges emite UPDATE payments WHERE id = ...
+    // numa linha que ainda não existe, afeta 0 linhas e estoura
+    // DbUpdateConcurrencyException ao confirmar o pagamento no caixa.
+    //
+    // Um Modified em que TODAS as propriedades têm OriginalValue == CurrentValue
+    // nunca veio do banco: uma entidade de fato alterada teria ao menos uma
+    // diferença. Reclassificar esses casos como Added gera o INSERT correto e
+    // deixa intactos os UPDATEs legítimos (ex.: o estorno em CancelAsync, que
+    // muda Payment.Status e RefundedAt).
+    public override async Task UpdateAsync(Sale entity, CancellationToken ct = default)
+    {
+        foreach (var entry in Context.ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Modified
+                     && e.Entity is not AuditLog
+                     && e.Properties.All(p => Equals(p.OriginalValue, p.CurrentValue)))
+            .ToList())
+        {
+            entry.State = EntityState.Added;
+        }
+
+        await Context.SaveChangesAsync(ct);
+    }
 }

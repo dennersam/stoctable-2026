@@ -68,6 +68,11 @@ variable "branch_databases" {
   type        = map(string)
   description = "Mapa branch_id => nome do database no Neon. A chave é o valor enviado no header X-Branch-Id."
   default = {
+    # O frontend usa "dev" como filial padrão enquanto nenhuma é escolhida no
+    # login (src/lib/api.ts). Sem esta entrada o middleware procura
+    # STOCTABLE-CONN-DEV no vault e toma 404 em toda requisição.
+    "dev" = "neondb"
+
     "001" = "stoctable_branch_001"
     "002" = "stoctable_branch_002"
   }

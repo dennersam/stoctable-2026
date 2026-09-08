@@ -57,7 +57,13 @@
       "Bash(echo \"--- exit: $? ---\")",
       "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host=ep-divine-sky-ae4edken-pooler.c-2.us-east-2.aws.neon.tech TF_VAR_neon_username=neondb_owner TF_VAR_neon_password=senha-de-teste terraform plan -input=false -no-color)",
       "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host='\"Host=ep-xxxx-pooler.REGIAO.aws.neon.tech;Database=neondb;\"' TF_VAR_neon_username=USUARIO TF_VAR_neon_password=SENHA terraform plan -input=false -no-color)",
-      "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host=ep-real.neon.tech TF_VAR_neon_username=u TF_VAR_neon_password=p terraform plan -input=false -no-color)"
+      "Bash(TF_VAR_jwt_secret=placeholder-apenas-para-o-plan-com-32-chars TF_VAR_neon_host=ep-real.neon.tech TF_VAR_neon_username=u TF_VAR_neon_password=p terraform plan -input=false -no-color)",
+      "PowerShell(az account show --query name -o tsv; az keyvault secret show --vault-name stoctable-kv-dev --name DefaultBranchConnectionString --query value -o tsv | ForEach-Object { \"LEN=$\\($_.Length\\)\"; \"IDX150-200=[\" + $_.Substring\\(150,[Math]::Min\\(50,$_.Length-150\\)\\) + \"]\" })",
+      "PowerShell(foreach \\($n in @\\('STOCTABLE-CONN-001','STOCTABLE-CONN-002'\\)\\) { $v = az keyvault secret show --vault-name stoctable-kv-dev --name $n --query value -o tsv; \"$n LEN=$\\($v.Length\\) FIRST=[$\\($v[0]\\)] LAST=[$\\($v[-1]\\)]\" })",
+      "PowerShell(dotnet build backend/Stoctable.slnx -v q --nologo)",
+      "PowerShell(dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~SalePaymentTests\" --nologo -v q 2>&1)",
+      "PowerShell(docker info --format \"{{.ServerVersion}}\"; \\(Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue | Measure-Object\\).Count)",
+      "PowerShell($env:STOCTABLE_TMP_NOFIX='1'; dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~SalePaymentTests\" --nologo -v q 2>&1 | Select-String -Pattern \"Passed!|Failed!|DbUpdateConcurrency\" | Select-Object -First 5; $env:STOCTABLE_TMP_NOFIX=$null)"
     ]
   }
 }
