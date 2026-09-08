@@ -163,11 +163,10 @@ public class QuotationService(
         // Reserve stock for each item
         foreach (var item in quotation.Items)
         {
-            var product = await productRepository.GetByIdAsync(item.ProductId, ct);
+            var product = await productRepository.GetByIdNoTrackingAsync(item.ProductId, ct);
             if (product is null) continue;
 
-            product.StockReserved += item.Quantity;
-            await productRepository.UpdateAsync(product, ct);
+            await productRepository.ReserveStockAsync(item.ProductId, item.Quantity, ct);
 
             var reservation = new StockReservation
             {
@@ -319,12 +318,7 @@ public class QuotationService(
         var reservations = await inventoryRepository.GetActiveReservationsByQuotationAsync(quotationId, ct);
         foreach (var reservation in reservations)
         {
-            var product = await productRepository.GetByIdAsync(reservation.ProductId, ct);
-            if (product is not null)
-            {
-                product.StockReserved = Math.Max(0, product.StockReserved - reservation.Quantity);
-                await productRepository.UpdateAsync(product, ct);
-            }
+            await productRepository.ReleaseReservedStockAsync(reservation.ProductId, reservation.Quantity, ct);
 
             reservation.IsActive = false;
             reservation.ReleasedAt = DateTimeOffset.UtcNow;

@@ -27,4 +27,20 @@ public interface IProductRepository : IRepository<Product>
     /// proceder. Retorna true se a linha existe.
     /// </summary>
     Task<bool> IncrementStockAsync(Guid productId, decimal quantity, CancellationToken ct = default);
+
+    /// <summary>
+    /// Compromete quantidade a um orçamento finalizado, aumentando o reservado.
+    ///
+    /// Existe como método do repositório — em vez de mutar
+    /// <c>Product.StockReserved</c> e salvar — porque toda escrita de estoque
+    /// precisa ser espelhada em <c>product_stocks</c>, e uma mutação via EF na
+    /// entidade passaria despercebida por esse espelhamento.
+    /// </summary>
+    Task ReserveStockAsync(Guid productId, decimal quantity, CancellationToken ct = default);
+
+    /// <summary>
+    /// Libera reserva (orçamento cancelado, expirado ou convertido em venda).
+    /// Nunca deixa o reservado negativo — a liberação é idempotente por natureza.
+    /// </summary>
+    Task ReleaseReservedStockAsync(Guid productId, decimal quantity, CancellationToken ct = default);
 }

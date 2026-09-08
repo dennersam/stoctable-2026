@@ -15,6 +15,18 @@ namespace Stoctable.Application.Services.Auth;
 
 public class AuthService(IUserRepository userRepository, IConfiguration configuration)
 {
+    // Usados quando as chaves correspondentes não estão configuradas. Os valores
+    // batem com o appsettings.json — antes destas constantes o access token era
+    // fixo em 8 horas e o Jwt:ExpirationMinutes do appsettings nunca era lido.
+    private const int DefaultExpirationMinutes = 15;
+    private const int DefaultRefreshTokenDays = 7;
+
+    private int ExpirationMinutes =>
+        int.TryParse(configuration["Jwt:ExpirationMinutes"], out var m) && m > 0 ? m : DefaultExpirationMinutes;
+
+    private int RefreshTokenDays =>
+        int.TryParse(configuration["Jwt:RefreshTokenDays"], out var d) && d > 0 ? d : DefaultRefreshTokenDays;
+
     public async Task<Result<AuthTokenResponse>> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
         var user = await userRepository.GetByUsernameAsync(request.Username, ct);
@@ -29,8 +41,8 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
         var (accessToken, expiresAt) = GenerateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
+        user.RefreshToken = HashToken(refreshToken);
+        user.RefreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(RefreshTokenDays);
         user.LastLoginAt = DateTimeOffset.UtcNow;
         await userRepository.UpdateAsync(user, ct);
 
@@ -52,7 +64,10 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
 
     public async Task<Result<AuthTokenResponse>> RefreshTokenAsync(RefreshTokenRequest request, CancellationToken ct = default)
     {
-        var user = await userRepository.GetByRefreshTokenAsync(request.RefreshToken, ct);
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return Result<AuthTokenResponse>.Unauthorized(ErrorMessages.Auth.InvalidRefreshToken);
+
+        var user = await userRepository.GetByRefreshTokenAsync(HashToken(request.RefreshToken), ct);
 
         if (user is null || user.RefreshTokenExpiresAt < DateTimeOffset.UtcNow)
             return Result<AuthTokenResponse>.Unauthorized(ErrorMessages.Auth.InvalidRefreshToken);
@@ -63,8 +78,8 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
         var (accessToken, expiresAt) = GenerateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
 
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(7);
+        user.RefreshToken = HashToken(refreshToken);
+        user.RefreshTokenExpiresAt = DateTimeOffset.UtcNow.AddDays(RefreshTokenDays);
         await userRepository.UpdateAsync(user, ct);
 
         var response = new AuthTokenResponse(
@@ -88,7 +103,7 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
         var jwtSecret = configuration["Jwt:Secret"]
             ?? throw new InvalidOperationException("JWT secret not configured.");
 
-        var expiresAt = DateTimeOffset.UtcNow.AddHours(8);
+        var expiresAt = DateTimeOffset.UtcNow.AddMinutes(ExpirationMinutes);
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -116,5 +131,16 @@ public class AuthService(IUserRepository userRepository, IConfiguration configur
     {
         var bytes = RandomNumberGenerator.GetBytes(64);
         return Convert.ToBase64String(bytes);
+    }
+
+    /// <summary>
+    /// O refresh token cru só existe na resposta HTTP; no banco fica apenas o
+    /// hash. Sem isto, um dump da tabela users entrega sessões ativas prontas
+    /// para uso. Mesmo esquema já usado em PasswordResetService.
+    /// </summary>
+    private static string HashToken(string token)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+        return Convert.ToHexString(bytes);
     }
 }

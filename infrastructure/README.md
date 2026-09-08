@@ -228,10 +228,11 @@ meia-noite UTC.
 Ao voltar para F1, `always_on` **precisa** virar `false` no mesmo commit — F1
 não suporta Always On e o apply falha. Os dois valores andam juntos.
 
-O B1 suporta Always On, mas hoje está `always_on = false` — então o cold start
-de 20-40s após ociosidade continua existindo. Some-se a isso a hibernação do
-Neon no plano gratuito: a primeira requisição é lenta, e não é defeito. Para
-eliminar o cold start, basta `always_on = true`.
+`always_on = true` desde que o provisionamento de novas empresas passou a rodar
+como `IHostedService` dentro do App Service — sem isso o processo é descarregado
+na ociosidade e um provisionamento em andamento fica parado. De quebra elimina o
+cold start de 20-40s. O Neon no plano gratuito continua hibernando, então a
+primeira query após ociosidade ainda é lenta; isso não é defeito.
 
 ## Notas sobre os módulos
 

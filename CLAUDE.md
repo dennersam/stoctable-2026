@@ -13,12 +13,24 @@ cd backend && dotnet build Stoctable.slnx
 # Testes
 cd backend && dotnet test Stoctable.Tests
 
-# Migrations (requer DEFAULT_CONN_STRING no ambiente)
+# Migrations — o projeto tem DOIS DbContext, então --context é obrigatório
+# (sem ele o CLI aborta com "More than one DbContext was found")
+
+# Tenant (banco de cada empresa) — requer DEFAULT_CONN_STRING
 cd backend && dotnet ef migrations add <NomeMigration> \
+  --context StoctableDbContext \
   --project Stoctable.Infrastructure \
   --startup-project Stoctable.Api
 
 cd backend && dotnet ef database update \
+  --context StoctableDbContext \
+  --project Stoctable.Infrastructure \
+  --startup-project Stoctable.Api
+
+# Control plane (empresas, filiais, contas) — requer CONTROL_PLANE_CONN_STRING
+cd backend && dotnet ef migrations add <NomeMigration> \
+  --context ControlPlaneDbContext \
+  --output-dir Migrations/ControlPlane \
   --project Stoctable.Infrastructure \
   --startup-project Stoctable.Api
 ```
@@ -54,12 +66,29 @@ Exceptions   → Constantes de mensagens de erro
 Tests        → Testes unitários xUnit
 ```
 
-### Multi-Branch (Multi-Tenant)
-- Cada filial tem um banco PostgreSQL separado: `stoctable_branch_{id}`
-- Connection strings ficam no Azure KeyVault como `STOCTABLE-CONN-{BRANCH_ID}`
+### Multi-Tenant — em transição
+
+O modelo está migrando de "um banco por filial" para "um banco por **empresa**,
+com `branch_id` nas tabelas operacionais". O plano completo e o faseamento estão
+em `.claude/plans/` — leia antes de mexer em tenancy.
+
+**Alvo:** produtos, clientes e fornecedores são da empresa; estoque, vendas,
+caixa e orçamentos são da filial.
+
+**Control plane** (`ControlPlaneDbContext`, banco `stoctable_control`): empresas,
+filiais, contas de login e estado do provisionamento. Separado porque precisa ser
+legível antes de existir tenant e guarda as connection strings de todos eles.
+Connection string do tenant fica cifrada na coluna `companies.connection_string_encrypted`,
+não no Key Vault.
+
+**Como está hoje** (a ser substituído nas fases 3+):
 - O frontend envia o header `X-Branch-Id` em cada request
-- `TenantResolutionMiddleware` resolve o connection string e popula `TenantContext` (scoped)
+- `TenantResolutionMiddleware` resolve `STOCTABLE-CONN-{BRANCH_ID}` no Key Vault
+  e popula `TenantContext` (scoped)
 - `StoctableDbContext` usa o connection string do `TenantContext` dinamicamente
+- ⚠️ O middleware roda **antes** de `UseAuthentication()`, então o header é
+  confiado sem verificar se o usuário pertence à filial. A correção (filial vira
+  claim assinada no JWT) é a fase 3
 
 ### Autenticação
 - JWT Bearer com BCrypt para hash de senhas

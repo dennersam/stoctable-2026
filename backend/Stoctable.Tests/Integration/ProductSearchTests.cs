@@ -1,6 +1,7 @@
 using Stoctable.Domain.Entities;
 using Stoctable.Infrastructure.Context;
 using Stoctable.Infrastructure.Repositories;
+using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Tests.Integration;
 
@@ -166,7 +167,7 @@ public class ProductSearchTests : IClassFixture<ProductSearchFixture>
     private async Task<List<Product>> SearchAsync(string term)
     {
         await using var ctx = _fixture.CreateContext();
-        var repo = new ProductRepository(ctx);
+        var repo = new ProductRepository(ctx, new BranchContext());
         var (items, _) = await repo.GetPagedAsync(page: 1, pageSize: 50, search: term);
         return items.ToList();
     }

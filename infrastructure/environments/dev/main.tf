@@ -120,8 +120,12 @@ module "app_service" {
   # poucas horas e a Azure suspendeu o site (state QuotaExceeded), derrubando o
   # ambiente até a meia-noite UTC. O B1 não tem essa cota e habilita Always On,
   # o que também elimina o cold start de 20-40s.
-  sku_name               = "B1"
-  always_on              = false
+  sku_name = "B1"
+  # Ligado porque o provisionamento de novas empresas roda como IHostedService
+  # dentro deste App Service: sem Always On o processo é descarregado na
+  # ociosidade e um provisionamento em andamento fica parado até alguém acessar
+  # a aplicação. De quebra elimina o cold start de 20-40s.
+  always_on              = true
   aspnetcore_environment = "Development"
   key_vault_url          = module.key_vault.vault_uri
   tags                   = local.tags

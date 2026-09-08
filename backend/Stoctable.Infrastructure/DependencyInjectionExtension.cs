@@ -19,6 +19,10 @@ public static class DependencyInjectionExtension
         // Tenancy — BranchConnectionCache é singleton (cache em memória)
         services.AddSingleton<BranchConnectionCache>();
         services.AddScoped<TenantContext>();
+
+        // Filial ativa da requisição. Hoje sempre a mesma (cada banco tem uma
+        // filial só); na fase 3 passa a ser populado pela claim assinada do JWT.
+        services.AddScoped<BranchContext>();
         services.AddScoped<ITenantConnectionProvider, TenantConnectionProvider>();
 
         // Audit interceptor
@@ -53,6 +57,25 @@ public static class DependencyInjectionExtension
                        .EnableDetailedErrors()
                        .LogTo(msg => System.Console.WriteLine(msg), Microsoft.Extensions.Logging.LogLevel.Information);
             }
+        });
+
+        // Control plane — empresas, filiais, contas e provisionamento.
+        //
+        // Contexto separado de propósito: precisa ser legível antes de existir
+        // tenant (o login acontece antes de saber qual banco abrir) e guarda as
+        // connection strings de todos os tenants. Não recebe o interceptor de
+        // auditoria, que escreve em audit_logs — tabela que só existe no tenant.
+        //
+        // Nesta fase nada consome este contexto ainda; ele sobe às escuras.
+        services.AddDbContext<ControlPlaneDbContext>((sp, options) =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var connectionString = config["ControlPlaneConnectionString"]
+                ?? Environment.GetEnvironmentVariable("CONTROL_PLANE_CONN_STRING")
+                ?? "Host=localhost;Database=stoctable_control;Username=postgres;Password=postgres";
+
+            options.UseNpgsql(connectionString, npg =>
+                npg.MigrationsHistoryTable("__EFMigrationsHistory_ControlPlane"));
         });
 
         // Repositories

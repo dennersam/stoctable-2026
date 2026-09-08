@@ -16,8 +16,15 @@ public class StoctableDbContextFactory : IDesignTimeDbContextFactory<StoctableDb
 {
     public StoctableDbContext CreateDbContext(string[] args)
     {
+        // Gerar migrations não abre conexão — o provider só precisa de uma string
+        // sintaticamente válida. O placeholder abaixo existe para que
+        // `dotnet ef migrations add` funcione sem configurar nada; APLICAR a
+        // migration (`database update`) exige a variável de ambiente de verdade.
+        //
+        // Antes havia aqui uma connection string do Neon com senha real, em
+        // arquivo versionado. Ela foi removida e precisa ser rotacionada.
         var connectionString = Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
-            ?? "Host=ep-divine-sky-ae4edken-pooler.c-2.us-east-2.aws.neon.tech; Database=neondb; Username=neondb_owner; Password=npg_f7edhy4IOJnK; SSL Mode=VerifyFull; Channel Binding=Require;";
+            ?? "Host=localhost;Database=stoctable_design_time;Username=postgres;Password=postgres";
 
         var optionsBuilder = new DbContextOptionsBuilder<StoctableDbContext>();
         optionsBuilder.UseNpgsql(connectionString);

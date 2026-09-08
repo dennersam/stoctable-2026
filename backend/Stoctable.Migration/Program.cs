@@ -8,25 +8,40 @@ var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json", optional: false)
     .Build();
 
-var sicConnStr = config["SicConnectionString"]
-    ?? throw new InvalidOperationException("SicConnectionString não configurada em appsettings.json");
+// A variável de ambiente vem primeiro: assim dá para apontar para produção sem
+// gravar credencial em arquivo versionado.
+var pgConnStr = Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
+    ?? config["PostgresConnectionString"]
+    ?? throw new InvalidOperationException(
+        "Connection string do Postgres não configurada (DEFAULT_CONN_STRING ou appsettings.json).");
 
-var pgConnStr = config["PostgresConnectionString"]
-    ?? throw new InvalidOperationException("PostgresConnectionString não configurada em appsettings.json");
-
-Console.WriteLine("╔══════════════════════════════════════════╗");
-Console.WriteLine("║   Stoctable Migration Tool — SIC 6 → PG  ║");
-Console.WriteLine("╚══════════════════════════════════════════╝");
-Console.WriteLine($"  Origem : SQL Server  ({GetDatabaseName(sicConnStr)})");
-Console.WriteLine($"  Destino: PostgreSQL  ({GetDatabaseName(pgConnStr)})");
-Console.WriteLine();
-Console.Write("Pressione ENTER para iniciar ou Ctrl+C para cancelar... ");
-Console.ReadLine();
+// Duas operações distintas convivem nesta ferramenta:
+//   sic       → importa o sistema legado (SQL Server) para o Postgres
+//   backfill  → cria a empresa e as filiais no control plane
+var command = args.FirstOrDefault()?.ToLowerInvariant() ?? "sic";
 
 try
 {
-    var runner = new MigrationRunner(sicConnStr, pgConnStr);
-    await runner.RunAsync();
+    switch (command)
+    {
+        case "sic":
+            await RunSicMigrationAsync();
+            break;
+
+        case "backfill":
+            await RunControlPlaneBackfillAsync();
+            break;
+
+        case "verify":
+            await RunVerificationAsync();
+            break;
+
+        default:
+            Console.WriteLine($"Comando desconhecido: '{command}'");
+            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify]");
+            Environment.Exit(1);
+            break;
+    }
 }
 catch (Exception ex)
 {
@@ -35,6 +50,60 @@ catch (Exception ex)
     Console.ResetColor();
     Environment.Exit(1);
 }
+
+async Task RunSicMigrationAsync()
+{
+    var sicConnStr = config["SicConnectionString"]
+        ?? throw new InvalidOperationException("SicConnectionString não configurada em appsettings.json");
+
+    Console.WriteLine("╔══════════════════════════════════════════╗");
+    Console.WriteLine("║   Stoctable Migration Tool — SIC 6 → PG  ║");
+    Console.WriteLine("╚══════════════════════════════════════════╝");
+    Console.WriteLine($"  Origem : SQL Server  ({GetDatabaseName(sicConnStr)})");
+    Console.WriteLine($"  Destino: PostgreSQL  ({GetDatabaseName(pgConnStr)})");
+    Console.WriteLine();
+    Console.Write("Pressione ENTER para iniciar ou Ctrl+C para cancelar... ");
+    Console.ReadLine();
+
+    var runner = new MigrationRunner(sicConnStr, pgConnStr);
+    await runner.RunAsync();
+}
+
+async Task RunVerificationAsync()
+{
+    var verification = new ControlPlaneVerification(ControlPlaneConnStr(), pgConnStr);
+    var ok = await verification.RunAsync();
+
+    // Código de saída != 0 para que dê para agendar isto e ser avisado.
+    if (!ok) Environment.Exit(2);
+}
+
+async Task RunControlPlaneBackfillAsync()
+{
+    var controlConnStr = ControlPlaneConnStr();
+
+    Console.WriteLine("╔══════════════════════════════════════════╗");
+    Console.WriteLine("║  Backfill do control plane — Megamotos   ║");
+    Console.WriteLine("╚══════════════════════════════════════════╝");
+    Console.WriteLine($"  Control plane: {GetDatabaseName(controlConnStr)}");
+    Console.WriteLine($"  Tenant       : {GetDatabaseName(pgConnStr)}");
+    Console.WriteLine();
+    Console.WriteLine("  Cria a empresa, as três filiais e uma conta de login por");
+    Console.WriteLine("  usuário existente. Nenhum dado sai do banco atual.");
+    Console.WriteLine();
+    Console.Write("Pressione ENTER para iniciar ou Ctrl+C para cancelar... ");
+    Console.ReadLine();
+
+    var backfill = new ControlPlaneBackfill(controlConnStr, pgConnStr);
+    await backfill.RunAsync();
+}
+
+string ControlPlaneConnStr()
+    => Environment.GetEnvironmentVariable("CONTROL_PLANE_CONN_STRING")
+       ?? config["ControlPlaneConnectionString"]
+       ?? throw new InvalidOperationException(
+           "Connection string do control plane não configurada "
+           + "(CONTROL_PLANE_CONN_STRING ou appsettings.json).");
 
 static string GetDatabaseName(string connStr)
 {

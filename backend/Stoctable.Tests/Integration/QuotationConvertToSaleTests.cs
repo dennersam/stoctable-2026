@@ -5,6 +5,7 @@ using Stoctable.Domain.Enums;
 using Stoctable.Infrastructure;
 using Stoctable.Infrastructure.Context;
 using Stoctable.Infrastructure.Repositories;
+using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Tests.Integration;
 
@@ -145,7 +146,7 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
     private static QuotationService BuildService(StoctableDbContext ctx)
     {
         var seq = new NumberSequenceGenerator(ctx);
-        var productRepo = new ProductRepository(ctx);
+        var productRepo = new ProductRepository(ctx, new BranchContext());
         var quotationRepo = new QuotationRepository(ctx, seq);
         var saleRepo = new SaleRepository(ctx, seq);
         var inventoryRepo = new InventoryRepository(ctx);

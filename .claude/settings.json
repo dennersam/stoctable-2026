@@ -63,7 +63,17 @@
       "PowerShell(dotnet build backend/Stoctable.slnx -v q --nologo)",
       "PowerShell(dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~SalePaymentTests\" --nologo -v q 2>&1)",
       "PowerShell(docker info --format \"{{.ServerVersion}}\"; \\(Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue | Measure-Object\\).Count)",
-      "PowerShell($env:STOCTABLE_TMP_NOFIX='1'; dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~SalePaymentTests\" --nologo -v q 2>&1 | Select-String -Pattern \"Passed!|Failed!|DbUpdateConcurrency\" | Select-Object -First 5; $env:STOCTABLE_TMP_NOFIX=$null)"
+      "PowerShell($env:STOCTABLE_TMP_NOFIX='1'; dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~SalePaymentTests\" --nologo -v q 2>&1 | Select-String -Pattern \"Passed!|Failed!|DbUpdateConcurrency\" | Select-Object -First 5; $env:STOCTABLE_TMP_NOFIX=$null)",
+      "PowerShell(dotnet add backend/Stoctable.Tests package Microsoft.Extensions.Configuration --version 10.0.0 2>&1)",
+      "PowerShell(dotnet ef migrations add ControlPlaneInitial --context ControlPlaneDbContext --output-dir Migrations/ControlPlane --project backend/Stoctable.Infrastructure --startup-project backend/Stoctable.Api 2>&1)",
+      "PowerShell(dotnet ef migrations add RemoveDeadBranchTable --context StoctableDbContext --project backend/Stoctable.Infrastructure --startup-project backend/Stoctable.Api 2>&1)",
+      "PowerShell(& \"C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\4d388f56-da16-47af-a9a5-ef4f3c5ad94d\\\\scratchpad\\\\fix-encoding.ps1\")",
+      "WebFetch(domain:brasilapi.com.br)",
+      "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; $env:DEFAULT_CONN_STRING = \\(az keyvault secret show --vault-name stoctable-kv-dev --name DefaultBranchConnectionString --query value -o tsv\\); dotnet ef database update --context StoctableDbContext --project backend/Stoctable.Infrastructure --startup-project backend/Stoctable.Api 2>&1 | Select-Object -Last 20)",
+      "PowerShell(& \"C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\4d388f56-da16-47af-a9a5-ef4f3c5ad94d\\\\scratchpad\\\\control-plane-setup.ps1\" 2>&1)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Denner\\Dev\\Stoctable"
     ]
   }
 }

@@ -7,12 +7,12 @@ namespace Stoctable.Infrastructure.Context;
 
 public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : DbContext(options)
 {
-    public DbSet<Branch> Branches => Set<Branch>();
     public DbSet<User> Users => Set<User>();
     public DbSet<Manufacturer> Manufacturers => Set<Manufacturer>();
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<ProductCategory> ProductCategories => Set<ProductCategory>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductStock> ProductStocks => Set<ProductStock>();
     public DbSet<CustomerType> CustomerTypes => Set<CustomerType>();
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<CustomerCrmNote> CustomerCrmNotes => Set<CustomerCrmNote>();
@@ -41,21 +41,35 @@ public class StoctableDbContext(DbContextOptions<StoctableDbContext> options) : 
             .HasDbFunction(typeof(DbSearchFunctions).GetMethod(nameof(DbSearchFunctions.Normalize))!)
             .HasName(SearchSchema.FunctionName);
 
-        // Mapeamentos simples sem configuração separada
-        modelBuilder.Entity<Branch>(b =>
+        // Mapeamentos simples sem configuração separada.
+        //
+        // A entidade Branch saiu daqui: filial agora é conceito do control plane
+        // (Domain/Entities/ControlPlane/Branch.cs). A tabela `branches` do tenant
+        // nunca foi lida ou escrita por nada — a resolução de filial sempre usou
+        // o nome do segredo no Key Vault, jamais esta tabela.
+
+        modelBuilder.Entity<ProductStock>(ps =>
         {
-            b.ToTable("branches");
-            b.HasKey(x => x.Id);
-            b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
-            b.Property(x => x.Cnpj).HasColumnName("cnpj").HasMaxLength(18);
-            b.Property(x => x.Address).HasColumnName("address").HasMaxLength(255);
-            b.Property(x => x.Phone).HasColumnName("phone").HasMaxLength(20);
-            b.Property(x => x.IsActive).HasColumnName("is_active");
-            b.Property(x => x.CreatedAt).HasColumnName("created_at");
-            b.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
-            b.Property(x => x.UpdatedAt).HasColumnName("updated_at");
-            b.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+            ps.ToTable("product_stocks");
+            ps.HasKey(x => x.Id);
+            ps.Property(x => x.Id).HasColumnName("id");
+            ps.Property(x => x.BranchId).HasColumnName("branch_id");
+            ps.Property(x => x.ProductId).HasColumnName("product_id");
+            ps.Property(x => x.Quantity).HasColumnName("quantity").HasPrecision(10, 3);
+            ps.Property(x => x.Reserved).HasColumnName("reserved").HasPrecision(10, 3);
+            ps.Property(x => x.CreatedAt).HasColumnName("created_at");
+            ps.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
+            ps.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            ps.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+
+            ps.Ignore(x => x.Available);
+
+            ps.HasOne(x => x.Product).WithMany(p => p.Stocks)
+                .HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Cascade);
+
+            // Único por (filial, produto): é o alvo do ON CONFLICT nos UPDATEs
+            // atômicos de estoque. Sem ele o upsert não teria como funcionar.
+            ps.HasIndex(x => new { x.BranchId, x.ProductId }).IsUnique();
         });
 
         modelBuilder.Entity<Supplier>(s =>

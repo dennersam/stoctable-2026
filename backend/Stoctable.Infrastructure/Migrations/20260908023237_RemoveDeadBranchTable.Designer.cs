@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Stoctable.Infrastructure.Context;
@@ -11,9 +12,11 @@ using Stoctable.Infrastructure.Context;
 namespace Stoctable.Infrastructure.Migrations
 {
     [DbContext(typeof(StoctableDbContext))]
-    partial class StoctableDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908023237_RemoveDeadBranchTable")]
+    partial class RemoveDeadBranchTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -706,60 +709,6 @@ namespace Stoctable.Infrastructure.Migrations
                     b.ToTable("product_categories", (string)null);
                 });
 
-            modelBuilder.Entity("Stoctable.Domain.Entities.ProductStock", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<Guid>("BranchId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("branch_id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("created_by");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("product_id");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(10, 3)
-                        .HasColumnType("numeric(10,3)")
-                        .HasColumnName("quantity");
-
-                    b.Property<decimal>("Reserved")
-                        .HasPrecision(10, 3)
-                        .HasColumnType("numeric(10,3)")
-                        .HasColumnName("reserved");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("updated_at");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("updated_by");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("BranchId", "ProductId")
-                        .IsUnique();
-
-                    b.ToTable("product_stocks", (string)null);
-                });
-
             modelBuilder.Entity("Stoctable.Domain.Entities.Quotation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1395,17 +1344,6 @@ namespace Stoctable.Infrastructure.Migrations
                     b.Navigation("Parent");
                 });
 
-            modelBuilder.Entity("Stoctable.Domain.Entities.ProductStock", b =>
-                {
-                    b.HasOne("Stoctable.Domain.Entities.Product", "Product")
-                        .WithMany("Stocks")
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("Stoctable.Domain.Entities.Quotation", b =>
                 {
                     b.HasOne("Stoctable.Domain.Entities.Customer", "Customer")
@@ -1532,8 +1470,6 @@ namespace Stoctable.Infrastructure.Migrations
                     b.Navigation("SaleItems");
 
                     b.Navigation("StockReservations");
-
-                    b.Navigation("Stocks");
                 });
 
             modelBuilder.Entity("Stoctable.Domain.Entities.ProductCategory", b =>

@@ -24,10 +24,18 @@ public class Product : BaseEntity
     /// <summary>Preço de venda (TABEST1.precovendas)</summary>
     public decimal SalePrice { get; set; }
 
-    /// <summary>Quantidade em estoque (TABEST1.quantidade)</summary>
+    /// <summary>
+    /// Quantidade em estoque (TABEST1.quantidade).
+    /// EM TRANSIÇÃO: a fonte da verdade está migrando para <see cref="ProductStock"/>,
+    /// que é por filial. Esta coluna continua sendo escrita em paralelo enquanto as
+    /// duas fontes são reconciliadas, e some depois disso.
+    /// </summary>
     public decimal StockQuantity { get; set; }
 
-    /// <summary>Quantidade reservada por orçamentos finalizados</summary>
+    /// <summary>
+    /// Quantidade reservada por orçamentos finalizados.
+    /// EM TRANSIÇÃO, pelo mesmo motivo de <see cref="StockQuantity"/>.
+    /// </summary>
     public decimal StockReserved { get; set; }
 
     /// <summary>Estoque mínimo (TABEST1.estminimo)</summary>
@@ -60,4 +68,7 @@ public class Product : BaseEntity
     public ICollection<SaleItem> SaleItems { get; set; } = [];
     public ICollection<InventoryMovement> InventoryMovements { get; set; } = [];
     public ICollection<StockReservation> StockReservations { get; set; } = [];
+
+    /// <summary>Estoque por filial. Uma linha por filial que já movimentou o produto.</summary>
+    public ICollection<ProductStock> Stocks { get; set; } = [];
 }

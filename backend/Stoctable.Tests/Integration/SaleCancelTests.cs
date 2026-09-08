@@ -6,6 +6,7 @@ using Stoctable.Domain.Enums;
 using Stoctable.Infrastructure;
 using Stoctable.Infrastructure.Context;
 using Stoctable.Infrastructure.Repositories;
+using Stoctable.Infrastructure.Tenancy;
 
 namespace Stoctable.Tests.Integration;
 
@@ -99,7 +100,7 @@ public class SaleCancelTests : IClassFixture<PostgresFixture>
     private static SaleService BuildService(StoctableDbContext ctx)
     {
         var seq = new NumberSequenceGenerator(ctx);
-        var productRepo = new ProductRepository(ctx);
+        var productRepo = new ProductRepository(ctx, new BranchContext());
         var saleRepo = new SaleRepository(ctx, seq);
         var inventoryRepo = new InventoryRepository(ctx);
         var uow = new UnitOfWork(ctx);
