@@ -70,7 +70,11 @@
       "PowerShell(& \"C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\4d388f56-da16-47af-a9a5-ef4f3c5ad94d\\\\scratchpad\\\\fix-encoding.ps1\")",
       "WebFetch(domain:brasilapi.com.br)",
       "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; $env:DEFAULT_CONN_STRING = \\(az keyvault secret show --vault-name stoctable-kv-dev --name DefaultBranchConnectionString --query value -o tsv\\); dotnet ef database update --context StoctableDbContext --project backend/Stoctable.Infrastructure --startup-project backend/Stoctable.Api 2>&1 | Select-Object -Last 20)",
-      "PowerShell(& \"C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\4d388f56-da16-47af-a9a5-ef4f3c5ad94d\\\\scratchpad\\\\control-plane-setup.ps1\" 2>&1)"
+      "PowerShell(& \"C:\\\\Users\\\\Denner\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Denner-Dev-Stoctable\\\\4d388f56-da16-47af-a9a5-ef4f3c5ad94d\\\\scratchpad\\\\control-plane-setup.ps1\" 2>&1)",
+      "PowerShell($API=\"https://stoctable-api-dev.azurewebsites.net\"; \"health : \" + \\(Invoke-WebRequest \"$API/health\" -UseBasicParsing -TimeoutSec 30\\).Content; try { $r = Invoke-WebRequest \"$API/api/products\" -UseBasicParsing -TimeoutSec 30 } catch { \"products \\(sem auth\\): HTTP \" + [int]$_.Exception.Response.StatusCode })",
+      "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; git push origin main 2>&1 | Select-Object -Last 3; \"---\"; $API=\"https://stoctable-api-dev.azurewebsites.net\"; try { $r = Invoke-WebRequest \"$API/api/products\" -UseBasicParsing -TimeoutSec 30; \"products: \" + $r.StatusCode } catch { \"products \\(sem auth\\): HTTP \" + [int]$_.Exception.Response.StatusCode })",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Denner\\Dev\\Stoctable"

@@ -24,6 +24,7 @@ namespace Stoctable.Api.Middleware;
 public class TenantResolutionMiddleware(RequestDelegate next, ILogger<TenantResolutionMiddleware> logger)
 {
     private const string LegacyBranchHeader = "X-Branch-Id";
+    private const string AuthPathPrefix = "/api/auth";
 
     public async Task InvokeAsync(
         HttpContext context,
@@ -31,8 +32,20 @@ public class TenantResolutionMiddleware(RequestDelegate next, ILogger<TenantReso
         BranchContext branchContext,
         ICompanyConnectionResolver connectionResolver)
     {
-        // Requisição anônima (portal, /api/auth, /health, OpenAPI) segue sem
-        // tenant resolvido. Não há fallback para um banco padrão: contexto não
+        // Os endpoints de autenticação nunca tocam banco de empresa — trabalham
+        // só no control plane. Precisam ser desviados ANTES da checagem de
+        // filial: /api/auth/select-branch chega autenticado e sem filial (é
+        // exatamente o que ele existe para resolver), e sem este desvio o
+        // middleware o recusaria com 403, criando um impasse em que a pessoa
+        // não consegue escolher a loja porque não escolheu a loja.
+        if (context.Request.Path.StartsWithSegments(AuthPathPrefix))
+        {
+            await next(context);
+            return;
+        }
+
+        // Requisição anônima (portal, /health, OpenAPI) segue sem tenant
+        // resolvido. Não há fallback para um banco padrão: contexto não
         // resolvido tem de falhar alto, e não vazar silenciosamente para o
         // banco de alguma empresa.
         if (context.User.Identity?.IsAuthenticated != true)
