@@ -14,10 +14,15 @@ var config = new ConfigurationBuilder()
 
 // A variável de ambiente vem primeiro: assim dá para apontar para produção sem
 // gravar credencial em arquivo versionado.
-var pgConnStr = Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING")
-    ?? config["PostgresConnectionString"]
+//
+// ⚠️ appsettings.json É VERSIONADO (o .gitignore só cobre appsettings.*.json,
+// com sufixo). Não escreva senha nele: use DEFAULT_CONN_STRING. Chave vazia é
+// tratada como ausente justamente para que o arquivo possa ficar sem segredo.
+var pgConnStr = FirstNonEmpty(
+        Environment.GetEnvironmentVariable("DEFAULT_CONN_STRING"),
+        config["PostgresConnectionString"])
     ?? throw new InvalidOperationException(
-        "Connection string do Postgres não configurada (DEFAULT_CONN_STRING ou appsettings.json).");
+        "Connection string do Postgres não configurada. Defina DEFAULT_CONN_STRING.");
 
 // Duas operações distintas convivem nesta ferramenta:
 //   sic       → importa o sistema legado (SQL Server) para o Postgres
@@ -141,10 +146,16 @@ async Task RunControlPlaneBackfillAsync()
 
 string ControlPlaneConnStr()
     => Environment.GetEnvironmentVariable("CONTROL_PLANE_CONN_STRING")
-       ?? config["ControlPlaneConnectionString"]
+       ?? NullIfEmpty(config["ControlPlaneConnectionString"])
        ?? throw new InvalidOperationException(
            "Connection string do control plane não configurada "
            + "(CONTROL_PLANE_CONN_STRING ou appsettings.json).");
+
+// Chave presente porém vazia conta como ausente: é o que permite manter o
+// appsettings.json versionado sem segredo dentro.
+static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
+
+static string? FirstNonEmpty(params string?[] values) => values.Select(NullIfEmpty).FirstOrDefault(v => v is not null);
 
 static string GetDatabaseName(string connStr)
 {
