@@ -32,9 +32,9 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
         Assert.NotEqual(Guid.Empty, result.Data);
 
         await using var verify = _fixture.CreateContext();
-        var product = await verify.Products.AsNoTracking().FirstAsync(p => p.Id == productId);
-        Assert.Equal(7m, product.StockQuantity);
-        Assert.Equal(0m, product.StockReserved);
+        var stock = await verify.ProductStocks.AsNoTracking().FirstAsync(s => s.ProductId == productId);
+        Assert.Equal(7m, stock.Quantity);
+        Assert.Equal(0m, stock.Reserved);
 
         var sale = await verify.Sales.AsNoTracking().Include(s => s.Items)
             .FirstAsync(s => s.Id == result.Data);
@@ -71,7 +71,7 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
         await using (var setup = _fixture.CreateContext())
         {
             await setup.Database.ExecuteSqlRawAsync(
-                "UPDATE products SET stock_quantity = 2 WHERE id = {0}", productId);
+                "UPDATE product_stocks SET quantity = 2 WHERE product_id = {0}", productId);
         }
 
         var service = BuildService(_fixture.CreateContext());
@@ -83,8 +83,8 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
         await using var verify = _fixture.CreateContext();
 
         // Estoque continua intocado (rollback funcionou)
-        var product = await verify.Products.AsNoTracking().FirstAsync(p => p.Id == productId);
-        Assert.Equal(2m, product.StockQuantity);
+        var stock = await verify.ProductStocks.AsNoTracking().FirstAsync(s => s.ProductId == productId);
+        Assert.Equal(2m, stock.Quantity);
 
         // Quotation permanece Finalized
         var quotation = await verify.Quotations.AsNoTracking().FirstAsync(q => q.Id == quotationId);
@@ -136,9 +136,9 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
 
         // Estoque nunca pode ficar negativo.
         await using var verify = _fixture.CreateContext();
-        var product = await verify.Products.AsNoTracking().FirstAsync(p => p.Id == productId);
-        Assert.Equal(5m, product.StockQuantity);
-        Assert.True(product.StockQuantity >= 0, "estoque ficou negativo — oversell detectado");
+        var stock = await verify.ProductStocks.AsNoTracking().FirstAsync(s => s.ProductId == productId);
+        Assert.Equal(5m, stock.Quantity);
+        Assert.True(stock.Quantity >= 0, "estoque ficou negativo — oversell detectado");
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -146,12 +146,13 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
     private static QuotationService BuildService(StoctableDbContext ctx)
     {
         var seq = new NumberSequenceGenerator(ctx, new BranchContext());
-        var productRepo = new ProductRepository(ctx, new BranchContext());
+        var productRepo = new ProductRepository(ctx);
+        var stockRepo = new ProductStockRepository(ctx, new BranchContext());
         var quotationRepo = new QuotationRepository(ctx, seq);
         var saleRepo = new SaleRepository(ctx, seq);
         var inventoryRepo = new InventoryRepository(ctx);
         var uow = new UnitOfWork(ctx);
-        return new QuotationService(quotationRepo, productRepo, inventoryRepo, saleRepo, uow);
+        return new QuotationService(quotationRepo, productRepo, stockRepo, inventoryRepo, saleRepo, uow);
     }
 
     private async Task<Guid> GetSeededCashierIdAsync()
@@ -183,11 +184,18 @@ public class QuotationConvertToSaleTests : IClassFixture<PostgresFixture>
             Name = "Test Product",
             SalePrice = 10m,
             CostPrice = 5m,
-            StockQuantity = initialStock,
-            StockReserved = 0,
             IsActive = true,
         };
         ctx.Products.Add(product);
+
+        // O estoque e da filial, nao do catalogo: a linha de product_stocks e
+        // que precisa nascer semeada.
+        ctx.ProductStocks.Add(new ProductStock
+        {
+            BranchId = BranchContext.LegacySingleBranchId,
+            ProductId = product.Id,
+            Quantity = initialStock,
+        });
         await ctx.SaveChangesAsync();
         return product.Id;
     }

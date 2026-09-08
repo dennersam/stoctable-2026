@@ -24,4 +24,15 @@ public class BranchContext
     public static readonly Guid LegacySingleBranchId = new("00000000-0000-0000-0000-000000000001");
 
     public Guid BranchId { get; set; } = LegacySingleBranchId;
+
+    /// <summary>
+    /// Filiais que esta conta pode acessar, vindas das claims <c>branch</c> do
+    /// token — portanto assinadas, e não sujeitas ao que o cliente mandar no
+    /// corpo da requisição.
+    ///
+    /// É o que autoriza as duas únicas operações legítimas que olham além da
+    /// filial ativa: escolher o destino de uma transferência e consultar o
+    /// estoque da rede. Nunca use isto para ESCREVER em outra filial.
+    /// </summary>
+    public IReadOnlyCollection<Guid> AllowedBranchIds { get; set; } = [];
 }

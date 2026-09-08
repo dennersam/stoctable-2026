@@ -147,7 +147,6 @@ public class BranchIsolationTests : IClassFixture<PostgresFixture>
                 Name = "Peça compartilhada",
                 SalePrice = 50m,
                 CostPrice = 25m,
-                StockQuantity = 8m,
                 IsActive = true,
             };
             ctx.Products.Add(product);
@@ -156,7 +155,11 @@ public class BranchIsolationTests : IClassFixture<PostgresFixture>
         }
 
         await using (var ctx = _fixture.CreateContext(_mega))
-            await new ProductRepository(ctx, _mega).ReserveStockAsync(productId, 3m);
+        {
+            var stockRepo = new ProductStockRepository(ctx, _mega);
+            await stockRepo.IncrementAsync(productId, 8m);
+            await stockRepo.TryReserveAsync(productId, 3m);
+        }
 
         // O produto é da empresa: a PENHA enxerga o catálogo...
         await using (var ctx = _fixture.CreateContext(_penha))

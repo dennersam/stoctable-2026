@@ -375,8 +375,8 @@ export function ProductFormPage() {
               Estoque
             </h2>
             <Field
-              label="Estoque mínimo"
-              hint="Alerta de estoque baixo quando disponível ≤ mínimo."
+              label="Estoque mínimo nesta filial"
+              hint="Vale para a filial ativa. Cada loja define o seu."
             >
               <input
                 type="number"

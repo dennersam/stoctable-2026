@@ -23,7 +23,7 @@ const decimalFormatter = new Intl.NumberFormat('pt-BR', {
 const MAX_DIGITS = 13;
 
 /** Formata um valor em reais como "999.999,99" (sem o prefixo, que é visual). */
-export function formatCurrencyInput(value: number): string {
+function formatCurrencyInput(value: number): string {
   return decimalFormatter.format(value);
 }
 

@@ -11,7 +11,10 @@ using Stoctable.Exceptions;
 
 namespace Stoctable.Application.Services.Products;
 
-public class ProductService(IProductRepository productRepository, IConfiguration configuration)
+public class ProductService(
+    IProductRepository productRepository,
+    IProductStockRepository stockRepository,
+    IConfiguration configuration)
 {
     public async Task<Result<IEnumerable<ProductResponse>>> GetAllAsync(CancellationToken ct = default)
     {
@@ -79,7 +82,6 @@ public class ProductService(IProductRepository productRepository, IConfiguration
             ManufacturerId = request.ManufacturerId,
             CategoryId = request.CategoryId,
             SupplierId = request.SupplierId,
-            StockMinimum = request.StockMinimum,
             IcmsRate = request.IcmsRate,
             IpiRate = request.IpiRate,
             Cst = request.Cst,
@@ -88,7 +90,15 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         };
 
         await productRepository.AddAsync(product, ct);
-        return Result<ProductResponse>.Success(MapToResponse(product), 201);
+
+        // O mínimo é da filial, não do catálogo — mas cadastrar o produto já
+        // informando o mínimo é conveniência que vale manter. Ele vale para a
+        // filial ativa; as outras definem o seu quando o produto chegar lá.
+        if (request.StockMinimum > 0)
+            await stockRepository.SetMinimumAsync(product.Id, request.StockMinimum, ct);
+
+        return Result<ProductResponse>.Success(
+            MapToResponse(product, quantity: 0, reserved: 0, minimum: request.StockMinimum), 201);
     }
 
     public async Task<Result<ProductResponse>> UpdateAsync(Guid id, UpdateProductRequest request, CancellationToken ct = default)
@@ -109,7 +119,6 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         if (request.ManufacturerId is not null) product.ManufacturerId = request.ManufacturerId;
         if (request.CategoryId is not null) product.CategoryId = request.CategoryId;
         if (request.SupplierId is not null) product.SupplierId = request.SupplierId;
-        if (request.StockMinimum is not null) product.StockMinimum = request.StockMinimum.Value;
         if (request.IcmsRate is not null) product.IcmsRate = request.IcmsRate;
         if (request.IpiRate is not null) product.IpiRate = request.IpiRate;
         if (request.Cst is not null) product.Cst = request.Cst;
@@ -117,8 +126,14 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         if (request.Notes is not null) product.Notes = request.Notes;
         if (request.IsActive is not null) product.IsActive = request.IsActive.Value;
 
+        if (request.StockMinimum is not null)
+            await stockRepository.SetMinimumAsync(id, request.StockMinimum.Value, ct);
+
         await productRepository.UpdateAsync(product, ct);
-        return Result<ProductResponse>.Success(MapToResponse(product));
+
+        var stock = await stockRepository.GetAsync(id, ct);
+        return Result<ProductResponse>.Success(
+            MapToResponse(product, stock?.Quantity ?? 0, stock?.Reserved ?? 0, stock?.Minimum ?? 0));
     }
 
     public async Task<Result<ProductResponse>> UploadImageAsync(Guid id, Stream imageStream, string contentType, string fileName, CancellationToken ct = default)
@@ -173,7 +188,23 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         }
     }
 
-    private static ProductResponse MapToResponse(Product p) => new(
+    /// <summary>
+    /// Os campos de estoque da resposta passaram a significar "nesta filial".
+    ///
+    /// A forma pública não mudou de propósito — o frontend continua lendo
+    /// stockQuantity/stockReserved/stockMinimum —, mas a origem sim: vem da linha
+    /// de product_stocks da filial ativa, que o filtro global já restringiu ao
+    /// carregar a navegação. Produto nunca movimentado nesta loja não tem linha, e
+    /// zeros são a resposta certa: ele existe no catálogo e não há nada em estoque.
+    /// </summary>
+    private static ProductResponse MapToResponse(Product p)
+    {
+        var stock = p.Stocks.FirstOrDefault();
+        return MapToResponse(p, stock?.Quantity ?? 0, stock?.Reserved ?? 0, stock?.Minimum ?? 0);
+    }
+
+    private static ProductResponse MapToResponse(
+        Product p, decimal quantity, decimal reserved, decimal minimum) => new(
         Id: p.Id,
         Sku: p.Sku,
         Name: p.Name,
@@ -186,10 +217,10 @@ public class ProductService(IProductRepository productRepository, IConfiguration
         SupplierName: p.Supplier?.CompanyName,
         CostPrice: p.CostPrice,
         SalePrice: p.SalePrice,
-        StockQuantity: p.StockQuantity,
-        StockReserved: p.StockReserved,
-        StockAvailable: p.StockQuantity - p.StockReserved,
-        StockMinimum: p.StockMinimum,
+        StockQuantity: quantity,
+        StockReserved: reserved,
+        StockAvailable: quantity - reserved,
+        StockMinimum: minimum,
         Unit: p.Unit,
         IcmsRate: p.IcmsRate,
         IpiRate: p.IpiRate,

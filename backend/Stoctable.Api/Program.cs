@@ -143,6 +143,7 @@ try
     app.MapSaleEndpoints();
     app.MapSupplierEndpoints();
     app.MapInventoryEndpoints();
+    app.MapStockTransferEndpoints();
     app.MapUserEndpoints();
     app.MapPaymentMethodEndpoints();
 

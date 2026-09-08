@@ -10,4 +10,6 @@ public class CurrentTenant(TenantContext tenantContext, BranchContext branchCont
             + "alcançado sem passar pelo TenantResolutionMiddleware autenticado.");
 
     public Guid BranchId => branchContext.BranchId;
+
+    public IReadOnlyCollection<Guid> AllowedBranchIds => branchContext.AllowedBranchIds;
 }

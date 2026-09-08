@@ -88,6 +88,11 @@ public class TenantResolutionMiddleware(RequestDelegate next, ILogger<TenantReso
             tenantContext.BranchId = branch.ToString();
             tenantContext.ConnectionString = await connectionResolver.ResolveAsync(company, context.RequestAborted);
             branchContext.BranchId = branch;
+            branchContext.AllowedBranchIds = context.User
+                .FindAll(AccountService.BranchListClaim)
+                .Select(c => Guid.TryParse(c.Value, out var id) ? id : Guid.Empty)
+                .Where(id => id != Guid.Empty)
+                .ToArray();
         }
         catch (Exception ex)
         {

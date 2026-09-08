@@ -31,8 +31,8 @@ public class SaleCancelTests : IClassFixture<PostgresFixture>
         Assert.True(result.IsSuccess, result.ErrorMessage);
 
         await using var verify = _fixture.CreateContext();
-        var product = await verify.Products.AsNoTracking().FirstAsync(p => p.Id == productId);
-        Assert.Equal(10m, product.StockQuantity); // 7 + 3 devolvido
+        var stock = await verify.ProductStocks.AsNoTracking().FirstAsync(s => s.ProductId == productId);
+        Assert.Equal(10m, stock.Quantity); // 7 + 3 devolvido
 
         var sale = await verify.Sales.AsNoTracking().FirstAsync(s => s.Id == saleId);
         Assert.Equal(SaleStatus.Cancelled, sale.Status);
@@ -67,8 +67,8 @@ public class SaleCancelTests : IClassFixture<PostgresFixture>
             Assert.NotNull(p.RefundedAt);
         });
 
-        var product = await verify.Products.AsNoTracking().FirstAsync(p => p.Id == productId);
-        Assert.Equal(5m, product.StockQuantity); // 3 + 2 devolvido
+        var stock = await verify.ProductStocks.AsNoTracking().FirstAsync(s => s.ProductId == productId);
+        Assert.Equal(5m, stock.Quantity); // 3 + 2 devolvido
     }
 
     [Fact]
@@ -100,11 +100,12 @@ public class SaleCancelTests : IClassFixture<PostgresFixture>
     private static SaleService BuildService(StoctableDbContext ctx)
     {
         var seq = new NumberSequenceGenerator(ctx, new BranchContext());
-        var productRepo = new ProductRepository(ctx, new BranchContext());
+        var productRepo = new ProductRepository(ctx);
+        var stockRepo = new ProductStockRepository(ctx, new BranchContext());
         var saleRepo = new SaleRepository(ctx, seq);
         var inventoryRepo = new InventoryRepository(ctx);
         var uow = new UnitOfWork(ctx);
-        return new SaleService(saleRepo, productRepo, inventoryRepo, uow);
+        return new SaleService(saleRepo, productRepo, stockRepo, inventoryRepo, uow);
     }
 
     private async Task<(Guid productId, Guid saleId)> SeedSaleAsync(
@@ -118,11 +119,17 @@ public class SaleCancelTests : IClassFixture<PostgresFixture>
             Name = "Test Product",
             SalePrice = 10m,
             CostPrice = 5m,
-            StockQuantity = initialStock - soldQty, // já vendido
-            StockReserved = 0,
             IsActive = true,
         };
         ctx.Products.Add(product);
+
+        // Saldo da filial ja com a venda baixada.
+        ctx.ProductStocks.Add(new ProductStock
+        {
+            BranchId = BranchContext.LegacySingleBranchId,
+            ProductId = product.Id,
+            Quantity = initialStock - soldQty,
+        });
 
         var paymentMethod = await ctx.PaymentMethods.FirstOrDefaultAsync();
         if (paymentMethod is null)

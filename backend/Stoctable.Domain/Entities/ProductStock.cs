@@ -10,9 +10,9 @@ namespace Stoctable.Domain.Entities;
 /// que tornava as duas coisas impossíveis ao mesmo tempo. O catálogo continua
 /// único; a quantidade passa a ser por loja.
 ///
-/// Durante a transição as colunas antigas em <c>products</c> continuam sendo
-/// escritas em paralelo, para que dê para reconciliar as duas fontes antes de
-/// derrubá-las. Ver o plano de migração.
+/// Esta é a fonte da verdade do estoque. As colunas antigas em <c>products</c>
+/// ainda existem, mas ninguém mais as lê ou escreve — sobrevivem só até a
+/// migration que as derruba, como diagnóstico de reconciliação.
 /// </summary>
 public class ProductStock : BaseEntity, IBranchScoped
 {
@@ -25,6 +25,14 @@ public class ProductStock : BaseEntity, IBranchScoped
 
     /// <summary>Parte da quantidade comprometida por orçamentos finalizados.</summary>
     public decimal Reserved { get; set; }
+
+    /// <summary>
+    /// Nível que dispara o alerta de estoque baixo NESTA filial.
+    ///
+    /// É por loja, e não do catálogo: uma loja pequena repõe a partir de 2, a
+    /// matriz a partir de 20. O mesmo produto, portanto, tem mínimos diferentes.
+    /// </summary>
+    public decimal Minimum { get; set; }
 
     /// <summary>O que pode ser vendido agora.</summary>
     public decimal Available => Quantity - Reserved;

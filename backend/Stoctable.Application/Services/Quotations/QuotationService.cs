@@ -12,6 +12,7 @@ namespace Stoctable.Application.Services.Quotations;
 public class QuotationService(
     IQuotationRepository quotationRepository,
     IProductRepository productRepository,
+    IProductStockRepository stockRepository,
     IInventoryRepository inventoryRepository,
     ISaleRepository saleRepository,
     IUnitOfWork unitOfWork)
@@ -131,8 +132,16 @@ public class QuotationService(
     }
 
     /// <summary>
-    /// Finaliza o orçamento (Option B): reserva estoque para cada item.
-    /// Atualiza stock_reserved em products e cria StockReservation por item.
+    /// Finaliza o orçamento reservando o estoque DA FILIAL ATIVA para cada item.
+    ///
+    /// Roda inteiro numa transação. Antes não rodava, e um item sem saldo no meio
+    /// do laço deixava reservas órfãs dos itens anteriores — comprometidas para um
+    /// orçamento que nunca foi finalizado.
+    ///
+    /// A validação prévia continua existindo só para dar mensagem de erro com o
+    /// nome do produto. Quem garante a invariante é a guarda de TryReserveAsync:
+    /// entre validar e reservar havia uma janela em que dois orçamentos
+    /// comprometiam a mesma peça.
     /// </summary>
     public async Task<Result<QuotationResponse>> FinalizeAsync(Guid quotationId, FinalizeQuotationRequest request, CancellationToken ct = default)
     {
@@ -147,48 +156,47 @@ public class QuotationService(
         if (!quotation.Items.Any())
             return Result<QuotationResponse>.Failure(ErrorMessages.Quotation.EmptyItems);
 
-        // Validate stock availability for all items before reserving
-        foreach (var item in quotation.Items)
+        try
         {
-            var product = await productRepository.GetByIdAsync(item.ProductId, ct);
-            if (product is null)
-                return Result<QuotationResponse>.Failure(ErrorMessages.Product.NotFound);
-
-            var available = product.StockQuantity - product.StockReserved;
-            if (item.Quantity > available)
-                return Result<QuotationResponse>.Failure(
-                    string.Format(ErrorMessages.Product.InsufficientStock, product.Name));
-        }
-
-        // Reserve stock for each item
-        foreach (var item in quotation.Items)
-        {
-            var product = await productRepository.GetByIdNoTrackingAsync(item.ProductId, ct);
-            if (product is null) continue;
-
-            await productRepository.ReserveStockAsync(item.ProductId, item.Quantity, ct);
-
-            var reservation = new StockReservation
+            return await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
             {
-                ProductId = item.ProductId,
-                QuotationId = quotationId,
-                Quantity = item.Quantity
-            };
-            await inventoryRepository.AddReservationAsync(reservation, ct);
+                foreach (var item in quotation.Items)
+                {
+                    var product = await productRepository.GetByIdNoTrackingAsync(item.ProductId, innerCt);
+                    if (product is null)
+                        throw new InsufficientStockException(ErrorMessages.Product.NotFound);
+
+                    var reserved = await stockRepository.TryReserveAsync(item.ProductId, item.Quantity, innerCt);
+                    if (!reserved.Success)
+                        throw new InsufficientStockException(
+                            string.Format(ErrorMessages.Product.InsufficientStock, product.Name));
+
+                    var reservation = new StockReservation
+                    {
+                        ProductId = item.ProductId,
+                        QuotationId = quotationId,
+                        Quantity = item.Quantity
+                    };
+                    await inventoryRepository.AddReservationAsync(reservation, innerCt);
+                }
+
+                if (request.DiscountPct > 0)
+                    quotation.DiscountPct = request.DiscountPct;
+                if (request.Notes is not null)
+                    quotation.Notes = request.Notes;
+
+                RecalculateTotals(quotation);
+                quotation.Status = QuotationStatus.Finalized;
+                quotation.FinalizedAt = DateTimeOffset.UtcNow;
+
+                await quotationRepository.UpdateAsync(quotation, innerCt);
+                return Result<QuotationResponse>.Success(MapToResponse(quotation));
+            }, ct);
         }
-
-        // Apply discount and finalize
-        if (request.DiscountPct > 0)
-            quotation.DiscountPct = request.DiscountPct;
-        if (request.Notes is not null)
-            quotation.Notes = request.Notes;
-
-        RecalculateTotals(quotation);
-        quotation.Status = QuotationStatus.Finalized;
-        quotation.FinalizedAt = DateTimeOffset.UtcNow;
-
-        await quotationRepository.UpdateAsync(quotation, ct);
-        return Result<QuotationResponse>.Success(MapToResponse(quotation));
+        catch (InsufficientStockException ex)
+        {
+            return Result<QuotationResponse>.Failure(ex.Message);
+        }
     }
 
     /// <summary>
@@ -222,8 +230,8 @@ public class QuotationService(
     /// <summary>
     /// Converte o orçamento em venda. Retorna apenas o ID da venda criada.
     /// Toda a operação roda em uma única transação — se qualquer passo
-    /// falhar nada é persistido. A baixa de estoque usa UPDATE atômico
-    /// com guarda (stock_quantity >= quantity), prevenindo oversell sob
+    /// falhar nada é persistido. A baixa usa o UPDATE atômico com guarda
+    /// (quantity >= n) sobre o estoque DA FILIAL ATIVA, prevenindo oversell sob
     /// concorrência.
     /// </summary>
     public async Task<Result<Guid>> ConvertToSaleAsync(Guid quotationId, Guid cashierId, CancellationToken ct = default)
@@ -270,22 +278,24 @@ public class QuotationService(
 
                 foreach (var item in quotation.Items)
                 {
-                    var productBefore = await productRepository.GetByIdNoTrackingAsync(item.ProductId, innerCt);
-                    if (productBefore is null)
+                    var product = await productRepository.GetByIdNoTrackingAsync(item.ProductId, innerCt);
+                    if (product is null)
                         throw new InvalidOperationException(ErrorMessages.Product.NotFound);
 
-                    var ok = await productRepository.TryDecrementStockAsync(item.ProductId, item.Quantity, innerCt);
-                    if (!ok)
+                    var baixa = await stockRepository.TryDecrementAsync(item.ProductId, item.Quantity, innerCt);
+                    if (!baixa.Success)
                         throw new InsufficientStockException(
-                            string.Format(ErrorMessages.Product.InsufficientStock, productBefore.Name));
+                            string.Format(ErrorMessages.Product.InsufficientStock, product.Name));
 
                     var movement = new InventoryMovement
                     {
                         ProductId = item.ProductId,
                         MovementType = MovementType.Sale,
                         Quantity = -item.Quantity,
-                        QuantityBefore = productBefore.StockQuantity,
-                        QuantityAfter = productBefore.StockQuantity - item.Quantity,
+                        // Saldo real pós-baixa, vindo do RETURNING do próprio
+                        // UPDATE; o "antes" é aritmética sobre ele.
+                        QuantityBefore = baixa.QuantityAfter + item.Quantity,
+                        QuantityAfter = baixa.QuantityAfter,
                         ReferenceType = "sale",
                         ReferenceId = sale.Id
                     };
@@ -318,7 +328,7 @@ public class QuotationService(
         var reservations = await inventoryRepository.GetActiveReservationsByQuotationAsync(quotationId, ct);
         foreach (var reservation in reservations)
         {
-            await productRepository.ReleaseReservedStockAsync(reservation.ProductId, reservation.Quantity, ct);
+            await stockRepository.ReleaseReservedAsync(reservation.ProductId, reservation.Quantity, ct);
 
             reservation.IsActive = false;
             reservation.ReleasedAt = DateTimeOffset.UtcNow;

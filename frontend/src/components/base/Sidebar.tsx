@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom';
 import { useState } from 'react';
 import {
+  ArrowLeftRight,
+  Network,
   LayoutDashboard,
   Package,
   Users,
@@ -35,6 +37,8 @@ const navItems: NavItem[] = [
   { label: 'Fornecedores', to: '/suppliers',     icon: Truck,          roles: ['admin'] },
   { label: 'Fabricantes',  to: '/manufacturers', icon: Factory,        roles: ['admin'] },
   { label: 'Estoque',      to: '/inventory',     icon: Boxes,          roles: ['admin'] },
+  { label: 'Transferências', to: '/transfers',   icon: ArrowLeftRight },
+  { label: 'Estoque na rede', to: '/network-stock', icon: Network },
   { label: 'Relatórios',   to: '/reports',       icon: BarChart2,      roles: ['admin'] },
   { label: 'Administração',to: '/admin',         icon: Settings,       roles: ['admin'] },
 ];

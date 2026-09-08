@@ -138,11 +138,12 @@ public class SalePaymentTests : IClassFixture<PostgresFixture>
     private static SaleService BuildService(StoctableDbContext ctx)
     {
         var seq = new NumberSequenceGenerator(ctx, new BranchContext());
-        var productRepo = new ProductRepository(ctx, new BranchContext());
+        var productRepo = new ProductRepository(ctx);
+        var stockRepo = new ProductStockRepository(ctx, new BranchContext());
         var saleRepo = new SaleRepository(ctx, seq);
         var inventoryRepo = new InventoryRepository(ctx);
         var uow = new UnitOfWork(ctx);
-        return new SaleService(saleRepo, productRepo, inventoryRepo, uow);
+        return new SaleService(saleRepo, productRepo, stockRepo, inventoryRepo, uow);
     }
 
     private async Task<(Guid saleId, Guid paymentMethodId)> SeedPendingSaleAsync(decimal total)

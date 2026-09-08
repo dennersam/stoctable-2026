@@ -167,7 +167,7 @@ public class ProductSearchTests : IClassFixture<ProductSearchFixture>
     private async Task<List<Product>> SearchAsync(string term)
     {
         await using var ctx = _fixture.CreateContext();
-        var repo = new ProductRepository(ctx, new BranchContext());
+        var repo = new ProductRepository(ctx);
         var (items, _) = await repo.GetPagedAsync(page: 1, pageSize: 50, search: term);
         return items.ToList();
     }

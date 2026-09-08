@@ -50,6 +50,8 @@ public class StoctableDbContext : DbContext
     public DbSet<StockReservation> StockReservations => Set<StockReservation>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<NumberSequence> NumberSequences => Set<NumberSequence>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferItem> StockTransferItems => Set<StockTransferItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,6 +86,14 @@ public class StoctableDbContext : DbContext
         modelBuilder.Entity<ProductStock>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
         modelBuilder.Entity<AuditLog>().HasQueryFilter(x => x.BranchId == _branch.BranchId);
 
+        // Transferência é o único registro que DUAS filiais enxergam, e por isso
+        // seu filtro tem duas pernas: a origem vê as que emitiu, o destino vê as
+        // que vêm para ele. Continua sendo um filtro — ninguém mais alcança a
+        // linha, e uma terceira loja não vê nada. Quem separa o que cada lado
+        // PODE FAZER é a regra de negócio no serviço, não este filtro.
+        modelBuilder.Entity<StockTransfer>().HasQueryFilter(
+            x => x.BranchId == _branch.BranchId || x.DestinationBranchId == _branch.BranchId);
+
         // SaleItem e QuotationItem NÃO têm filtro nem branch_id: só são
         // alcançáveis pelo pai, que já é filtrado. Uma coluna redundante criaria
         // um invariante de consistência que ninguém manteria. O preço disso é
@@ -99,6 +109,7 @@ public class StoctableDbContext : DbContext
             ps.Property(x => x.ProductId).HasColumnName("product_id");
             ps.Property(x => x.Quantity).HasColumnName("quantity").HasPrecision(10, 3);
             ps.Property(x => x.Reserved).HasColumnName("reserved").HasPrecision(10, 3);
+            ps.Property(x => x.Minimum).HasColumnName("minimum").HasPrecision(10, 3);
             ps.Property(x => x.CreatedAt).HasColumnName("created_at");
             ps.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
             ps.Property(x => x.UpdatedAt).HasColumnName("updated_at");
@@ -112,6 +123,58 @@ public class StoctableDbContext : DbContext
             // Único por (filial, produto): é o alvo do ON CONFLICT nos UPDATEs
             // atômicos de estoque. Sem ele o upsert não teria como funcionar.
             ps.HasIndex(x => new { x.BranchId, x.ProductId }).IsUnique();
+        });
+
+        modelBuilder.Entity<StockTransfer>(t =>
+        {
+            t.ToTable("stock_transfers");
+            t.HasKey(x => x.Id);
+            t.Property(x => x.Id).HasColumnName("id");
+            t.Property(x => x.BranchId).HasColumnName("branch_id");
+            t.Property(x => x.DestinationBranchId).HasColumnName("destination_branch_id");
+            t.Property(x => x.TransferNumber).HasColumnName("transfer_number").HasMaxLength(40).IsRequired();
+            t.Property(x => x.Status).HasColumnName("status")
+                .HasConversion<string>(
+                    s => s.ToString().ToLowerInvariant(),
+                    s => Enum.Parse<Domain.Enums.StockTransferStatus>(s, true))
+                .HasMaxLength(20);
+            t.Property(x => x.ShippedAt).HasColumnName("shipped_at");
+            t.Property(x => x.ShippedBy).HasColumnName("shipped_by").HasMaxLength(100);
+            t.Property(x => x.ReceivedAt).HasColumnName("received_at");
+            t.Property(x => x.ReceivedBy).HasColumnName("received_by").HasMaxLength(100);
+            t.Property(x => x.CancelledAt).HasColumnName("cancelled_at");
+            t.Property(x => x.CancellationReason).HasColumnName("cancellation_reason").HasMaxLength(255);
+            t.Property(x => x.HasDivergence).HasColumnName("has_divergence");
+            t.Property(x => x.Notes).HasColumnName("notes");
+            t.Property(x => x.CreatedAt).HasColumnName("created_at");
+            t.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
+            t.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            t.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+
+            // A numeração é por filial de origem, então o par é que é único.
+            t.HasIndex(x => new { x.BranchId, x.TransferNumber }).IsUnique();
+            // A caixa de entrada do destino é uma consulta de rotina.
+            t.HasIndex(x => new { x.DestinationBranchId, x.Status });
+
+            t.HasMany(x => x.Items).WithOne(i => i.Transfer)
+                .HasForeignKey(i => i.TransferId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<StockTransferItem>(i =>
+        {
+            i.ToTable("stock_transfer_items");
+            i.HasKey(x => x.Id);
+            i.Property(x => x.Id).HasColumnName("id");
+            i.Property(x => x.TransferId).HasColumnName("transfer_id");
+            i.Property(x => x.ProductId).HasColumnName("product_id");
+            i.Property(x => x.QuantitySent).HasColumnName("quantity_sent").HasPrecision(10, 3);
+            i.Property(x => x.QuantityReceived).HasColumnName("quantity_received").HasPrecision(10, 3);
+            i.Property(x => x.CreatedAt).HasColumnName("created_at");
+            i.Property(x => x.CreatedBy).HasColumnName("created_by").HasMaxLength(100);
+            i.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            i.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(100);
+
+            i.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId);
         });
 
         modelBuilder.Entity<Supplier>(s =>

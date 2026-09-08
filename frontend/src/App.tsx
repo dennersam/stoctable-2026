@@ -26,6 +26,9 @@ import { QuotationDetailPage } from '@/pages/quotations/QuotationDetailPage';
 import { CheckoutListPage } from '@/pages/checkout/CheckoutListPage';
 import { CheckoutPage } from '@/pages/checkout/CheckoutPage';
 import { InventoryPage } from '@/pages/inventory/InventoryPage';
+import { TransfersPage } from '@/pages/inventory/TransfersPage';
+import { TransferFormPage } from '@/pages/inventory/TransferFormPage';
+import { NetworkStockPage } from '@/pages/inventory/NetworkStockPage';
 import { ManufacturerListPage } from '@/pages/manufacturers/ManufacturerListPage';
 
 function DashboardRouter() {
@@ -141,6 +144,34 @@ function App() {
             element={
               <ProtectedRoute roles={['admin']}>
                 <InventoryPage />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Transferencias entre filiais. Receber e conferencia de balcao,
+              entao nao e restrito a admin; criar e enviar sao, e a checagem
+              real acontece no backend. */}
+          <Route
+            path="/transfers"
+            element={
+              <ProtectedRoute>
+                <TransfersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/transfers/new"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <TransferFormPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/network-stock"
+            element={
+              <ProtectedRoute>
+                <NetworkStockPage />
               </ProtectedRoute>
             }
           />

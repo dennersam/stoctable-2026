@@ -4,6 +4,7 @@ import { productService } from '@/services/productService';
 import { inventoryService } from '@/services/inventoryService';
 import type { Product } from '@/types/product';
 import type { InventoryMovement } from '@/types/inventory';
+import { useBranchStore } from '@/store/branchStore';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -28,13 +29,16 @@ const STATUS_LABEL: Record<StockStatus, string> = {
   critical: 'Zerado',
 };
 
+// Espelha o enum MovementType do backend. QuotationReserve/QuotationRelease
+// estavam aqui e não existem lá — reserva não gera movimento, mexe na coluna
+// reserved. Transferência entra com as duas pernas.
 const MOVEMENT_TYPE_LABEL: Record<string, string> = {
   AdjustmentIn: 'Entrada (ajuste)',
   AdjustmentOut: 'Saída (ajuste)',
   Sale: 'Venda',
-  QuotationReserve: 'Reserva (orçamento)',
-  QuotationRelease: 'Liberação (orçamento)',
   Purchase: 'Compra',
+  TransferIn: 'Entrada (transferência)',
+  TransferOut: 'Saída (transferência)',
 };
 
 function formatDate(iso: string) {
@@ -106,6 +110,8 @@ export function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showCritical, setShowCritical] = useState(false);
+
+  const activeBranch = useBranchStore((s) => s.active());
 
   // Adjust modal
   const [adjustTarget, setAdjustTarget] = useState<Product | null>(null);
@@ -199,7 +205,15 @@ export function InventoryPage() {
     <div className="space-y-5">
       {/* Page header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Estoque</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Estoque</h1>
+          {/* Sem isto o usuário não sabe de qual loja são os números — e agora
+              cada loja tem os seus. */}
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Saldos de <span className="font-medium">{activeBranch?.name ?? 'sua loja'}</span>.
+            Cada filial tem o próprio estoque.
+          </p>
+        </div>
       </div>
 
       {/* Summary cards */}

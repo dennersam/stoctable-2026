@@ -11,6 +11,17 @@ public static class InventoryEndpoints
             .WithTags("Inventory")
             .RequireAuthorization("AdminOnly");
 
+        // Consulta de rede: leitura, e liberada para todos os papéis — quem
+        // atende o balcão precisa saber se a peça existe em outra loja.
+        app.MapGet("/api/inventory/network/{productId:guid}", async (
+            Guid productId, InventoryService service, CancellationToken ct) =>
+        {
+            var result = await service.GetNetworkStockAsync(productId, ct);
+            return result.IsSuccess
+                ? Results.Ok(result.Data)
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).RequireAuthorization().WithTags("Inventory").WithName("GetNetworkStock");
+
         group.MapGet("/movements/{productId:guid}", async (Guid productId, InventoryService service, CancellationToken ct) =>
         {
             var result = await service.GetMovementsByProductAsync(productId, ct);
@@ -27,7 +38,19 @@ public static class InventoryEndpoints
                 ? Results.Created("/api/inventory/movements", result.Data)
                 : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
         }).WithName("AdjustStock");
+
+        // O mínimo é da filial, não do catálogo — por isso mora aqui e não no
+        // formulário de produto, que edita entidade da empresa.
+        group.MapPut("/minimum", async (SetStockMinimumRequest request, InventoryService service, CancellationToken ct) =>
+        {
+            var result = await service.SetMinimumAsync(request.ProductId, request.Minimum, ct);
+            return result.IsSuccess
+                ? Results.NoContent()
+                : Results.Problem(result.ErrorMessage, statusCode: result.StatusCode);
+        }).WithName("SetStockMinimum");
     }
 }
 
 public record AdjustStockRequest(Guid ProductId, decimal Quantity, string Notes = "");
+
+public record SetStockMinimumRequest(Guid ProductId, decimal Minimum);

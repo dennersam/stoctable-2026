@@ -273,7 +273,7 @@ function ProductModal({ productId, onClose, onSaved }: {
                 {/* Estoque */}
                 <section className="space-y-4">
                   <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Estoque</h3>
-                  <Field label="Estoque mínimo" hint="Alerta quando disponível ≤ mínimo.">
+                  <Field label="Estoque mínimo nesta filial" hint="Vale para a filial ativa. Cada loja define o seu.">
                     <input type="number" min="0" step="0.01" value={form.stockMinimum} onChange={numericInput('stockMinimum')}
                       className={`${inputCls} max-w-48`} />
                   </Field>

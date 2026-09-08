@@ -76,4 +76,26 @@ public static class ErrorMessages
     {
         public const string InsufficientStock = "Estoque insuficiente para o produto.";
     }
+
+    public static class StockTransfer
+    {
+        public const string NotFound = "Transferência não encontrada.";
+        public const string EmptyItems = "A transferência precisa ter ao menos um item.";
+        public const string SameBranch = "A filial de destino precisa ser diferente da origem.";
+        public const string UnknownDestination = "Filial de destino inválida ou fora desta empresa.";
+        public const string OnlyOriginCanShip = "Apenas a filial de origem pode enviar esta transferência.";
+        public const string OnlyDestinationCanReceive = "Apenas a filial de destino pode receber esta transferência.";
+        public const string NotPending = "Só é possível alterar ou enviar uma transferência pendente.";
+        public const string NotInTransit = "Só é possível receber uma transferência em trânsito.";
+
+        /// <summary>
+        /// Ver o comentário de cancelamento em <c>StockTransfer</c>: estornar
+        /// carga em trânsito exigiria escrever no estoque de outra filial.
+        /// </summary>
+        public const string CannotCancelInTransit =
+            "Uma transferência em trânsito não pode ser cancelada. Receba-a informando o que chegou "
+            + "e, se necessário, faça uma nova transferência de volta.";
+
+        public const string ReceivedMoreThanSent = "A quantidade recebida não pode ser maior que a enviada.";
+    }
 }

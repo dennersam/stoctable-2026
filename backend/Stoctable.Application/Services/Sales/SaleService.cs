@@ -12,6 +12,7 @@ namespace Stoctable.Application.Services.Sales;
 public class SaleService(
     ISaleRepository saleRepository,
     IProductRepository productRepository,
+    IProductStockRepository stockRepository,
     IInventoryRepository inventoryRepository,
     IUnitOfWork unitOfWork)
 {
@@ -95,18 +96,16 @@ public class SaleService(
             // Devolve estoque de cada item
             foreach (var item in sale.Items)
             {
-                await productRepository.IncrementStockAsync(item.ProductId, item.Quantity, innerCt);
-
-                var product = await productRepository.GetByIdNoTrackingAsync(item.ProductId, innerCt);
-                if (product is null) continue;
+                var devolucao = await stockRepository.IncrementAsync(item.ProductId, item.Quantity, innerCt);
+                if (!devolucao.Success) continue;
 
                 var movement = new InventoryMovement
                 {
                     ProductId = item.ProductId,
                     MovementType = MovementType.AdjustmentIn,
                     Quantity = item.Quantity,
-                    QuantityBefore = product.StockQuantity - item.Quantity,
-                    QuantityAfter = product.StockQuantity,
+                    QuantityBefore = devolucao.QuantityAfter - item.Quantity,
+                    QuantityAfter = devolucao.QuantityAfter,
                     ReferenceType = "sale_cancellation",
                     ReferenceId = sale.Id
                 };

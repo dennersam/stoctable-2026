@@ -25,20 +25,23 @@ public class Product : BaseEntity
     public decimal SalePrice { get; set; }
 
     /// <summary>
-    /// Quantidade em estoque (TABEST1.quantidade).
-    /// EM TRANSIÇÃO: a fonte da verdade está migrando para <see cref="ProductStock"/>,
-    /// que é por filial. Esta coluna continua sendo escrita em paralelo enquanto as
-    /// duas fontes são reconciliadas, e some depois disso.
+    /// ⚠️ COLUNA MORTA (TABEST1.quantidade). Nada mais lê ou escreve aqui — o
+    /// estoque é de cada filial e vive em <see cref="ProductStock"/>.
+    ///
+    /// Sobrevive só até a migration que a derruba. Enquanto existir, serve de
+    /// diagnóstico: comparar com a soma de product_stocks mostra onde as duas
+    /// fontes divergiram durante a transição. Não use em código novo.
     /// </summary>
     public decimal StockQuantity { get; set; }
 
-    /// <summary>
-    /// Quantidade reservada por orçamentos finalizados.
-    /// EM TRANSIÇÃO, pelo mesmo motivo de <see cref="StockQuantity"/>.
-    /// </summary>
+    /// <summary>⚠️ COLUNA MORTA, pelo mesmo motivo de <see cref="StockQuantity"/>.</summary>
     public decimal StockReserved { get; set; }
 
-    /// <summary>Estoque mínimo (TABEST1.estminimo)</summary>
+    /// <summary>
+    /// ⚠️ COLUNA MORTA (TABEST1.estminimo). O mínimo passou a ser por filial,
+    /// em <c>ProductStock.Minimum</c> — uma loja pequena repõe a partir de 2, a
+    /// matriz a partir de 20.
+    /// </summary>
     public decimal StockMinimum { get; set; }
 
     public string Unit { get; set; } = "UN";

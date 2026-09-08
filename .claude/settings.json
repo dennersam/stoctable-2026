@@ -80,7 +80,9 @@
       "PowerShell(cd C:\\\\Users\\\\Denner\\\\Dev\\\\Stoctable; $env:STOCTABLE_TMP_NOFIX='1'; dotnet test backend/Stoctable.Tests --filter \"FullyQualifiedName~AuthPipelineTests\" --nologo -v q 2>&1 | Select-String -Pattern \"Passed!|Failed!|\\\\[FAIL\\\\]\" | Select-Object -First 15; $env:STOCTABLE_TMP_NOFIX=$null)",
       "Bash(npx tsc *)",
       "Bash(grep -E \"^C:\\\\\\\\\\\\\\\\.*\\\\.tsx?:\")",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(DEFAULT_CONN_STRING=\"Host=localhost;Database=stoctable_dev;Username=postgres;Password=postgres\" dotnet ef migrations add AddMinimumToProductStocks --context StoctableDbContext --project Stoctable.Infrastructure --startup-project Stoctable.Api)",
+      "Bash(DEFAULT_CONN_STRING=\"Host=localhost;Database=stoctable_dev;Username=postgres;Password=postgres\" dotnet ef migrations add AddStockTransfers --context StoctableDbContext --project Stoctable.Infrastructure --startup-project Stoctable.Api)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Denner\\Dev\\Stoctable"
