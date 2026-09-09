@@ -45,3 +45,10 @@ infrastructure/**/.terraform.lock.hcl
 # Coverage
 coverage/
 TestResults/
+
+# Backups do SIC (SQL Server). São centenas de MB e contêm dados reais de
+# cliente — nunca versionar. Ficam em migrations/Stoctable/ só para restaurar
+# localmente durante a importação.
+*.bak
+*.trn
+migrations/Stoctable/

@@ -49,9 +49,13 @@ try
             await RunStockCutoverAsync();
             break;
 
+        case "import-lojas":
+            await RunMultiStoreImportAsync();
+            break;
+
         default:
             Console.WriteLine($"Comando desconhecido: '{command}'");
-            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify|stock-cutover [apply]]");
+            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify|stock-cutover [apply]|import-lojas [--sem-historico]]");
             Environment.Exit(1);
             break;
     }
@@ -60,6 +64,13 @@ catch (Exception ex)
 {
     Console.ForegroundColor = ConsoleColor.Red;
     Console.WriteLine($"\n✗ Erro: {ex.Message}");
+
+    // O Npgsql envolve a falha real do COPY numa mensagem genérica
+    // ("Exception while reading from stream"); sem a inner não dá para saber
+    // qual coluna ou valor o servidor recusou.
+    for (var inner = ex.InnerException; inner is not null; inner = inner.InnerException)
+        Console.WriteLine($"  ↳ {inner.GetType().Name}: {inner.Message}");
+
     Console.ResetColor();
     Environment.Exit(1);
 }
@@ -90,6 +101,93 @@ async Task RunVerificationAsync()
 
     // Código de saída != 0 para que dê para agendar isto e ser avisado.
     if (!ok) Environment.Exit(2);
+}
+
+/// Importa as três lojas do SIC (SQL Server) para um único banco Stoctable.
+async Task RunMultiStoreImportAsync()
+{
+    var semHistorico = args.Skip(1).Any(a => a.Equals("--sem-historico", StringComparison.OrdinalIgnoreCase));
+
+    // --desde AAAA-MM-DD limita o histórico. Existe por causa do teto de
+    // armazenamento do Neon: as três lojas inteiras (2002→2026) dão 733 MB.
+    var desdeArg = args.SkipWhile(a => !a.Equals("--desde", StringComparison.OrdinalIgnoreCase)).Skip(1).FirstOrDefault();
+    DateTime? desde = DateTime.TryParse(desdeArg, out var d) ? d : null;
+
+    if (desdeArg is not null && desde is null)
+        throw new InvalidOperationException($"Data inválida em --desde: '{desdeArg}'. Use AAAA-MM-DD.");
+
+    // Cada loja tem seu próprio banco SQL Server. Os ids de filial vêm do
+    // control plane quando ele existe; num banco de teste não existe, então caem
+    // no id determinístico derivado do código.
+    var codigos = new[] { "MEGA", "MOTO", "VILLA" };
+    var lojas = new List<SicStoreSource>();
+
+    // Os ids reais vêm do control plane sempre que ele estiver acessível.
+    // Digitá-los à mão em produção é convite a mandar a loja errada para a
+    // filial errada — e o erro só apareceria depois, com os dados já dentro.
+    var idsDoControlPlane = await SicStoreSource.ResolveBranchIdsAsync(
+        NullIfEmpty(Environment.GetEnvironmentVariable("CONTROL_PLANE_CONN_STRING"))
+        ?? NullIfEmpty(config["ControlPlaneConnectionString"]));
+
+    foreach (var codigo in codigos)
+    {
+        var conn = Environment.GetEnvironmentVariable($"SIC_{codigo}_CONN_STRING")
+            ?? NullIfEmpty(config[$"SicStores:{codigo}"]);
+
+        if (conn is null)
+        {
+            Console.WriteLine($"::aviso:: loja {codigo} sem connection string (SIC_{codigo}_CONN_STRING). Pulando.");
+            continue;
+        }
+
+        Guid branchId;
+        string origem;
+
+        if (Guid.TryParse(Environment.GetEnvironmentVariable($"BRANCH_ID_{codigo}"), out var explicito))
+        {
+            branchId = explicito;
+            origem = "BRANCH_ID_" + codigo;
+        }
+        else if (idsDoControlPlane.TryGetValue(codigo, out var doControlPlane))
+        {
+            branchId = doControlPlane;
+            origem = "control plane";
+        }
+        else
+        {
+            branchId = SicStoreSource.DeterministicBranchId(codigo);
+            origem = "DETERMINÍSTICO — não serve para produção";
+        }
+
+        Console.WriteLine($"  {codigo,-6} → {branchId}  ({origem})");
+        lojas.Add(new SicStoreSource(codigo, branchId, conn));
+    }
+
+    if (lojas.Any(l => idsDoControlPlane.Count == 0))
+    {
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.WriteLine("\n⚠ Nenhuma filial resolvida pelo control plane. Se este destino for produção,");
+        Console.WriteLine("  PARE: os dados entrariam em filiais que o sistema não conhece.");
+        Console.ResetColor();
+    }
+
+    if (lojas.Count == 0)
+        throw new InvalidOperationException(
+            "Nenhuma loja configurada. Defina SIC_MEGA_CONN_STRING, SIC_MOTO_CONN_STRING e SIC_VILLA_CONN_STRING.");
+
+    Console.WriteLine("╔══════════════════════════════════════════╗");
+    Console.WriteLine("║  Importação SIC → Stoctable (3 lojas)    ║");
+    Console.WriteLine("╚══════════════════════════════════════════╝");
+    Console.WriteLine($"  Destino  : {GetDatabaseName(pgConnStr)}");
+    Console.WriteLine($"  Lojas    : {string.Join(", ", lojas.Select(l => l.Code))}");
+    Console.WriteLine($"  Histórico: {(semHistorico ? "NÃO" : desde is null ? "vendas e orçamentos (tudo)" : $"vendas e orçamentos desde {desde:dd/MM/yyyy}")}");
+    Console.WriteLine();
+    Console.WriteLine("  ⚠ As tabelas de destino serão ESVAZIADAS antes da carga.");
+    Console.WriteLine();
+    Console.Write("Pressione ENTER para iniciar ou Ctrl+C para cancelar... ");
+    Console.ReadLine();
+
+    await new SicMultiStoreImporter(lojas, pgConnStr).RunAsync(includeHistory: !semHistorico, historySince: desde);
 }
 
 async Task RunStockCutoverAsync()
