@@ -7,7 +7,6 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from 'lucide-react';
-import { Card, CardTitle, CardDescription } from '@/components/ui/Card';
 
 interface Feature {
   icon: LucideIcon;
@@ -59,7 +58,7 @@ export function Features() {
     <section id="recursos" className="border-t border-gray-200 py-20 dark:border-white/10 lg:py-24">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="max-w-2xl">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <h2 className="font-condensed text-4xl font-bold tracking-tight sm:text-5xl">
             O que o Stoctable faz
           </h2>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
@@ -67,17 +66,17 @@ export function Features() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="mt-12 grid gap-x-12 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {features.map(({ icon: Icon, title, description }) => (
-            <Card key={title}>
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-brand-700 dark:bg-brand-900 dark:text-brand-200">
-                <Icon size={20} />
-              </div>
-              <CardTitle className="mt-4">{title}</CardTitle>
-              <CardDescription>{description}</CardDescription>
-            </Card>
+            <div key={title}>
+              <dt className="flex items-center gap-2.5 text-lg font-semibold">
+                <Icon size={20} className="shrink-0 text-brand-600 dark:text-brand-300" aria-hidden="true" />
+                {title}
+              </dt>
+              <dd className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">{description}</dd>
+            </div>
           ))}
-        </div>
+        </dl>
       </div>
     </section>
   );

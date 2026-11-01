@@ -54,7 +54,7 @@ function PublicHeader() {
           className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
         >
           <Logo size={28} className="text-brand-600 dark:text-brand-300" />
-          <span className="text-lg font-semibold tracking-tight">Stoctable</span>
+          <span className="font-condensed text-xl font-bold tracking-tight">Stoctable</span>
         </Link>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -62,7 +62,7 @@ function PublicHeader() {
             type="button"
             onClick={toggle}
             aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
-            className="rounded-md p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
+            className="flex h-11 w-11 items-center justify-center rounded-md text-gray-500 md:h-9 md:w-9 transition-colors hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-gray-400 dark:hover:bg-white/10 dark:hover:text-white"
           >
             {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
@@ -80,7 +80,7 @@ function PublicHeader() {
               </Button>
 
               <Button asChild size="sm">
-                <Link to="/cadastro">Cadastre-se</Link>
+                <Link to="/cadastro">Criar conta</Link>
               </Button>
             </>
           )}
@@ -108,15 +108,15 @@ function PublicFooter() {
         <div className="flex items-center gap-4 text-sm">
           <Link
             to="/login"
-            className="text-gray-600 transition-colors hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-300"
+            className="inline-flex min-h-11 items-center text-gray-600 transition-colors md:min-h-0 hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-300"
           >
             Entrar
           </Link>
           <Link
             to="/cadastro"
-            className="text-gray-600 transition-colors hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-300"
+            className="inline-flex min-h-11 items-center text-gray-600 transition-colors md:min-h-0 hover:text-brand-600 dark:text-gray-400 dark:hover:text-brand-300"
           >
-            Cadastre-se
+            Criar conta
           </Link>
         </div>
       </div>

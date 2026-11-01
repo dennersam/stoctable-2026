@@ -27,34 +27,37 @@ export function AdminDashboard() {
   return (
     <div className={cn('space-y-5 transition-opacity', loading && 'opacity-60')}>
       <DashboardHeader
-        title="Dashboard Administrativo"
+        title="Visão geral"
         subtitle={branch ? `Números da filial ${branch.name}` : 'Números da filial ativa'}
       />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatTile label="Vendas hoje" value={formatCurrency(today.revenue)} hint={salesCount(today.count)} />
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+        <StatTile lead label="Vendas hoje" value={formatCurrency(today.revenue)} hint={salesCount(today.count)} />
         <StatTile
+          lead
           label="Vendas no mês"
           value={formatCurrency(month.revenue)}
           comparison={{ current: month.revenue, previous: previousMonthToDate.revenue }}
         />
         <StatTile
-          label="Ticket médio no mês"
+          label="Ticket médio"
           value={formatCurrency(month.averageTicket)}
           comparison={{ current: month.averageTicket, previous: previousMonthToDate.averageTicket }}
         />
         <StatTile
-          label="Margem bruta estimada no mês"
+          label="Margem estimada"
           value={`${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(margin.percent)}%`}
-          hint={`${formatCurrency(margin.profit)} de lucro, pelo custo atual dos produtos`}
+          hint={`${formatCurrency(margin.profit)} de lucro pelo custo atual`}
         />
         <StatTile
           label="Orçamentos em aberto"
+          to="/quotations"
           value={formatCurrency(data.openQuotations.amount)}
           hint={`${formatQuantity(data.openQuotations.count)} em rascunho ou finalizados`}
         />
         <StatTile
           label="Aguardando pagamento"
+          to="/checkout"
           value={formatCurrency(data.pendingSales.amountRemaining)}
           hint={salesCount(data.pendingSales.count)}
         />
@@ -107,7 +110,7 @@ export function AdminDashboard() {
       <Panel
         title="Saúde do estoque"
         action={
-          <Link to="/inventory" className="text-sm font-medium text-brand-600 hover:underline dark:text-brand-300">
+          <Link to="/inventory" className="inline-flex min-h-11 items-center text-sm font-medium text-brand-700 hover:underline md:min-h-0 dark:text-brand-300">
             Ver estoque
           </Link>
         }

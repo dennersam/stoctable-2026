@@ -1,8 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { RefreshCw } from 'lucide-react';
 import { saleService } from '@/services/saleService';
 import type { Sale } from '@/types/sale';
+import { Button } from '@/components/ui/Button';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { cn, formatCurrency, formatDateTime } from '@/lib/utils';
 
 export function CheckoutListPage() {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -24,47 +28,40 @@ export function CheckoutListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Caixa — Vendas Pendentes</h1>
-        <button onClick={load} className="rounded border border-gray-300 dark:border-brand-700/50 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30">
+      <PageHeader title="Caixa" subtitle="Vendas aguardando pagamento">
+        <Button variant="outline" size="sm" onClick={load}>
+          <RefreshCw size={16} className={cn(loading && 'animate-spin')} />
           Atualizar
-        </button>
-      </div>
+        </Button>
+      </PageHeader>
 
-      {loading ? (
-        <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
+      {loading && sales.length === 0 ? (
+        <div role="status" aria-label="Carregando" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map(i => <div key={i} className="h-44 animate-pulse rounded-lg bg-gray-200/70 dark:bg-white/5" />)}
+        </div>
       ) : sales.length === 0 ? (
-        <div className="rounded-lg border border-gray-200 dark:border-brand-800/50 bg-white dark:bg-brand-900/20 py-16 text-center text-gray-400 dark:text-gray-500">
-          Nenhuma venda pendente de pagamento.
+        <div className="rounded-lg border border-dashed border-gray-300 py-16 text-center text-sm text-gray-500 dark:border-white/15 dark:text-gray-400">
+          Nenhuma venda aguardando pagamento.
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={cn('grid gap-3 transition-opacity sm:grid-cols-2 lg:grid-cols-3', loading && 'opacity-60')}>
           {sales.map(s => (
-            <div key={s.id} className="rounded-lg border border-gray-200 dark:border-brand-800/50 bg-white dark:bg-brand-900/20 p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-sm font-semibold text-gray-700 dark:text-gray-200">{s.saleNumber}</span>
-                <span className="rounded-full bg-orange-100 dark:bg-orange-900/40 px-2 py-0.5 text-xs font-medium text-orange-700 dark:text-orange-400">
-                  Pendente
-                </span>
+            <div key={s.id} className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
+              <div className="min-w-0">
+                <div className="font-medium text-gray-900 dark:text-white">{s.customerName || 'Cliente não identificado'}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <span className="font-mono">{s.saleNumber}</span> · {s.items.length} {s.items.length === 1 ? 'item' : 'itens'} · {formatDateTime(s.createdAt)}
+                </div>
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-300">{s.customerName || 'Cliente não identificado'}</div>
-              <div className="text-sm">
-                <span className="text-gray-400 dark:text-gray-500">Total: </span>
-                <span className="font-bold text-brand-700 dark:text-brand-400">R$ {s.totalAmount.toFixed(2)}</span>
+              <div className="mt-auto flex items-baseline justify-between gap-2 tabular-nums">
+                <span className="text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(s.totalAmount)}</span>
                 {s.amountPaid > 0 && (
-                  <span className="ml-2 text-green-600 dark:text-green-400">(R$ {s.amountPaid.toFixed(2)} pago)</span>
+                  <span className="text-sm text-green-800 dark:text-green-400">{formatCurrency(s.amountPaid)} pago</span>
                 )}
               </div>
-              <div className="text-xs text-gray-400 dark:text-gray-500">
-                {s.items.length} {s.items.length === 1 ? 'item' : 'itens'} •{' '}
-                {new Date(s.createdAt).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-              </div>
-              <Link
-                to={`/checkout/${s.id}`}
-                className="block w-full rounded bg-green-600 py-2 text-center text-sm font-medium text-white hover:bg-green-700"
-              >
-                Receber pagamento
-              </Link>
+              <Button asChild variant="success" className="w-full">
+                <Link to={`/checkout/${s.id}`}>Receber pagamento</Link>
+              </Button>
             </div>
           ))}
         </div>

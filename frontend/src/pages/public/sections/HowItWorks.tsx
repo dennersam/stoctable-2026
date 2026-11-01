@@ -27,7 +27,7 @@ export function HowItWorks() {
     >
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="max-w-2xl">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Como funciona</h2>
+          <h2 className="font-condensed text-4xl font-bold tracking-tight sm:text-5xl">Como funciona</h2>
           <p className="mt-4 text-lg text-gray-600 dark:text-gray-300">
             Do cadastro à primeira venda, sem instalar nada.
           </p>

@@ -5,6 +5,7 @@ import { authService } from '@/services/authService';
 import { applySession } from '@/lib/session';
 import { useBranchStore } from '@/store/branchStore';
 import { useCartStore } from '@/store/cartStore';
+import { confirmDialog } from '@/lib/dialogs';
 import { cn } from '@/lib/utils';
 
 /**
@@ -40,9 +41,13 @@ export function BranchSwitcher() {
     // O carrinho é um orçamento em andamento naquela loja: estoque reservado e
     // numeração pertencem a ela. Trocar descarta, então avisa antes.
     if (cartItems.length > 0) {
-      const confirmar = window.confirm(
-        'Você tem um orçamento em andamento. Trocar de filial vai descartá-lo. Continuar?'
-      );
+      setOpen(false);
+      const confirmar = await confirmDialog({
+        title: 'Trocar de filial',
+        description: 'Você tem um orçamento em andamento. Trocar de filial vai descartá-lo.',
+        confirmLabel: 'Trocar e descartar',
+        tone: 'danger',
+      });
       if (!confirmar) return;
     }
 
@@ -67,9 +72,10 @@ export function BranchSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors',
-          'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500',
+          'flex min-h-11 items-center gap-2 rounded-md px-2.5 text-sm transition-colors md:min-h-9',
+          // O cabeçalho é roxo nos dois temas, então o texto é claro nos dois.
+          'text-gray-200 hover:bg-white/10',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
           'disabled:opacity-60'
         )}
       >
@@ -84,7 +90,7 @@ export function BranchSwitcher() {
 
           <ul
             role="listbox"
-            className="absolute left-0 z-50 mt-1 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-zinc-800"
+            className="absolute left-0 z-50 mt-1 w-64 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-white/10 dark:bg-raised"
           >
             {branches.map((branch) => (
               <li key={branch.id}>
@@ -93,7 +99,7 @@ export function BranchSwitcher() {
                   role="option"
                   aria-selected={branch.id === activeBranchId}
                   onClick={() => handleSwitch(branch.id)}
-                  className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
+                  className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-100 dark:hover:bg-white/10"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

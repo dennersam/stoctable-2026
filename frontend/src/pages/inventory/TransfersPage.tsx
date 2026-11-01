@@ -13,6 +13,10 @@ import {
 import { ReceiveTransferModal } from './ReceiveTransferModal';
 import { formatDateTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/Button';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { confirmDialog, promptDialog } from '@/lib/dialogs';
 
 type Direction = 'outbound' | 'inbound';
 
@@ -67,8 +71,12 @@ export function TransfersPage() {
   }, [direction]);
 
   async function handleShip(transfer: StockTransfer) {
-    if (!window.confirm(`Enviar a transferência ${transfer.transferNumber}? O estoque sai desta loja agora.`))
-      return;
+    const confirmed = await confirmDialog({
+      title: `Enviar ${transfer.transferNumber}`,
+      description: 'O estoque sai desta loja agora.',
+      confirmLabel: 'Enviar transferência',
+    });
+    if (!confirmed) return;
     try {
       await stockTransferService.ship(transfer.id);
       toast.success('Transferência enviada.');
@@ -80,7 +88,12 @@ export function TransfersPage() {
   }
 
   async function handleCancel(transfer: StockTransfer) {
-    const reason = window.prompt('Motivo do cancelamento:');
+    const reason = await promptDialog({
+      title: `Cancelar ${transfer.transferNumber}`,
+      confirmLabel: 'Cancelar transferência',
+      tone: 'danger',
+      input: { label: 'Motivo do cancelamento', placeholder: 'Opcional' },
+    });
     if (reason === null) return;
     try {
       await stockTransferService.cancel(transfer.id, reason);
@@ -92,28 +105,62 @@ export function TransfersPage() {
     }
   }
 
+  const transferActions = (t: StockTransfer) => (
+    <>
+      {direction === 'outbound' && t.status === 'Pending' && isAdmin && (
+        <>
+          <Button size="sm" variant="outline" onClick={() => handleCancel(t)}><X size={14} />Cancelar</Button>
+          <Button size="sm" onClick={() => handleShip(t)}><Truck size={14} />Enviar</Button>
+        </>
+      )}
+      {direction === 'inbound' && t.status === 'InTransit' && (
+        <Button size="sm" variant="success" onClick={() => setReceiving(t)}>
+          <ArrowDownLeft size={14} />
+          Conferir e receber
+        </Button>
+      )}
+    </>
+  );
+
+  const statusBadge = (t: StockTransfer) => (
+    <span className={cn('whitespace-nowrap rounded-full px-2 py-1 text-xs font-medium', TRANSFER_STATUS_BADGE[t.status])}>
+      {TRANSFER_STATUS_LABEL[t.status]}
+    </span>
+  );
+
+  const number = (t: StockTransfer) => (
+    <span className="font-medium text-gray-900 dark:text-white">
+      {t.transferNumber}
+      {t.hasDivergence && (
+        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-400">
+          Divergência
+        </span>
+      )}
+    </span>
+  );
+
+  const otherBranch = (t: StockTransfer) => branchName(direction === 'outbound' ? t.destinationBranchId : t.originBranchId);
+
+  const columns: Column<StockTransfer>[] = [
+    { key: 'number', header: 'Número', cell: number },
+    { key: 'branch', header: direction === 'outbound' ? 'Destino' : 'Origem', cell: otherBranch },
+    { key: 'items', header: 'Itens', align: 'right', cell: (t) => t.items.length },
+    { key: 'status', header: 'Situação', cell: statusBadge },
+    { key: 'date', header: 'Criada em', className: 'whitespace-nowrap', cell: (t) => formatDateTime(t.createdAt) },
+    { key: 'actions', header: '', align: 'right', cell: (t) => <div className="flex justify-end gap-2">{transferActions(t)}</div> },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Transferências</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Movimentação de mercadoria entre as lojas.
-          </p>
-        </div>
-
+    <div className="space-y-4">
+      <PageHeader title="Transferências" subtitle="Movimentação de mercadoria entre as lojas.">
         {isAdmin && (
-          <Link
-            to="/transfers/new"
-            className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
-            <Plus size={16} />
-            Nova transferência
-          </Link>
+          <Button asChild>
+            <Link to="/transfers/new"><Plus size={16} />Nova transferência</Link>
+          </Button>
         )}
-      </div>
+      </PageHeader>
 
-      <div className="flex gap-1 border-b border-gray-200 dark:border-white/10">
+      <div className="flex gap-1 border-b border-line">
         {([
           ['outbound', 'Enviadas', ArrowUpRight],
           ['inbound', 'Recebidas', ArrowDownLeft],
@@ -122,7 +169,7 @@ export function TransfersPage() {
             key={value}
             onClick={() => setDirection(value)}
             className={cn(
-              'flex items-center gap-2 border-b-2 px-4 py-2 text-sm font-medium transition-colors',
+              'flex min-h-11 flex-1 items-center justify-center gap-2 border-b-2 px-4 text-sm font-medium transition-colors md:min-h-9 md:flex-none',
               direction === value
                 ? 'border-brand-600 text-brand-700 dark:border-brand-400 dark:text-brand-300'
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
@@ -134,89 +181,36 @@ export function TransfersPage() {
         ))}
       </div>
 
-      {loading ? (
-        <p className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">Carregando…</p>
-      ) : transfers.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 py-12 text-center dark:border-white/15">
-          <Truck className="mx-auto mb-3 text-gray-300 dark:text-gray-600" size={32} />
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+      <DataTable
+        caption="Transferências"
+        rows={transfers}
+        columns={columns}
+        rowKey={(t) => t.id}
+        loading={loading}
+        empty={
+          <>
+            <Truck className="mx-auto mb-3 text-gray-400" size={32} />
             {direction === 'outbound'
               ? 'Nenhuma transferência enviada por esta loja.'
               : 'Nenhuma transferência a caminho desta loja.'}
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
-              <tr>
-                <th className="px-4 py-3">Número</th>
-                <th className="px-4 py-3">{direction === 'outbound' ? 'Destino' : 'Origem'}</th>
-                <th className="px-4 py-3">Itens</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Criada em</th>
-                <th className="px-4 py-3 text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-white/10">
-              {transfers.map((t) => (
-                <tr key={t.id} className="hover:bg-gray-50 dark:hover:bg-white/5">
-                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                    {t.transferNumber}
-                    {t.hasDivergence && (
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
-                        divergência
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                    {branchName(direction === 'outbound' ? t.destinationBranchId : t.originBranchId)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{t.items.length}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn('rounded-full px-2 py-1 text-xs font-medium', TRANSFER_STATUS_BADGE[t.status])}>
-                      {TRANSFER_STATUS_LABEL[t.status]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{formatDateTime(t.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
-                      {direction === 'outbound' && t.status === 'Pending' && isAdmin && (
-                        <>
-                          <button
-                            onClick={() => handleShip(t)}
-                            className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
-                          >
-                            <Truck size={14} />
-                            Enviar
-                          </button>
-                          <button
-                            onClick={() => handleCancel(t)}
-                            className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/5"
-                          >
-                            <X size={14} />
-                            Cancelar
-                          </button>
-                        </>
-                      )}
-
-                      {direction === 'inbound' && t.status === 'InTransit' && (
-                        <button
-                          onClick={() => setReceiving(t)}
-                          className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
-                        >
-                          <ArrowDownLeft size={14} />
-                          Conferir e receber
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+          </>
+        }
+        card={(t) => (
+          <>
+            <div className="flex items-start justify-between gap-2">
+              {number(t)}
+              {statusBadge(t)}
+            </div>
+            <div className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              {direction === 'outbound' ? 'Para ' : 'De '}{otherBranch(t)}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {t.items.length} {t.items.length === 1 ? 'item' : 'itens'} · {formatDateTime(t.createdAt)}
+            </div>
+            <div className="mt-3 flex gap-2 empty:hidden [&>*]:flex-1">{transferActions(t)}</div>
+          </>
+        )}
+      />
 
       {receiving && (
         <ReceiveTransferModal

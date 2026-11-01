@@ -37,7 +37,7 @@ export function Faq() {
   return (
     <section id="duvidas" className="border-t border-gray-200 py-20 dark:border-white/10 lg:py-24">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
-        <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Perguntas frequentes</h2>
+        <h2 className="font-condensed text-4xl font-bold tracking-tight sm:text-5xl">Perguntas frequentes</h2>
 
         <div className="mt-10 divide-y divide-gray-200 dark:divide-white/10">
           {perguntas.map(({ pergunta, resposta }) => (

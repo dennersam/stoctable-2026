@@ -6,6 +6,10 @@ import { productService } from '@/services/productService';
 import { stockTransferService } from '@/services/stockTransferService';
 import { useBranchStore } from '@/store/branchStore';
 import type { Product } from '@/types/product';
+import { Button } from '@/components/ui/Button';
+import { Field } from '@/components/ui/Field';
+import { fieldClass as inputCls } from '@/components/ui/fieldClass';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 interface Row {
   productId: string;
@@ -14,9 +18,6 @@ interface Row {
   available: number;
   quantity: number;
 }
-
-const inputCls =
-  'w-full rounded-md border border-gray-300 dark:border-white/15 bg-white dark:bg-white/5 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 /**
  * Nova transferência.
@@ -99,18 +100,12 @@ export function TransferFormPage() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Nova transferência</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Saindo de <span className="font-medium">{origin?.name ?? 'esta loja'}</span>. O estoque só
-          é baixado quando você enviar.
-        </p>
-      </div>
+      <PageHeader
+        title="Nova transferência"
+        subtitle={<>Saindo de <span className="font-medium">{origin?.name ?? 'esta loja'}</span>. O estoque só é baixado quando você enviar.</>}
+      />
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Loja de destino <span className="text-red-500">*</span>
-        </label>
+      <Field label="Loja de destino" required>
         <select value={destination} onChange={(e) => setDestination(e.target.value)} className={inputCls}>
           <option value="">Selecione…</option>
           {destinations.map((b) => (
@@ -120,14 +115,14 @@ export function TransferFormPage() {
           ))}
         </select>
         {destinations.length === 0 && (
-          <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+          <span className="mt-1 block text-xs text-amber-700 dark:text-amber-400">
             Sua conta só tem acesso a uma loja, então não há para onde transferir.
-          </p>
+          </span>
         )}
-      </div>
+      </Field>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Produtos</label>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Produtos</p>
 
         <div className="flex gap-2">
           <input
@@ -142,14 +137,10 @@ export function TransferFormPage() {
             placeholder="Buscar por nome, SKU ou código de barras…"
             className={inputCls}
           />
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="inline-flex shrink-0 items-center gap-2 rounded-md border border-gray-300 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/5"
-          >
+          <Button type="button" variant="outline" onClick={handleSearch} aria-label="Buscar" className="shrink-0">
             <Search size={16} />
-            Buscar
-          </button>
+            <span className="hidden sm:inline">Buscar</span>
+          </Button>
         </div>
 
         {results.length > 0 && (
@@ -159,10 +150,10 @@ export function TransferFormPage() {
                 <button
                   type="button"
                   onClick={() => addProduct(p)}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5"
+                  className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5"
                 >
-                  <span className="truncate text-gray-900 dark:text-white">{p.name}</span>
-                  <span className="ml-3 shrink-0 text-xs text-gray-400">
+                  <span className="min-w-0 text-gray-900 dark:text-white">{p.name}</span>
+                  <span className="ml-3 shrink-0 text-xs text-gray-500 dark:text-gray-400">
                     {p.sku} · disp. {p.stockQuantity - p.stockReserved}
                   </span>
                 </button>
@@ -172,12 +163,12 @@ export function TransferFormPage() {
         )}
 
         {rows.length > 0 && (
-          <div className="overflow-hidden rounded-md border border-gray-200 dark:border-white/10">
+          <div className="overflow-x-auto rounded-md border border-line bg-surface">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500 dark:bg-white/5 dark:text-gray-400">
+              <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 dark:bg-white/5 dark:text-gray-400">
                 <tr>
                   <th className="px-3 py-2">Produto</th>
-                  <th className="px-3 py-2 text-right">Disponível</th>
+                  <th className="hidden px-3 py-2 text-right sm:table-cell">Disponível</th>
                   <th className="px-3 py-2 text-right">Enviar</th>
                   <th className="px-3 py-2" />
                 </tr>
@@ -187,14 +178,16 @@ export function TransferFormPage() {
                   <tr key={r.productId}>
                     <td className="px-3 py-2">
                       <div className="text-gray-900 dark:text-white">{r.name}</div>
-                      <div className="text-xs text-gray-400">{r.sku}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{r.sku}<span className="sm:hidden"> · disp. {r.available}</span></div>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-gray-500 dark:text-gray-400">
+                    <td className="hidden px-3 py-2 text-right tabular-nums text-gray-500 sm:table-cell dark:text-gray-400">
                       {r.available}
                     </td>
                     <td className="px-3 py-2 text-right">
                       <input
                         type="number"
+                        inputMode="decimal"
+                        aria-label={`Quantidade de ${r.name}`}
                         min={1}
                         max={r.available}
                         step="0.01"
@@ -214,7 +207,7 @@ export function TransferFormPage() {
                             )
                           )
                         }
-                        className="w-24 rounded border border-gray-300 px-2 py-1 text-right text-sm tabular-nums dark:border-white/15 dark:bg-white/5 dark:text-white"
+                        className={inputCls + ' w-20 text-right tabular-nums'}
                       />
                     </td>
                     <td className="px-3 py-2 text-right">
@@ -223,7 +216,8 @@ export function TransferFormPage() {
                         onClick={() =>
                           setRows((prev) => prev.filter((x) => x.productId !== r.productId))
                         }
-                        className="rounded p-1 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                        aria-label={`Remover ${r.name}`}
+                        className="inline-flex h-11 w-11 items-center justify-center rounded text-gray-500 hover:bg-red-50 hover:text-red-700 md:h-8 md:w-8 dark:text-gray-400 dark:hover:bg-red-900/20"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -236,34 +230,19 @@ export function TransferFormPage() {
         )}
       </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-          Observações
-        </label>
+      <Field label="Observações">
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          className={`${inputCls} resize-none`}
+          className={inputCls + ' resize-none'}
           placeholder="Transportadora, responsável, etc. (opcional)"
         />
-      </div>
+      </Field>
 
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => navigate('/transfers')}
-          className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/5"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          {saving ? 'Criando…' : 'Criar transferência'}
-        </button>
+      <div className="flex justify-end gap-2 max-sm:[&>*]:flex-1">
+        <Button type="button" variant="outline" onClick={() => navigate('/transfers')}>Cancelar</Button>
+        <Button type="submit" disabled={saving}>{saving ? 'Criando…' : 'Criar transferência'}</Button>
       </div>
     </form>
   );

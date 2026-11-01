@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { customerService } from '@/services/customerService';
 import type { Customer, CustomerCrmNote } from '@/types/customer';
 import { CustomerModal } from './CustomerListPage';
+import { formatCurrency } from '@/lib/utils';
+import { confirmDialog } from '@/lib/dialogs';
+import { ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { fieldClass } from '@/components/ui/fieldClass';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -28,10 +34,10 @@ function formatDate(iso: string) {
 
 function InfoRow({ label, value }: { label: string; value?: string | null }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">
-        {value || <span className="text-gray-400 font-normal">—</span>}
+      <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5 break-words">
+        {value || <span className="text-gray-500 dark:text-gray-400 font-normal">—</span>}
       </p>
     </div>
   );
@@ -104,7 +110,7 @@ export function CustomerDetailPage() {
 
   async function handleDeactivate() {
     if (!customer) return;
-    if (!confirm(`Desativar cliente "${customer.fullName}"?`)) return;
+    if (!(await confirmDialog({ title: 'Desativar cliente', description: `"${customer.fullName}" ficará inativo.`, confirmLabel: 'Desativar cliente' }))) return;
     try {
       await customerService.update(id!, { ...customer, isActive: false } as any);
       toast.success('Cliente desativado.');
@@ -115,53 +121,38 @@ export function CustomerDetailPage() {
   }
 
   if (loading) {
-    return <div className="py-16 text-center text-gray-500 dark:text-gray-400">Carregando...</div>;
+    return <div role="status" className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">Carregando...</div>;
   }
   if (!customer) return null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-3xl space-y-4">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <button
-            onClick={() => navigate('/customers')}
-            className="shrink-0 rounded-md p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            ←
-          </button>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white truncate">{customer.fullName}</h1>
-            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium mt-1 ${
-              customer.isActive
-                ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-            }`}>
-              {customer.isActive ? 'Ativo' : 'Inativo'}
-            </span>
+      <div>
+        <Link
+          to="/customers"
+          className="-ml-1 inline-flex min-h-11 items-center gap-1 text-sm text-gray-600 hover:text-gray-900 md:min-h-0 dark:text-gray-300 dark:hover:text-white"
+        >
+          <ArrowLeft size={16} />
+          Clientes
+        </Link>
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="min-w-0 text-2xl font-bold text-gray-900 dark:text-white">
+            {customer.fullName}
+            {!customer.isActive && <Badge variant="neutral" className="ml-2 align-middle">Inativo</Badge>}
+          </h1>
+          <div className="flex gap-2 max-sm:w-full max-sm:[&>*]:flex-1">
+            {customer.isActive && (
+              <Button variant="danger-outline" onClick={handleDeactivate}>Desativar</Button>
+            )}
+            <Button variant="outline" onClick={() => setEditOpen(true)}>Editar</Button>
           </div>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <button
-            onClick={() => setEditOpen(true)}
-            className="rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Editar
-          </button>
-          {customer.isActive && (
-            <button
-              onClick={handleDeactivate}
-              className="rounded-md border border-red-200 dark:border-red-800 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              Desativar
-            </button>
-          )}
         </div>
       </div>
 
       {/* ── Dados ─────────────────────────────────────────────────────── */}
-      <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 space-y-5">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      <section className="rounded-lg border border-line bg-surface p-4 space-y-5 md:p-5">
+        <h2 className="font-semibold text-gray-900 dark:text-white">
           Dados do cliente
         </h2>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -170,7 +161,7 @@ export function CustomerDetailPage() {
           <InfoRow label="Celular / WhatsApp" value={customer.mobile} />
           <InfoRow label="Telefone" value={customer.phone} />
           <InfoRow label="CEP" value={customer.zipCode} />
-          <InfoRow label="Limite de crédito" value={customer.creditLimit > 0 ? `R$ ${customer.creditLimit.toFixed(2)}` : undefined} />
+          <InfoRow label="Limite de crédito" value={customer.creditLimit > 0 ? `${formatCurrency(customer.creditLimit)}` : undefined} />
         </div>
         {(customer.address || customer.city) && (
           <InfoRow
@@ -184,9 +175,9 @@ export function CustomerDetailPage() {
       </section>
 
       {/* ── CRM ───────────────────────────────────────────────────────── */}
-      <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-5 space-y-4">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-          Histórico CRM
+      <section className="rounded-lg border border-line bg-surface p-4 space-y-4 md:p-5">
+        <h2 className="font-semibold text-gray-900 dark:text-white">
+          Histórico do cliente
         </h2>
 
         {/* Add note form */}
@@ -196,40 +187,38 @@ export function CustomerDetailPage() {
             onChange={e => setNewNote(e.target.value)}
             rows={2}
             placeholder="Adicionar anotação sobre o cliente..."
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+            aria-label="Nova anotação"
+            className={fieldClass + ' resize-none'}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select
+              aria-label="Tipo de anotação"
               value={newNoteType}
               onChange={e => setNewNoteType(e.target.value as CustomerCrmNote['noteType'])}
-              className="rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className={fieldClass + ' min-w-0 flex-1 sm:w-auto sm:flex-none'}
             >
               <option value="general">Geral</option>
               <option value="followup">Acompanhamento</option>
               <option value="complaint">Reclamação</option>
             </select>
-            <button
-              type="submit"
-              disabled={addingNote || !newNote.trim()}
-              className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-            >
+            <Button type="submit" disabled={addingNote || !newNote.trim()}>
               {addingNote ? 'Salvando...' : 'Adicionar nota'}
-            </button>
+            </Button>
           </div>
         </form>
 
         {/* Notes list */}
         <div className="space-y-2 pt-2">
           {notesLoading ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">Carregando notas...</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Carregando notas...</p>
           ) : notes.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
               Nenhuma anotação registrada.
             </p>
           ) : notes.map(n => (
             <div
               key={n.id}
-              className="rounded-lg border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 flex gap-3"
+              className="rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:gap-3"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
@@ -239,9 +228,9 @@ export function CustomerDetailPage() {
                 </div>
                 <p className="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{n.note}</p>
               </div>
-              <div className="shrink-0 text-right">
+              <div className="shrink-0 sm:text-right">
                 <p className="text-xs text-gray-500 dark:text-gray-400">{n.createdBy}</p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatDate(n.createdAt)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(n.createdAt)}</p>
               </div>
             </div>
           ))}

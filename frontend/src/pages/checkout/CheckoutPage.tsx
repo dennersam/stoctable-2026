@@ -1,9 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { CheckCircle2, Plus, X } from 'lucide-react';
 import { saleService } from '@/services/saleService';
 import type { Sale, PaymentMethod } from '@/types/sale';
+import { Button } from '@/components/ui/Button';
 import { CurrencyInput } from '@/components/ui/CurrencyInput';
+import { Field } from '@/components/ui/Field';
+import { fieldClass } from '@/components/ui/fieldClass';
+import { Modal, ModalBody, ModalFooter } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { cn, formatCurrency } from '@/lib/utils';
 
 interface PaymentEntry {
   paymentMethodId: string;
@@ -11,8 +18,6 @@ interface PaymentEntry {
   installments: number;
   transactionRef: string;
 }
-
-const fieldCls = 'w-full rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 export function CheckoutPage() {
   const { saleId } = useParams<{ saleId: string }>();
@@ -130,250 +135,237 @@ export function CheckoutPage() {
     }
   };
 
-  if (loading) return <div className="flex h-64 items-center justify-center text-gray-500 dark:text-gray-400">Carregando...</div>;
+  if (loading) return <div role="status" className="flex h-64 items-center justify-center text-sm text-gray-500 dark:text-gray-400">Carregando...</div>;
   if (!sale) return null;
 
   const amountDue = sale.totalAmount - sale.amountPaid;
   const isPaid = sale.status === 'paid';
   const isCancelled = sale.status === 'cancelled';
+  const isOpen = !isPaid && !isCancelled;
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Checkout</h1>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-400 dark:text-gray-500 font-mono">{sale.saleNumber}</span>
-          {!isCancelled && (
-            <button
-              onClick={() => setShowCancel(true)}
-              className="rounded border border-red-300 dark:border-red-700 px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              Cancelar venda
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="mx-auto flex min-h-full max-w-2xl flex-col gap-4">
+      <PageHeader title="Caixa" subtitle={<span className="font-mono">{sale.saleNumber}</span>}>
+        {!isCancelled && (
+          <Button variant="danger-outline" size="sm" onClick={() => setShowCancel(true)}>Cancelar venda</Button>
+        )}
+      </PageHeader>
 
       {/* Sale summary */}
-      <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-        <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <span className="font-medium text-gray-900 dark:text-white">
-              {sale.customerName || 'Cliente não identificado'}
-            </span>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-              isPaid
-                ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-                : sale.status === 'partially_paid'
-                  ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400'
-                  : 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400'
-            }`}>
-              {isPaid ? 'Pago' : sale.status === 'partially_paid' ? 'Parcial' : 'Pendente'}
-            </span>
-          </div>
+      <section className="rounded-lg border border-line bg-surface">
+        <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3">
+          <span className="min-w-0 font-medium text-gray-900 dark:text-white">
+            {sale.customerName || 'Cliente não identificado'}
+          </span>
+          <span className={cn(
+            'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+            isPaid
+              ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400'
+              : sale.status === 'partially_paid'
+                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400'
+                : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200'
+          )}>
+            {isPaid ? 'Pago' : sale.status === 'partially_paid' ? 'Parcial' : 'Pendente'}
+          </span>
         </div>
-        <div className="px-4 py-3">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-xs uppercase text-gray-400 dark:text-gray-500">
-                <th className="pb-2 text-left">Item</th>
-                <th className="pb-2 text-center">Qtd</th>
-                <th className="pb-2 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-              {sale.items.map(item => (
-                <tr key={item.id}>
-                  <td className="py-1.5 text-gray-800 dark:text-gray-200">{item.productName}</td>
-                  <td className="py-1.5 text-center text-gray-500 dark:text-gray-400">{item.quantity}</td>
-                  <td className="py-1.5 text-right text-gray-800 dark:text-gray-200">R$ {item.lineTotal.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3 space-y-1">
+
+        <ul className="divide-y divide-gray-100 px-4 text-sm dark:divide-white/5">
+          {sale.items.map(item => (
+            <li key={item.id} className="flex items-baseline gap-3 py-2">
+              <span className="w-8 shrink-0 tabular-nums text-gray-500 dark:text-gray-400">{item.quantity}×</span>
+              <span className="min-w-0 flex-1 text-gray-800 dark:text-gray-200">{item.productName}</span>
+              <span className="shrink-0 tabular-nums text-gray-800 dark:text-gray-200">{formatCurrency(item.lineTotal)}</span>
+            </li>
+          ))}
+        </ul>
+
+        <dl className="space-y-1 border-t border-line px-4 py-3 text-sm tabular-nums">
           {sale.discountAmount > 0 && (
-            <div className="flex justify-between text-sm text-red-600 dark:text-red-400">
-              <span>Desconto</span>
-              <span>- R$ {sale.discountAmount.toFixed(2)}</span>
+            <div className="flex justify-between text-gray-600 dark:text-gray-300">
+              <dt>Desconto</dt>
+              <dd>- {formatCurrency(sale.discountAmount)}</dd>
             </div>
           )}
-          <div className="flex justify-between font-bold text-gray-900 dark:text-white">
-            <span>Total</span>
-            <span className="text-brand-700 dark:text-brand-400">R$ {sale.totalAmount.toFixed(2)}</span>
+          <div className="flex items-baseline justify-between text-gray-900 dark:text-white">
+            <dt className="font-medium">Total</dt>
+            <dd className="text-xl font-bold">{formatCurrency(sale.totalAmount)}</dd>
           </div>
+          {/* Só existe saldo diferente do total depois de um pagamento parcial. */}
           {sale.amountPaid > 0 && (
-            <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
-              <span>Já pago</span>
-              <span>R$ {sale.amountPaid.toFixed(2)}</span>
-            </div>
+            <>
+              <div className="flex justify-between text-green-800 dark:text-green-400">
+                <dt>Já pago</dt>
+                <dd>{formatCurrency(sale.amountPaid)}</dd>
+              </div>
+              <div className="flex justify-between font-semibold text-gray-900 dark:text-white">
+                <dt>Saldo a receber</dt>
+                <dd>{formatCurrency(amountDue)}</dd>
+              </div>
+            </>
           )}
-          <div className="flex justify-between font-semibold text-orange-700 dark:text-orange-400">
-            <span>Saldo devedor</span>
-            <span>R$ {amountDue.toFixed(2)}</span>
-          </div>
-        </div>
-      </div>
+        </dl>
+      </section>
 
       {/* Payment form */}
-      {!isPaid && !isCancelled && (
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Formas de pagamento</h2>
+      {isOpen && (
+        <section className="space-y-4 rounded-lg border border-line bg-surface p-4">
+          <h2 className="font-semibold text-gray-900 dark:text-white">Forma de pagamento</h2>
 
           {payments.map((p, idx) => {
             const method = paymentMethods.find(m => m.id === p.paymentMethodId);
             return (
-              <div key={idx} className="flex gap-2 items-start">
-                <div className="flex-1 space-y-2">
-                  <select
-                    value={p.paymentMethodId}
-                    onChange={e => updatePayment(idx, 'paymentMethodId', e.target.value)}
-                    className={fieldCls}
-                  >
-                    <option value="">Selecione...</option>
+              <div key={idx} className={cn('space-y-3', idx > 0 && 'border-t border-line pt-4')}>
+                <div className="flex items-start gap-2">
+                  <div role="radiogroup" aria-label="Forma de pagamento" className="grid flex-1 grid-cols-2 gap-2 sm:grid-cols-3">
                     {paymentMethods.map(m => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
+                      <button
+                        key={m.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={p.paymentMethodId === m.id}
+                        onClick={() => updatePayment(idx, 'paymentMethodId', m.id)}
+                        className={cn(
+                          'min-h-11 rounded-md border px-2 py-2 text-sm font-medium transition-colors',
+                          p.paymentMethodId === m.id
+                            ? 'border-brand-600 bg-brand-50 text-brand-800 dark:border-brand-300 dark:bg-white/10 dark:text-brand-200'
+                            : 'border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/5'
+                        )}
+                      >
+                        {m.name}
+                      </button>
                     ))}
-                  </select>
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-400 dark:text-gray-500">Valor</label>
-                      <CurrencyInput
-                        value={p.amount}
-                        onValueChange={v => updatePayment(idx, 'amount', v)}
-                        className={fieldCls}
-                      />
-                    </div>
-                    {method?.requiresInstallments && (
-                      <div className="w-24">
-                        <label className="text-xs text-gray-400 dark:text-gray-500">Parcelas</label>
-                        <select
-                          value={p.installments}
-                          onChange={e => updatePayment(idx, 'installments', Number(e.target.value))}
-                          className={fieldCls}
-                        >
-                          {Array.from({ length: method.maxInstallments }, (_, i) => i + 1).map(n => (
-                            <option key={n} value={n}>{n}x</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
                   </div>
+                  {payments.length > 1 && (
+                    <button
+                      type="button"
+                      aria-label="Remover esta forma de pagamento"
+                      onClick={() => removePaymentRow(idx)}
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-red-50 hover:text-red-700 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-300"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <Field label="Valor" className="flex-1">
+                    <CurrencyInput
+                      value={p.amount}
+                      onValueChange={v => updatePayment(idx, 'amount', v)}
+                      className={fieldClass}
+                    />
+                  </Field>
+                  {method?.requiresInstallments && (
+                    <Field label="Parcelas" className="w-24">
+                      <select
+                        value={p.installments}
+                        onChange={e => updatePayment(idx, 'installments', Number(e.target.value))}
+                        className={fieldClass}
+                      >
+                        {Array.from({ length: method.maxInstallments }, (_, i) => i + 1).map(n => (
+                          <option key={n} value={n}>{n}x</option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
+                </div>
+
+                <Field label="NSU, TxID ou autorização (opcional)">
                   <input
                     type="text"
                     value={p.transactionRef}
                     onChange={e => updatePayment(idx, 'transactionRef', e.target.value)}
-                    placeholder="NSU / TxID / Cód. autorização (opcional)"
-                    className={fieldCls}
+                    className={fieldClass}
                   />
-                </div>
-                {payments.length > 1 && (
-                  <button onClick={() => removePaymentRow(idx)} className="mt-1 text-red-400 hover:text-red-600">✕</button>
-                )}
+                </Field>
               </div>
             );
           })}
 
-          <div className="flex items-center justify-between">
-            <button onClick={addPaymentRow} className="text-sm text-brand-600 dark:text-brand-400 hover:underline">
-              + Adicionar forma de pagamento
-            </button>
-            <div className="text-sm font-medium">
-              <span className={
-                remaining < -0.01 ? 'text-red-600 dark:text-red-400'
-                : remaining > 0.01 ? 'text-orange-600 dark:text-orange-400'
-                : 'text-green-700 dark:text-green-400'
-              }>
-                {remaining < -0.01 ? `Excesso: R$ ${Math.abs(remaining).toFixed(2)}`
-                  : remaining > 0.01 ? `Faltam: R$ ${remaining.toFixed(2)}`
-                  : 'Valor OK ✓'}
-              </span>
-            </div>
-          </div>
+          <Button variant="ghost" size="sm" onClick={addPaymentRow} className="-ml-3">
+            <Plus size={16} />
+            Dividir em outra forma de pagamento
+          </Button>
+        </section>
+      )}
 
-          <button
+      {/* Confirmação: fica presa ao rodapé no celular, para não rolar até o fim a cada venda */}
+      {isOpen && (
+        <div className="sticky -bottom-4 -mx-4 -mb-4 mt-auto flex flex-col gap-2 border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:static md:m-0 md:rounded-lg md:border md:p-4">
+          <p className={cn(
+            'text-center text-sm font-medium tabular-nums',
+            remaining < -0.01 ? 'text-red-700 dark:text-red-400'
+            : remaining > 0.01 ? 'text-amber-800 dark:text-amber-400'
+            : 'text-green-800 dark:text-green-400'
+          )}>
+            {remaining < -0.01 ? `Excesso de ${formatCurrency(Math.abs(remaining))}`
+              : remaining > 0.01 ? `Faltam ${formatCurrency(remaining)} para quitar`
+              : `Recebendo ${formatCurrency(totalPayments)}`}
+          </p>
+          <Button
+            variant="success"
+            size="lg"
+            className="w-full"
             onClick={handleProcess}
             disabled={processing || payments.some(p => !p.paymentMethodId || Number(p.amount) <= 0)}
-            className="w-full rounded-md bg-green-600 py-3 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-40"
           >
             {processing ? 'Processando...' : 'Confirmar pagamento'}
-          </button>
+          </Button>
         </div>
       )}
 
       {isPaid && (
-        <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-6 text-center space-y-2">
-          <div className="text-2xl">✓</div>
-          <div className="font-semibold text-green-800 dark:text-green-400">Venda concluída!</div>
-          <div className="text-sm text-green-600 dark:text-green-500">
-            Total pago: R$ {sale.amountPaid.toFixed(2)}
+        <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-6 text-center dark:border-green-800 dark:bg-green-900/20">
+          <CheckCircle2 size={28} className="mx-auto text-green-700 dark:text-green-400" />
+          <div className="font-semibold text-green-800 dark:text-green-400">Venda concluída</div>
+          <div className="text-sm tabular-nums text-green-800 dark:text-green-400">
+            Total pago: {formatCurrency(sale.amountPaid)}
           </div>
-          <button
-            onClick={() => navigate('/checkout')}
-            className="mt-2 rounded-md bg-green-700 dark:bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-800 dark:hover:bg-green-700"
-          >
-            Voltar ao caixa
-          </button>
+          <Button variant="success" className="mt-2" onClick={() => navigate('/checkout')}>Voltar ao caixa</Button>
         </div>
       )}
 
       {isCancelled && (
-        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-6 text-center space-y-2">
+        <div className="space-y-2 rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-800 dark:bg-red-900/20">
           <div className="font-semibold text-red-800 dark:text-red-400">Venda cancelada</div>
           {sale.cancellationReason && (
-            <div className="text-sm text-red-600 dark:text-red-500">
+            <div className="text-sm text-red-700 dark:text-red-400">
               Motivo: {sale.cancellationReason}
             </div>
           )}
-          <div className="text-xs text-red-500 dark:text-red-400">
+          <div className="text-xs text-red-700 dark:text-red-400">
             Estoque devolvido{sale.payments.some(p => p.status === 'refunded') && ', pagamentos estornados'}.
           </div>
-          <button
-            onClick={() => navigate('/checkout')}
-            className="mt-2 rounded-md bg-gray-700 dark:bg-gray-600 px-6 py-2 text-sm font-medium text-white hover:bg-gray-800 dark:hover:bg-gray-700"
-          >
-            Voltar ao caixa
-          </button>
+          <Button variant="outline" className="mt-2" onClick={() => navigate('/checkout')}>Voltar ao caixa</Button>
         </div>
       )}
 
       {showCancel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">Cancelar venda</h3>
+        <Modal title="Cancelar venda" onClose={() => { setShowCancel(false); setCancelReason(''); }}>
+          <ModalBody className="space-y-4">
             {sale.amountPaid > 0 && (
-              <div className="rounded border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-900/20 p-3 text-sm text-orange-800 dark:text-orange-300">
-                Esta venda tem R$ {sale.amountPaid.toFixed(2)} em pagamentos. Eles serão marcados como estornados.
-              </div>
+              <p className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                Esta venda tem {formatCurrency(sale.amountPaid)} em pagamentos. Eles serão marcados como estornados.
+              </p>
             )}
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Motivo *</label>
+            <Field label="Motivo" required>
               <textarea
+                autoFocus
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
                 rows={3}
-                className={fieldCls}
-                placeholder="Informe o motivo do cancelamento..."
+                className={`${fieldClass} resize-none`}
+                placeholder="Informe o motivo do cancelamento"
               />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { setShowCancel(false); setCancelReason(''); }}
-                className="rounded border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                Voltar
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={cancelling || !cancelReason.trim()}
-                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                {cancelling ? 'Cancelando...' : 'Confirmar cancelamento'}
-              </button>
-            </div>
-          </div>
-        </div>
+            </Field>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" onClick={() => { setShowCancel(false); setCancelReason(''); }}>Voltar</Button>
+            <Button variant="danger" onClick={handleCancel} disabled={cancelling || !cancelReason.trim()}>
+              {cancelling ? 'Cancelando...' : 'Cancelar venda'}
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </div>
   );

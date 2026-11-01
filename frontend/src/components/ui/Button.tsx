@@ -12,19 +12,27 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-brand-600 text-white hover:bg-brand-500',
+        primary: 'bg-brand-600 text-white hover:bg-brand-700',
+        // Receber dinheiro e confirmar chegada de mercadoria: verde escuro, que
+        // mantém o texto branco legível (o green-600 fica em 3,3:1).
+        success: 'bg-green-700 text-white hover:bg-green-800',
+        danger: 'bg-red-700 text-white hover:bg-red-800',
+        'danger-outline':
+          'border border-red-300 text-red-700 hover:bg-red-50 ' +
+          'dark:border-red-500/40 dark:text-red-400 dark:hover:bg-red-900/20',
         secondary:
           'bg-brand-100 text-brand-800 hover:bg-brand-200 ' +
           'dark:bg-brand-900 dark:text-brand-100 dark:hover:bg-brand-800',
         ghost:
           'text-brand-800 hover:bg-brand-50 dark:text-brand-100 dark:hover:bg-white/10',
         outline:
-          'border border-brand-300 text-brand-800 hover:bg-brand-50 ' +
+          'border border-gray-300 text-gray-800 hover:bg-gray-50 ' +
           'dark:border-white/20 dark:text-white dark:hover:bg-white/10',
       },
+      // Abaixo de md os botões têm 44px de altura, o mínimo confortável ao toque.
       size: {
-        sm: 'h-9 px-3 text-sm',
-        md: 'h-10 px-4 text-sm',
+        sm: 'h-11 px-3 text-sm md:h-9',
+        md: 'h-11 px-4 text-sm md:h-10',
         lg: 'h-12 px-6 text-base',
       },
     },

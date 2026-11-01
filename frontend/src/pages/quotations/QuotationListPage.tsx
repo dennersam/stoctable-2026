@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Plus } from 'lucide-react';
 import { quotationService } from '@/services/quotationService';
 import type { Quotation, QuotationStatus } from '@/types/quotation';
+import { Button } from '@/components/ui/Button';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { formatCurrency, formatDate } from '@/lib/utils';
 
 const STATUS_LABELS: Record<QuotationStatus, string> = {
   draft: 'Rascunho',
@@ -11,12 +16,22 @@ const STATUS_LABELS: Record<QuotationStatus, string> = {
   cancelled: 'Cancelado',
 };
 
-const STATUS_COLORS: Record<QuotationStatus, string> = {
-  draft: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
-  finalized: 'bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-400',
-  converted: 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400',
-  cancelled: 'bg-red-100 dark:bg-red-900/40 text-red-500 dark:text-red-400',
-};
+const COLUMNS: Column<Quotation>[] = [
+  {
+    key: 'number',
+    header: 'Número',
+    className: 'whitespace-nowrap',
+    cell: q => (
+      <Link to={`/quotations/${q.id}`} className="font-mono text-xs font-medium text-brand-700 hover:underline dark:text-brand-300">
+        {q.quotationNumber}
+      </Link>
+    ),
+  },
+  { key: 'customer', header: 'Cliente', cell: q => q.customerName || '—' },
+  { key: 'salesperson', header: 'Atendente', cell: q => q.salespersonName || '—' },
+  { key: 'date', header: 'Data', className: 'whitespace-nowrap', cell: q => formatDate(q.createdAt) },
+  { key: 'total', header: 'Total', align: 'right', className: 'whitespace-nowrap font-medium text-gray-900 dark:text-white', cell: q => formatCurrency(q.totalAmount) },
+];
 
 export function QuotationListPage() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
@@ -39,25 +54,24 @@ export function QuotationListPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Orçamentos</h1>
-        <Link
-          to="/quotations/new"
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-        >
-          Novo orçamento
-        </Link>
-      </div>
+      <PageHeader title="Orçamentos">
+        <Button asChild>
+          <Link to="/quotations/new"><Plus size={16} />Novo orçamento</Link>
+        </Button>
+      </PageHeader>
 
-      <div className="flex flex-wrap gap-2">
+      {/* A aba diz qual status é a lista inteira, então a linha não precisa repetir. */}
+      <div role="tablist" aria-label="Situação do orçamento" className="-mx-4 flex gap-2 overflow-x-auto px-4 md:mx-0 md:px-0">
         {(['draft', 'finalized', 'converted', 'cancelled'] as QuotationStatus[]).map(s => (
           <button
             key={s}
+            role="tab"
+            aria-selected={status === s}
             onClick={() => setStatus(s)}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+            className={`min-h-11 shrink-0 rounded-full px-4 text-sm font-medium transition-colors md:min-h-9 ${
               status === s
                 ? 'bg-brand-600 text-white'
-                : 'bg-gray-100 dark:bg-brand-900/30 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-brand-800/40'
+                : 'bg-gray-200/70 text-gray-700 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10'
             }`}
           >
             {STATUS_LABELS[s]}
@@ -65,58 +79,26 @@ export function QuotationListPage() {
         ))}
       </div>
 
-      {loading ? (
-        <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
-            <thead className="bg-brand-50 dark:bg-brand-900/40">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Número</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Cliente</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70 hidden sm:table-cell">Atendente</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Total</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70 hidden sm:table-cell">Data</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-900/20">
-              {quotations.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-gray-400 dark:text-gray-500">
-                    Nenhum orçamento {STATUS_LABELS[status].toLowerCase()}.
-                  </td>
-                </tr>
-              ) : (
-                quotations.map(q => (
-                  <tr key={q.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
-                    <td className="px-4 py-3 font-mono text-sm text-gray-700 dark:text-gray-300">{q.quotationNumber}</td>
-                    <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">{q.customerName || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{q.salespersonName || '—'}</td>
-                    <td className="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">
-                      R$ {q.totalAmount.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[q.status]}`}>
-                        {STATUS_LABELS[q.status]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500 hidden sm:table-cell">
-                      {new Date(q.createdAt).toLocaleDateString('pt-BR')}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm">
-                      <Link to={`/quotations/${q.id}`} className="text-brand-600 dark:text-brand-400 hover:underline">
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        caption={`Orçamentos: ${STATUS_LABELS[status]}`}
+        rows={quotations}
+        columns={COLUMNS}
+        rowKey={q => q.id}
+        loading={loading}
+        empty={`Nenhum orçamento ${STATUS_LABELS[status].toLowerCase()}.`}
+        card={q => (
+          <Link to={`/quotations/${q.id}`} className="-m-3 block rounded-lg p-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="min-w-0 font-medium text-gray-900 dark:text-white">{q.customerName || 'Sem cliente'}</span>
+              <span className="shrink-0 font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(q.totalAmount)}</span>
+            </div>
+            <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+              <span className="font-mono">{q.quotationNumber}</span> · {formatDate(q.createdAt)}
+              {q.salespersonName && ` · ${q.salespersonName}`}
+            </div>
+          </Link>
+        )}
+      />
     </div>
   );
 }

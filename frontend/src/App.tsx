@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { ProtectedRoute } from '@/components/base/ProtectedRoute';
 import { Layout } from '@/components/base/Layout';
 import { PublicLayout } from '@/components/base/PublicLayout';
+import { ErrorBoundary } from '@/components/base/ErrorBoundary';
+import { DialogHost } from '@/components/ui/DialogHost';
 
 import { LandingPage } from '@/pages/public/LandingPage';
 import { SignupPage } from '@/pages/public/SignupPage';
@@ -42,7 +44,9 @@ function DashboardRouter() {
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
+      <DialogHost />
+      <ErrorBoundary>
       <Routes>
         {/* Portal público — sem shell da aplicação e sem autenticação */}
         <Route element={<PublicLayout />}>
@@ -225,6 +229,7 @@ function App() {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

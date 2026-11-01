@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowDownRight, ArrowUpRight, type LucideIcon } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowDownRight, ArrowUpRight, ChevronRight, type LucideIcon } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { DailySales } from '@/types/dashboard';
@@ -52,7 +53,7 @@ export function DashboardFallback({ failed, onRetry }: { failed: boolean; onRetr
 /** Variação contra o mesmo tempo decorrido do mês anterior. */
 function MonthDelta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
-    return <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Sem vendas no mesmo período do mês anterior</p>;
+    return <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Sem vendas no mês anterior</p>;
   }
 
   const change = ((current - previous) / previous) * 100;
@@ -67,7 +68,7 @@ function MonthDelta({ current, previous }: { current: number; previous: number }
         className={cn('h-4 w-4 shrink-0', up ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}
       />
       <span>
-        <span className="font-semibold text-gray-900 dark:text-white">{percent}%</span> sobre o mesmo período do mês anterior
+        <span className="font-semibold text-gray-900 dark:text-white">{percent}%</span> sobre o mês anterior<span className="sr-only">, no mesmo período</span>
       </span>
     </p>
   );
@@ -78,22 +79,44 @@ interface StatTileProps {
   value: string;
   hint?: string;
   comparison?: { current: number; previous: number };
+  /** Abre a lista por trás do número. */
+  to?: string;
+  /** O número que responde "como estamos hoje": ganha destaque na grade. */
+  lead?: boolean;
 }
 
-export function StatTile({ label, value, hint, comparison }: StatTileProps) {
-  return (
-    <Card className="p-5">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="mt-1 break-words text-2xl font-semibold text-gray-900 dark:text-white">{value}</p>
+export function StatTile({ label, value, hint, comparison, to, lead = false }: StatTileProps) {
+  const content = (
+    <>
+      <p className="flex items-center justify-between gap-1 text-sm text-gray-500 dark:text-gray-400">
+        {label}
+        {to && <ChevronRight size={16} aria-hidden="true" className="shrink-0" />}
+      </p>
+      <p className={cn(
+        'mt-1 break-words font-semibold tabular-nums text-gray-900 dark:text-white',
+        lead ? 'text-3xl md:text-4xl' : 'text-lg sm:text-2xl'
+      )}>
+        {value}
+      </p>
       {hint && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>}
       {comparison && <MonthDelta {...comparison} />}
-    </Card>
+    </>
+  );
+
+  const spacing = cn('p-4 md:p-5', lead && 'col-span-2');
+
+  return to ? (
+    <Link to={to} className={cn('block rounded-xl border border-line bg-surface transition-colors hover:border-brand-300 dark:hover:border-brand-300/50', spacing)}>
+      {content}
+    </Link>
+  ) : (
+    <Card className={spacing}>{content}</Card>
   );
 }
 
 export function Panel({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <Card className="min-w-0 p-5">
+    <Card className="min-w-0 p-4 md:p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
@@ -145,7 +168,7 @@ export function DailySalesChart({ data }: { data: DailySales[] }) {
             {ticks.map((tick, i) => (
               <div
                 key={tick}
-                className="absolute inset-x-0 border-t border-gray-200 dark:border-white/10"
+                className="absolute inset-x-0 border-t border-line"
                 style={{ top: `${(i / (ticks.length - 1)) * 100}%` }}
               />
             ))}
@@ -184,7 +207,7 @@ export function DailySalesChart({ data }: { data: DailySales[] }) {
 
           {active && hovered !== null && (
             <div
-              className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs shadow-md dark:border-white/15 dark:bg-gray-900"
+              className="pointer-events-none absolute top-0 z-10 whitespace-nowrap rounded-md border border-gray-200 bg-white px-3 py-2 text-xs shadow-md dark:border-white/15 dark:bg-surface"
               style={hovered > data.length / 2
                 ? { right: `${((data.length - hovered) / data.length) * 100}%` }
                 : { left: `${((hovered + 1) / data.length) * 100}%` }}
@@ -197,7 +220,7 @@ export function DailySalesChart({ data }: { data: DailySales[] }) {
       </div>
 
       <details className="mt-3 text-sm">
-        <summary className="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+        <summary className="flex min-h-11 cursor-pointer items-center text-xs md:min-h-0 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
           Ver como tabela
         </summary>
         <div className="mt-2 max-h-56 overflow-y-auto">

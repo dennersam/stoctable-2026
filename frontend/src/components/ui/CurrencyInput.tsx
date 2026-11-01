@@ -58,7 +58,7 @@ export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
           aria-hidden
           className={cn(
             'pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm',
-            disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500'
+            disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400'
           )}
         >
           R$

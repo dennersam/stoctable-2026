@@ -6,7 +6,7 @@ import { authService } from '@/services/authService';
 import { applySession } from '@/lib/session';
 import { useAuthStore } from '@/store/authStore';
 import { useBranchStore } from '@/store/branchStore';
-import { Logo } from '@/components/base/Logo';
+import { AuthError, AuthShell } from '@/components/base/AuthShell';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 
@@ -57,70 +57,63 @@ export function SelectBranchPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-950 px-4 py-12">
-      <div className="w-full max-w-lg">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <Logo size={40} className="text-white" />
-          <h1 className="mt-4 text-2xl font-semibold text-white">Escolha a filial</h1>
-          <p className="mt-2 text-sm text-brand-200">
+    <AuthShell
+      wide
+      subtitle={
+        <>
+          <h1 className="text-lg font-semibold text-gray-900 dark:text-white">Escolha a filial</h1>
+          <p className="mt-1">
             Olá, {user?.fullName}. {company?.nomeFantasia ?? company?.razaoSocial} tem mais de uma
-            loja — selecione em qual você vai trabalhar agora.
+            loja. Selecione em qual você vai trabalhar agora.
           </p>
-        </div>
+        </>
+      }
+    >
+      {error && <div className="mb-4"><AuthError>{error}</AuthError></div>}
 
-        {error && (
-          <div className="mb-4 rounded-md border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
+      <ul className="space-y-2">
+        {branches.map((branch) => (
+          <li key={branch.id}>
+            <button
+              type="button"
+              disabled={selecting !== null}
+              onClick={() => handleSelect(branch.id)}
+              className={cn(
+                'flex min-h-16 w-full items-center gap-4 rounded-xl border border-line bg-surface p-4 text-left transition-colors',
+                'hover:border-brand-300 dark:hover:border-brand-300/50',
+                'disabled:cursor-not-allowed disabled:opacity-60'
+              )}
+            >
+              <Building2 size={20} className="shrink-0 text-gray-500 dark:text-gray-400" />
 
-        <ul className="space-y-3">
-          {branches.map((branch) => (
-            <li key={branch.id}>
-              <button
-                type="button"
-                disabled={selecting !== null}
-                onClick={() => handleSelect(branch.id)}
-                className={cn(
-                  'flex w-full items-center gap-4 rounded-xl border border-brand-800 bg-brand-900 p-4 text-left transition-colors',
-                  'hover:border-brand-500 hover:bg-brand-800',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400',
-                  'disabled:cursor-not-allowed disabled:opacity-60'
-                )}
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-800 text-brand-200">
-                  <Building2 size={20} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="truncate font-medium text-gray-900 dark:text-white">{branch.name}</span>
+                  {branch.isHeadquarters && (
+                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-gray-200">
+                      Matriz
+                    </span>
+                  )}
                 </div>
+                <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+                  {branch.code}
+                  {branch.cnpj ? ' · ' + formatCnpj(branch.cnpj) : ''}
+                </p>
+              </div>
 
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium text-white">{branch.name}</span>
-                    {branch.isHeadquarters && (
-                      <span className="shrink-0 rounded-full bg-brand-700 px-2 py-0.5 text-xs text-brand-100">
-                        Matriz
-                      </span>
-                    )}
-                  </div>
-                  <p className="mt-0.5 truncate text-sm text-brand-300">
-                    {branch.code}
-                    {branch.cnpj ? ` · ${formatCnpj(branch.cnpj)}` : ''}
-                  </p>
-                </div>
+              {selecting === branch.id && <Check size={18} className="shrink-0 text-brand-600 dark:text-brand-300" />}
+            </button>
+          </li>
+        ))}
+      </ul>
 
-                {selecting === branch.id && <Check size={18} className="shrink-0 text-brand-300" />}
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-8 text-center">
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="text-brand-300 hover:bg-white/10">
-            <LogOut size={16} />
-            Sair
-          </Button>
-        </div>
+      <div className="mt-6 text-center">
+        <Button variant="ghost" size="sm" onClick={handleLogout}>
+          <LogOut size={16} />
+          Sair
+        </Button>
       </div>
-    </div>
+    </AuthShell>
   );
 }
 

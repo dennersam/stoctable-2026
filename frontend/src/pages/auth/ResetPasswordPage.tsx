@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authService } from '@/services/authService';
-import { Logo } from '@/components/base/Logo';
+import { AuthCard, AuthError, AuthNotice, AuthShell, authLinkClass } from '@/components/base/AuthShell';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
 
 type TokenState = 'checking' | 'valid' | 'invalid';
 
@@ -53,86 +55,52 @@ export function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-950">
-      <div className="w-full max-w-md px-4">
-        <div className="rounded-xl border border-brand-800 bg-brand-900 p-8 shadow-xl">
-          <div className="mb-8 text-center">
-            <div className="flex items-center justify-center gap-3 mb-1">
-              <Logo size={40} className="text-white" />
-              <h1 className="text-3xl font-bold text-white tracking-tight">Stoctable</h1>
-            </div>
-            <p className="mt-2 text-sm text-brand-300">Definir nova senha</p>
+    <AuthShell subtitle="Definir nova senha">
+      <AuthCard>
+        {tokenState === 'checking' && (
+          <p role="status" className="text-center text-sm text-gray-600 dark:text-gray-300">Validando link...</p>
+        )}
+
+        {tokenState === 'invalid' && (
+          <div className="space-y-4 text-center">
+            <AuthError>Link inválido ou expirado. Solicite um novo.</AuthError>
+            <Link to="/forgot-password" className={'block text-sm ' + authLinkClass}>Solicitar novo link</Link>
           </div>
+        )}
 
-          {tokenState === 'checking' && (
-            <p className="text-center text-sm text-brand-300">Validando link...</p>
-          )}
+        {tokenState === 'valid' && done && (
+          <div className="space-y-4 text-center">
+            <AuthNotice>Senha definida com sucesso! Redirecionando para o login...</AuthNotice>
+            <Link to="/login" className={'block text-sm ' + authLinkClass}>Ir para o login</Link>
+          </div>
+        )}
 
-          {tokenState === 'invalid' && (
-            <div className="space-y-5 text-center">
-              <div className="rounded-md bg-red-950 border border-red-800 p-4 text-sm text-red-400">
-                Link inválido ou expirado. Solicite um novo.
-              </div>
-              <Link to="/forgot-password" className="block text-sm text-brand-300 hover:text-brand-200">
-                Solicitar novo link
-              </Link>
-            </div>
-          )}
+        {tokenState === 'valid' && !done && (
+          <form onSubmit={onSubmit} className="space-y-4">
+            <Input
+              label="Nova senha"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              hint="Mínimo de 6 caracteres."
+            />
+            <Input
+              label="Confirmar senha"
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+            />
 
-          {tokenState === 'valid' && done && (
-            <div className="space-y-5 text-center">
-              <div className="rounded-md bg-brand-800/40 border border-brand-700 p-4 text-sm text-brand-200">
-                Senha definida com sucesso! Redirecionando para o login...
-              </div>
-              <Link to="/login" className="block text-sm text-brand-300 hover:text-brand-200">
-                Ir para o login
-              </Link>
-            </div>
-          )}
+            {error && <AuthError>{error}</AuthError>}
 
-          {tokenState === 'valid' && !done && (
-            <form onSubmit={onSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-brand-200 mb-1">Nova senha</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  className="block w-full rounded-md border border-brand-700 bg-brand-800 text-white placeholder-brand-400 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                  placeholder="Mínimo 6 caracteres"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-brand-200 mb-1">Confirmar senha</label>
-                <input
-                  type="password"
-                  value={confirm}
-                  onChange={(e) => setConfirm(e.target.value)}
-                  autoComplete="new-password"
-                  className="block w-full rounded-md border border-brand-700 bg-brand-800 text-white placeholder-brand-400 px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
-                  placeholder="Repita a senha"
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-md bg-red-950 border border-red-800 p-3 text-sm text-red-400">
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full rounded-md bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-500 disabled:opacity-60 transition-colors"
-              >
-                {submitting ? 'Salvando...' : 'Definir senha'}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? 'Salvando...' : 'Definir senha'}
+            </Button>
+          </form>
+        )}
+      </AuthCard>
+    </AuthShell>
   );
 }

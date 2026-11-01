@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Settings, X, User, Users, Camera, KeyRound, Eye, EyeOff, Check, Menu } from 'lucide-react';
+import { LogOut, Settings, User, Users, Camera, KeyRound, Eye, EyeOff, Check, Menu } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '@/store/authStore';
 import { useBranchStore } from '@/store/branchStore';
@@ -8,6 +8,8 @@ import { BranchSwitcher } from './BranchSwitcher';
 import { useThemeStore } from '@/store/themeStore';
 import { profileService, resizeImageToBase64, mergeProfileIntoUser } from '@/services/profileService';
 import { UsersTab } from '@/components/settings/UsersTab';
+import { Modal, ModalBody } from '@/components/ui/Modal';
+import { fieldClass as inputCls } from '@/components/ui/fieldClass';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -80,56 +82,34 @@ function SettingsModal({ onClose }: SettingsModalProps) {
   ];
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className={`w-full ${activeTab === 'users' ? 'max-w-4xl' : 'max-w-2xl'} rounded-2xl bg-white dark:bg-brand-900 shadow-xl flex flex-col overflow-hidden`}
-        style={{ maxHeight: '90vh' }}>
+    <Modal title="Configurações" onClose={onClose} size={activeTab === 'users' ? '2xl' : 'xl'}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden sm:flex-row">
+        {/* Left sidebar / top tabs on mobile */}
+        <nav aria-label="Seções das configurações" className="flex w-full shrink-0 flex-row gap-1 border-b border-line p-3 sm:w-48 sm:flex-col sm:border-b-0 sm:border-r">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+              className={'flex min-h-11 w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors md:min-h-0 ' + (
+                activeTab === tab.id
+                  ? 'bg-brand-50 text-brand-700 dark:bg-white/10 dark:text-brand-300'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
+              )}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        {/* Modal header */}
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-brand-800/50 px-6 py-4 shrink-0">
-          <div className="flex items-center gap-2">
-            <Settings size={17} className="text-brand-600 dark:text-brand-400" />
-            <h2 className="font-semibold text-gray-900 dark:text-white">Configurações</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-brand-800/40 hover:text-gray-600 dark:hover:text-white transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Body: sidebar + content */}
-        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden min-h-0">
-
-          {/* Left sidebar / top tabs on mobile */}
-          <nav className="w-full sm:w-48 shrink-0 border-b sm:border-b-0 sm:border-r border-gray-200 dark:border-brand-800/50 p-3 flex flex-row sm:flex-col gap-1 sm:space-y-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'bg-brand-50 dark:bg-brand-800/50 text-brand-700 dark:text-brand-300'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-brand-800/30 hover:text-gray-900 dark:hover:text-white'
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
-          </nav>
-
-          {/* Right content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'profile' && <ProfileTab />}
-            {activeTab === 'users' && isAdmin && <UsersTab />}
-          </div>
-        </div>
+        {/* Right content */}
+        <ModalBody className="pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+          {activeTab === 'profile' && <ProfileTab />}
+          {activeTab === 'users' && isAdmin && <UsersTab />}
+        </ModalBody>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -225,8 +205,6 @@ function ProfileTab() {
     }
   };
 
-  const inputCls = 'w-full rounded-lg border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-950/50 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
-
   return (
     <div className="space-y-8">
 
@@ -240,7 +218,8 @@ function ProfileTab() {
               onClick={() => avatarInputRef.current?.click()}
               disabled={uploadingAvatar}
               title="Alterar foto"
-              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white hover:bg-brand-500 transition-colors disabled:opacity-50"
+              aria-label="Alterar foto"
+              className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-white hover:bg-brand-700 transition-colors disabled:opacity-50"
             >
               <Camera size={13} />
             </button>
@@ -268,7 +247,7 @@ function ProfileTab() {
         </div>
       </section>
 
-      <div className="border-t border-gray-200 dark:border-brand-800/40" />
+      <div className="border-t border-line" />
 
       {/* ── Nome ──────────────────────────────────────────────────────────── */}
       <section>
@@ -285,6 +264,7 @@ function ProfileTab() {
             onClick={handleSaveName}
             disabled={savingName || !fullName.trim() || fullName.trim() === user?.fullName}
             title="Salvar nome"
+            aria-label="Salvar nome"
             className="flex items-center justify-center rounded-lg bg-brand-600 px-3 text-white hover:bg-brand-700 disabled:opacity-40 transition-colors"
           >
             {savingName ? (
@@ -296,7 +276,7 @@ function ProfileTab() {
         </div>
       </section>
 
-      <div className="border-t border-gray-200 dark:border-brand-800/40" />
+      <div className="border-t border-line" />
 
       {/* ── Senha ─────────────────────────────────────────────────────────── */}
       <section>
@@ -306,46 +286,54 @@ function ProfileTab() {
         </h3>
         <div className="space-y-3 max-w-sm">
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Senha atual</label>
+            <label htmlFor="current-password" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Senha atual</label>
             <div className="relative">
               <input
+                id="current-password"
+                autoComplete="current-password"
                 type={showCurrent ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="••••••••"
-                className={`${inputCls} pr-9`}
+                className={`${inputCls} pr-10`}
               />
               <button
                 type="button"
                 onClick={() => setShowCurrent((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                aria-label={showCurrent ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 {showCurrent ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nova senha</label>
+            <label htmlFor="new-password" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nova senha</label>
             <div className="relative">
               <input
+                id="new-password"
+                autoComplete="new-password"
                 type={showNew ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="••••••••"
-                className={`${inputCls} pr-9`}
+                className={`${inputCls} pr-10`}
               />
               <button
                 type="button"
                 onClick={() => setShowNew((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                aria-label={showNew ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute right-1 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 {showNew ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Confirmar nova senha</label>
+            <label htmlFor="confirm-password" className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Confirmar nova senha</label>
             <input
+              id="confirm-password"
+              autoComplete="new-password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -407,13 +395,13 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
 
   return (
     <>
-      <header className="flex h-14 items-center justify-between bg-brand-950 px-4 md:px-6 rounded-2xl shadow-md">
+      <header className="flex h-14 shrink-0 items-center justify-between bg-brand-950 px-4 md:px-6 rounded-2xl shadow-md">
         <div className="flex items-center gap-2">
           {/* Hamburger — only on mobile */}
           <button
             onClick={onMobileMenuOpen}
-            title="Abrir menu"
-            className="md:hidden rounded-md p-1.5 text-gray-400 hover:bg-brand-800/40 hover:text-white transition-colors"
+            aria-label="Abrir menu"
+            className="md:hidden -ml-2 flex h-11 w-11 items-center justify-center rounded-md text-gray-200 hover:bg-white/10 hover:text-white transition-colors"
           >
             <Menu size={20} />
           </button>
@@ -423,14 +411,14 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
           <BranchSwitcher />
 
           {activeBranch && branches.length === 1 && (
-            <span className="hidden sm:block text-sm text-gray-400">— {activeBranch.name}</span>
+            <span className="hidden sm:block text-sm text-gray-300">{activeBranch.name}</span>
           )}
         </div>
 
-        <div className="flex items-center gap-4">
-          <span className="hidden sm:inline-flex items-center gap-2 text-sm text-gray-200">
+        <div className="flex items-center gap-1 md:gap-3">
+          <span className="hidden md:inline-flex items-center gap-2 text-sm text-gray-200">
             {user?.fullName}{' '}
-            <span className="rounded-full bg-brand-800/60 px-2 py-0.5 text-xs font-medium text-brand-300 capitalize">
+            <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs font-medium text-brand-200 capitalize">
               {user?.role}
             </span>
           </span>
@@ -438,7 +426,8 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
           <button
             onClick={toggle}
             title={isDark ? 'Modo claro' : 'Modo escuro'}
-            className="rounded-md p-1.5 text-gray-400 hover:bg-brand-800/40 hover:text-white transition-colors"
+            aria-label={isDark ? 'Usar tema claro' : 'Usar tema escuro'}
+            className="flex h-11 w-11 items-center justify-center rounded-md text-gray-200 hover:bg-white/10 hover:text-white transition-colors md:h-9 md:w-9"
           >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
@@ -448,24 +437,26 @@ export function Header({ onMobileMenuOpen }: HeaderProps) {
             <button
               onClick={() => setDropdownOpen((o) => !o)}
               title={user?.fullName}
-              className="rounded-full hover:ring-2 hover:ring-brand-400 transition-all"
+              aria-label="Abrir menu da conta"
+              aria-expanded={dropdownOpen}
+              className="flex h-11 w-11 items-center justify-center rounded-full hover:ring-2 hover:ring-brand-400 transition-all md:h-9 md:w-9"
             >
               <Avatar avatarUrl={user?.avatarUrl} fullName={user?.fullName ?? ''} size="sm" />
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 top-10 z-40 w-48 rounded-xl bg-white dark:bg-brand-900 shadow-lg ring-1 ring-black/10 dark:ring-brand-800/50 py-1 overflow-hidden">
+              <div className="absolute right-0 top-12 z-40 w-52 rounded-xl bg-raised shadow-lg ring-1 ring-black/10 dark:ring-white/10 py-1 overflow-hidden">
                 <button
                   onClick={handleSettings}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-brand-800/40 transition-colors"
+                  className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
                 >
-                  <Settings size={15} className="text-gray-400 dark:text-brand-400" />
+                  <Settings size={15} className="text-gray-500 dark:text-gray-400" />
                   Configurações
                 </button>
-                <div className="my-1 border-t border-gray-100 dark:border-brand-800/50" />
+                <div className="my-1 border-t border-gray-100 dark:border-white/10" />
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  className="flex min-h-11 w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 >
                   <LogOut size={15} />
                   Sair
