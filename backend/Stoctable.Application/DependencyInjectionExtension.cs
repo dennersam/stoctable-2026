@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Stoctable.Application.Services.Auth;
 using Stoctable.Application.Services.Customers;
+using Stoctable.Application.Services.Dashboard;
 using Stoctable.Application.Services.Inventory;
 using Stoctable.Application.Services.Manufacturers;
 using Stoctable.Application.Services.PaymentMethods;
@@ -26,6 +27,8 @@ public static class DependencyInjectionExtension
         services.AddScoped<CustomerService>();
         services.AddScoped<QuotationService>();
         services.AddScoped<SaleService>();
+        services.AddScoped<DashboardService>();
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<InventoryService>();
         services.AddScoped<StockTransferService>();
         services.AddScoped<SupplierService>();

@@ -1061,6 +1061,8 @@ namespace Stoctable.Infrastructure.Migrations
 
                     b.HasIndex("SalespersonId");
 
+                    b.HasIndex("BranchId", "CompletedAt");
+
                     b.HasIndex("BranchId", "CreatedAt");
 
                     b.ToTable("sales", (string)null);

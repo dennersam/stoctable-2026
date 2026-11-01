@@ -111,6 +111,7 @@ public static class DependencyInjectionExtension
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IQuotationRepository, QuotationRepository>();
         services.AddScoped<ISaleRepository, SaleRepository>();
+        services.AddScoped<IDashboardRepository, DashboardRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IStockTransferRepository, StockTransferRepository>();
         services.AddScoped<ISupplierRepository, SupplierRepository>();

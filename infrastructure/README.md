@@ -6,7 +6,7 @@ Terraform para Azure, com dois ambientes independentes.
 |---|---|---|
 | Resource Group | `Stoctable-Dev` | `Stoctable-Prod` |
 | Banco de dados | **Neon** (externo) | Azure PostgreSQL Flexible Server |
-| App Service | `stoctable-api-dev` — **B1** | `stoctable-api` — P1v3 |
+| App Service | `stoctable-api-dev` — **F1** | `stoctable-api` — P1v3 |
 | Static Web App | `stoctable-web-dev` — Free | `stoctable-web` — Standard |
 | Key Vault | `stoctable-kv-dev` | `stoctable-kv` |
 | State | `dev.terraform.tfstate` | `prod.terraform.tfstate` |
@@ -221,18 +221,16 @@ plano Free não oferece preview environments.
 
 ## SKU do App Service de dev
 
-Hoje é **B1**. O F1 (gratuito) foi abandonado: a cota de 60 min de CPU/dia se
-esgotava em poucas horas e a Azure suspendia o site (`QuotaExceeded`) até a
-meia-noite UTC.
+Hoje é **F1** (gratuito), porque dev não justifica o custo do B1. A cota é de 60
+min de CPU/dia: ao esgotar, a Azure suspende o site (`QuotaExceeded`) até a
+meia-noite UTC. Isso já aconteceu aqui, alimentado por um ciclo de crash no
+startup que o `Program.cs` hoje evita. Se voltar a estourar com uso normal, o
+caminho é subir para B1.
 
-Ao voltar para F1, `always_on` **precisa** virar `false` no mesmo commit — F1
-não suporta Always On e o apply falha. Os dois valores andam juntos.
-
-`always_on = true` desde que o provisionamento de novas empresas passou a rodar
-como `IHostedService` dentro do App Service — sem isso o processo é descarregado
-na ociosidade e um provisionamento em andamento fica parado. De quebra elimina o
-cold start de 20-40s. O Neon no plano gratuito continua hibernando, então a
-primeira query após ociosidade ainda é lenta; isso não é defeito.
+Ao trocar de SKU, `always_on` anda junto: F1 não suporta Always On e o apply
+falha com `true`. Sem ele o processo é descarregado na ociosidade, com cold start
+de 20-40s. O Neon no plano gratuito também hiberna, então a primeira query após
+ociosidade é lenta; isso não é defeito.
 
 ## Notas sobre os módulos
 

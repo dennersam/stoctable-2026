@@ -16,6 +16,7 @@ dotnet run -- <comando>
 | `verify` | Confere se o control plane e o tenant estão coerentes. |
 | `stock-cutover [apply]` | Corte do estoque. Sem `apply`, só relata. |
 | `import-lojas [--sem-historico]` | Importa as três lojas do SIC (MEGA, MOTO, VILLA) para um banco Stoctable, com vendas e orçamentos. |
+| `payment-audit` | Lista vendas inconsistentes deixadas pelos caminhos antigos de pagamento. Só lê; sai com código 2 se achar algo. |
 
 Connection strings vêm de `DEFAULT_CONN_STRING` (tenant) e
 `CONTROL_PLANE_CONN_STRING` (control plane), que sobrescrevem o

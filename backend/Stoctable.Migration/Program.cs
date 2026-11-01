@@ -53,9 +53,13 @@ try
             await RunMultiStoreImportAsync();
             break;
 
+        case "payment-audit":
+            await RunPaymentAuditAsync();
+            break;
+
         default:
             Console.WriteLine($"Comando desconhecido: '{command}'");
-            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify|stock-cutover [apply]|import-lojas [--sem-historico]]");
+            Console.WriteLine("Uso: dotnet run -- [sic|backfill|verify|stock-cutover [apply]|import-lojas [--sem-historico]|payment-audit]");
             Environment.Exit(1);
             break;
     }
@@ -101,6 +105,15 @@ async Task RunVerificationAsync()
 
     // Código de saída != 0 para que dê para agendar isto e ser avisado.
     if (!ok) Environment.Exit(2);
+}
+
+async Task RunPaymentAuditAsync()
+{
+    var report = await new PaymentAudit(pgConnStr).RunAsync();
+    PaymentAudit.Print(report);
+
+    // Código de saída != 0 para que dê para agendar isto e ser avisado.
+    if (report.HasFindings) Environment.Exit(2);
 }
 
 /// Importa as três lojas do SIC (SQL Server) para um único banco Stoctable.

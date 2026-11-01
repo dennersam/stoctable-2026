@@ -146,6 +146,7 @@ try
     app.MapStockTransferEndpoints();
     app.MapUserEndpoints();
     app.MapPaymentMethodEndpoints();
+    app.MapDashboardEndpoints();
 
     app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTimeOffset.UtcNow }))
        .AllowAnonymous()

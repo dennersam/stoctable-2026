@@ -33,45 +33,67 @@ public class SaleService(
 
     public async Task<Result<SaleResponse>> ProcessPaymentAsync(Guid saleId, ProcessPaymentRequest request, CancellationToken ct = default)
     {
-        var sale = await saleRepository.GetWithDetailsAsync(saleId, ct);
-        if (sale is null)
-            return Result<SaleResponse>.NotFound(ErrorMessages.Sale.NotFound);
+        if (request.Payments.Count == 0)
+            return Result<SaleResponse>.Failure(ErrorMessages.Sale.PaymentRequired);
 
-        if (sale.Status == SaleStatus.Paid)
-            return Result<SaleResponse>.Failure(ErrorMessages.Sale.AlreadyPaid);
+        // Dinheiro é em centavos, mas a tela calcula o saldo em ponto flutuante e
+        // pode mandar 0.9000000000000001. Sem arredondar aqui, esse resíduo barraria
+        // a quitação ou deixaria a venda parcialmente paga por uma fração de centavo,
+        // com o banco já gravando amount_paid arredondado.
+        var entries = request.Payments
+            .Select(p => (Entry: p, Amount: Math.Round(p.Amount, 2)))
+            .ToList();
 
-        var totalPayment = request.Payments.Sum(p => p.Amount);
-        if (totalPayment > sale.TotalAmount)
-            return Result<SaleResponse>.Failure(ErrorMessages.Sale.PaymentExceedsTotal);
+        // Sem esta regra, [-50, 150] numa venda de 100 soma 100, passa pela checagem
+        // de saldo e grava um recebimento negativo no caixa.
+        if (entries.Any(e => e.Amount <= 0))
+            return Result<SaleResponse>.Failure(ErrorMessages.Sale.PaymentAmountMustBePositive);
 
-        foreach (var paymentEntry in request.Payments)
+        return await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
         {
-            var payment = new Payment
+            var sale = await saleRepository.GetForUpdateAsync(saleId, innerCt);
+            if (sale is null)
+                return Result<SaleResponse>.NotFound(ErrorMessages.Sale.NotFound);
+
+            if (sale.Status == SaleStatus.Paid)
+                return Result<SaleResponse>.Failure(ErrorMessages.Sale.AlreadyPaid);
+
+            if (sale.Status == SaleStatus.Cancelled)
+                return Result<SaleResponse>.Failure(ErrorMessages.Sale.AlreadyCancelled);
+
+            var totalPayment = entries.Sum(e => e.Amount);
+            if (totalPayment > sale.TotalAmount - sale.AmountPaid)
+                return Result<SaleResponse>.Failure(ErrorMessages.Sale.PaymentExceedsRemaining);
+
+            foreach (var (paymentEntry, amount) in entries)
             {
-                SaleId = saleId,
-                PaymentMethodId = paymentEntry.PaymentMethodId,
-                Amount = paymentEntry.Amount,
-                Installments = paymentEntry.Installments,
-                TransactionRef = paymentEntry.TransactionRef,
-                Status = PaymentStatus.Completed,
-                PaidAt = DateTimeOffset.UtcNow
-            };
-            sale.Payments.Add(payment);
-            sale.AmountPaid += payment.Amount;
-        }
+                var payment = new Payment
+                {
+                    SaleId = saleId,
+                    PaymentMethodId = paymentEntry.PaymentMethodId,
+                    Amount = amount,
+                    Installments = paymentEntry.Installments,
+                    TransactionRef = paymentEntry.TransactionRef,
+                    Status = PaymentStatus.Completed,
+                    PaidAt = DateTimeOffset.UtcNow
+                };
+                sale.Payments.Add(payment);
+                sale.AmountPaid += payment.Amount;
+            }
 
-        if (sale.AmountPaid >= sale.TotalAmount)
-        {
-            sale.Status = SaleStatus.Paid;
-            sale.CompletedAt = DateTimeOffset.UtcNow;
-        }
-        else if (sale.AmountPaid > 0)
-        {
-            sale.Status = SaleStatus.PartiallyPaid;
-        }
+            if (sale.AmountPaid >= sale.TotalAmount)
+            {
+                sale.Status = SaleStatus.Paid;
+                sale.CompletedAt = DateTimeOffset.UtcNow;
+            }
+            else if (sale.AmountPaid > 0)
+            {
+                sale.Status = SaleStatus.PartiallyPaid;
+            }
 
-        await saleRepository.UpdateAsync(sale, ct);
-        return Result<SaleResponse>.Success(MapToResponse(sale));
+            await saleRepository.UpdateAsync(sale, innerCt);
+            return Result<SaleResponse>.Success(MapToResponse(sale));
+        }, ct);
     }
 
     /// <summary>
@@ -84,15 +106,15 @@ public class SaleService(
         if (string.IsNullOrWhiteSpace(request.CancellationReason))
             return Result<SaleResponse>.Failure(ErrorMessages.Sale.CancellationReasonRequired);
 
-        var sale = await saleRepository.GetWithDetailsAsync(saleId, ct);
-        if (sale is null)
-            return Result<SaleResponse>.NotFound(ErrorMessages.Sale.NotFound);
-
-        if (sale.Status == SaleStatus.Cancelled)
-            return Result<SaleResponse>.Failure(ErrorMessages.Sale.AlreadyCancelled);
-
-        await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
+        return await unitOfWork.ExecuteInTransactionAsync(async innerCt =>
         {
+            var sale = await saleRepository.GetForUpdateAsync(saleId, innerCt);
+            if (sale is null)
+                return Result<SaleResponse>.NotFound(ErrorMessages.Sale.NotFound);
+
+            if (sale.Status == SaleStatus.Cancelled)
+                return Result<SaleResponse>.Failure(ErrorMessages.Sale.AlreadyCancelled);
+
             // Devolve estoque de cada item
             foreach (var item in sale.Items)
             {
@@ -123,9 +145,8 @@ public class SaleService(
             sale.CancelledAt = DateTimeOffset.UtcNow;
             sale.CancellationReason = request.CancellationReason;
             await saleRepository.UpdateAsync(sale, innerCt);
+            return Result<SaleResponse>.Success(MapToResponse(sale));
         }, ct);
-
-        return Result<SaleResponse>.Success(MapToResponse(sale));
     }
 
     private static SaleResponse MapToResponse(Sale s) => new(
