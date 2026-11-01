@@ -38,6 +38,8 @@ public class SaleConfiguration : IEntityTypeConfiguration<Sale>
         builder.HasIndex(s => s.SaleNumber).IsUnique();
         // Toda listagem de venda filtra por filial e ordena por data.
         builder.HasIndex(s => new { s.BranchId, s.CreatedAt });
+        // Os painéis contam a venda pela data de conclusão, por filial e período.
+        builder.HasIndex(s => new { s.BranchId, s.CompletedAt });
 
         builder.HasOne(s => s.Customer).WithMany(c => c.Sales).HasForeignKey(s => s.CustomerId);
         builder.HasOne(s => s.Salesperson).WithMany().HasForeignKey(s => s.SalespersonId);
