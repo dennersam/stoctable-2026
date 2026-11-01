@@ -1,5 +1,6 @@
 import { forwardRef, useId } from 'react';
 import { cn } from '@/lib/utils';
+import { fieldClass } from './fieldClass';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -32,14 +33,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={describedById}
           className={cn(
-            'w-full rounded-md border px-3 py-2 text-sm transition-colors',
-            'bg-white text-gray-900 placeholder:text-gray-400',
-            'dark:bg-white/5 dark:text-white dark:placeholder:text-gray-500',
-            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent',
-            'disabled:cursor-not-allowed disabled:opacity-60',
-            error
-              ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300 dark:border-white/15',
+            fieldClass,
+            error && 'border-red-500 focus:ring-red-500 dark:border-red-400',
             className
           )}
           {...props}

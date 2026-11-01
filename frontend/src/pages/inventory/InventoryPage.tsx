@@ -5,6 +5,12 @@ import { inventoryService } from '@/services/inventoryService';
 import type { Product } from '@/types/product';
 import type { InventoryMovement } from '@/types/inventory';
 import { useBranchStore } from '@/store/branchStore';
+import { Button } from '@/components/ui/Button';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Field, SearchField } from '@/components/ui/Field';
+import { fieldClass } from '@/components/ui/fieldClass';
+import { Modal, ModalBody, ModalFooter } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -18,8 +24,8 @@ function getStockStatus(p: Product): StockStatus {
 }
 
 const STATUS_BADGE: Record<StockStatus, string> = {
-  ok: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
-  low: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+  ok: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-400',
+  low: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-400',
   critical: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
 };
 
@@ -56,49 +62,20 @@ function formatDate(iso: string) {
 interface SummaryCardProps {
   label: string;
   value: number;
-  color: 'blue' | 'yellow' | 'red';
+  tone?: 'neutral' | 'warning' | 'critical';
 }
 
-function SummaryCard({ label, value, color }: SummaryCardProps) {
+function SummaryCard({ label, value, tone = 'neutral' }: SummaryCardProps) {
   const colors = {
-    blue: 'border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-400',
-    yellow: 'border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400',
-    red: 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400',
+    neutral: 'text-gray-900 dark:text-white',
+    warning: 'text-amber-700 dark:text-amber-400',
+    critical: 'text-red-700 dark:text-red-400',
   };
 
   return (
-    <div className={`rounded-lg border p-4 ${colors[color]}`}>
-      <p className="text-sm font-medium opacity-80">{label}</p>
-      <p className="mt-1 text-3xl font-bold">{value}</p>
-    </div>
-  );
-}
-
-interface ModalProps {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  wide?: boolean;
-}
-
-function Modal({ title, onClose, children, wide }: ModalProps) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-xl bg-white dark:bg-brand-900 shadow-xl`}>
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-brand-800/50 px-5 py-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">{title}</h2>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-brand-800/40 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="p-5">{children}</div>
-      </div>
+    <div className="rounded-lg border border-line bg-surface p-3 md:p-4">
+      <p className="text-xs text-gray-500 dark:text-gray-400 md:text-sm">{label}</p>
+      <p className={'mt-0.5 text-xl font-bold tabular-nums md:text-3xl ' + colors[tone]}>{value}</p>
     </div>
   );
 }
@@ -199,145 +176,126 @@ export function InventoryPage() {
     }
   }
 
+  const columns: Column<Product>[] = [
+    {
+      key: 'name',
+      header: 'Produto',
+      cell: (p) => (
+        <>
+          <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="font-mono">{p.sku}</span>{p.manufacturerName && ' · ' + p.manufacturerName}
+          </div>
+        </>
+      ),
+    },
+    { key: 'available', header: 'Disponível', align: 'right', className: 'whitespace-nowrap font-semibold text-gray-900 dark:text-white', cell: (p) => (p.stockQuantity - p.stockReserved) + ' ' + p.unit },
+    { key: 'total', header: 'Total', align: 'right', className: 'whitespace-nowrap', cell: (p) => p.stockQuantity + ' ' + p.unit },
+    { key: 'reserved', header: 'Reservado', align: 'right', className: 'whitespace-nowrap', cell: (p) => (p.stockReserved > 0 ? p.stockReserved + ' ' + p.unit : '—') },
+    { key: 'minimum', header: 'Mínimo', align: 'right', className: 'whitespace-nowrap', cell: (p) => p.stockMinimum + ' ' + p.unit },
+    {
+      key: 'status',
+      header: 'Situação',
+      cell: (p) => (
+        <span className={'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ' + STATUS_BADGE[getStockStatus(p)]}>
+          {STATUS_LABEL[getStockStatus(p)]}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right',
+      className: 'whitespace-nowrap',
+      cell: (p) => (
+        <>
+          <button onClick={() => openAdjust(p)} className="mr-3 font-medium text-brand-700 hover:underline dark:text-brand-300">Ajustar</button>
+          <button onClick={() => openMovements(p)} className="text-gray-600 hover:underline dark:text-gray-300">Histórico</button>
+        </>
+      ),
+    },
+  ];
+
   // ─── render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5">
-      {/* Page header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Gestão de Estoque</h1>
-          {/* Sem isto o usuário não sabe de qual loja são os números — e agora
-              cada loja tem os seus. */}
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Saldos de <span className="font-medium">{activeBranch?.name ?? 'sua loja'}</span>.
-            Cada filial tem o próprio estoque.
-          </p>
-        </div>
+    <div className="space-y-4">
+      {/* Sem o subtítulo o usuário não sabe de qual loja são os números — e agora
+          cada loja tem os seus. */}
+      <PageHeader
+        title="Gestão de estoque"
+        subtitle={<>Saldos de <span className="font-medium">{activeBranch?.name ?? 'sua loja'}</span>. Cada filial tem o próprio estoque.</>}
+      />
+
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <SummaryCard label="Produtos" value={products.length} />
+        <SummaryCard label="Estoque baixo" value={lowCount} tone="warning" />
+        <SummaryCard label="Zerados" value={criticalCount} tone="critical" />
       </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <SummaryCard label="Total de produtos" value={products.length} color="blue" />
-        <SummaryCard label="Estoque baixo" value={lowCount} color="yellow" />
-        <SummaryCard label="Estoque zerado" value={criticalCount} color="red" />
-      </div>
-
-      {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por SKU ou nome..."
-          className="flex-1 min-w-48 rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-        />
-        <button
+        <SearchField value={search} onChange={setSearch} placeholder="Buscar por SKU ou nome" className="min-w-48 flex-1" />
+        <Button
+          variant="outline"
+          aria-pressed={showCritical}
           onClick={() => setShowCritical(!showCritical)}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition-colors ${
-            showCritical
-              ? 'bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 border border-yellow-300 dark:border-yellow-700'
-              : 'bg-gray-100 dark:bg-brand-900/30 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-brand-800/40 border border-transparent dark:border-brand-700/30'
-          }`}
+          className={showCritical ? 'border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-500/50 dark:bg-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-900/40' : ''}
         >
           Apenas críticos
-        </button>
-        {(search || showCritical) && (
-          <button
-            onClick={() => { setSearch(''); setShowCritical(false); }}
-            className="rounded-md border border-gray-300 dark:border-brand-700/50 px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-900/30"
-          >
-            Limpar filtros
-          </button>
-        )}
+        </Button>
       </div>
 
-      {/* Table */}
-      {loading ? (
-        <div className="py-16 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
-            <thead className="bg-brand-50 dark:bg-brand-900/40">
-              <tr>
-                {['SKU', 'Nome', 'Total', 'Reservado', 'Disponível', 'Mínimo', 'Status', ''].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wide text-brand-700 dark:text-brand-300/70"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-900/20">
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="py-10 text-center text-gray-400 dark:text-gray-500">
-                    Nenhum produto encontrado.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((p) => {
-                  const avail = p.stockQuantity - p.stockReserved;
-                  const status = getStockStatus(p);
-                  return (
-                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
-                      <td className="px-4 py-3 font-mono text-sm text-gray-600 dark:text-gray-300">
-                        {p.sku}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>
-                        {p.manufacturerName && (
-                          <div className="text-xs text-gray-400 dark:text-gray-500">{p.manufacturerName}</div>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-                        {p.stockQuantity} {p.unit}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {p.stockReserved > 0 ? `${p.stockReserved} ${p.unit}` : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
-                        {avail} {p.unit}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                        {p.stockMinimum} {p.unit}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS_BADGE[status]}`}>
-                          {STATUS_LABEL[status]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right text-sm whitespace-nowrap">
-                        <button
-                          onClick={() => openAdjust(p)}
-                          className="mr-3 text-brand-600 dark:text-brand-400 hover:underline font-medium"
-                        >
-                          Ajustar
-                        </button>
-                        <button
-                          onClick={() => openMovements(p)}
-                          className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:underline"
-                        >
-                          Histórico
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <DataTable
+        caption="Estoque por produto"
+        rows={filtered}
+        columns={columns}
+        rowKey={(p) => p.id}
+        loading={loading}
+        empty={search || showCritical ? 'Nenhum produto com estes filtros.' : 'Nenhum produto cadastrado ainda.'}
+        card={(p) => {
+          const status = getStockStatus(p);
+          return (
+            <>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="font-medium text-gray-900 dark:text-white">{p.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {[p.sku, p.manufacturerName].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+                <span className={'shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ' + STATUS_BADGE[status]}>
+                  {STATUS_LABEL[status]}
+                </span>
+              </div>
+              <dl className="mt-2 grid grid-cols-3 gap-2 text-sm tabular-nums">
+                <div>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Disponível</dt>
+                  <dd className="font-semibold text-gray-900 dark:text-white">{p.stockQuantity - p.stockReserved} {p.unit}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Reservado</dt>
+                  <dd className="text-gray-700 dark:text-gray-300">{p.stockReserved > 0 ? p.stockReserved + ' ' + p.unit : '—'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500 dark:text-gray-400">Mínimo</dt>
+                  <dd className="text-gray-700 dark:text-gray-300">{p.stockMinimum} {p.unit}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => openMovements(p)}>Histórico</Button>
+                <Button variant="outline" onClick={() => openAdjust(p)}>Ajustar</Button>
+              </div>
+            </>
+          );
+        }}
+      />
 
       {/* ── Adjust stock modal ─────────────────────────────────────────────── */}
       {adjustTarget && (
-        <Modal title={`Ajustar Estoque — ${adjustTarget.name}`} onClose={() => setAdjustTarget(null)}>
-          <div className="space-y-4">
+        <Modal title="Ajustar estoque" description={adjustTarget.name} onClose={() => setAdjustTarget(null)}>
+          <ModalBody className="space-y-4">
             {/* Current stock info */}
-            <div className="rounded-lg bg-gray-50 dark:bg-brand-900/30 p-4">
+            <div className="rounded-lg bg-gray-50 dark:bg-white/5 p-4">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 dark:text-gray-400">Estoque total</span>
                 <span className="font-semibold text-gray-900 dark:text-white">
@@ -350,7 +308,7 @@ export function InventoryPage() {
                   {adjustTarget.stockReserved} {adjustTarget.unit}
                 </span>
               </div>
-              <div className="flex justify-between text-sm mt-1 pt-1 border-t border-gray-200 dark:border-brand-800/40">
+              <div className="flex justify-between text-sm mt-1 pt-1 border-t border-line">
                 <span className="text-gray-500 dark:text-gray-400">Disponível</span>
                 <span className="font-bold text-gray-900 dark:text-white">
                   {adjustTarget.stockQuantity - adjustTarget.stockReserved} {adjustTarget.unit}
@@ -359,18 +317,18 @@ export function InventoryPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Quantidade <span className="font-normal text-gray-400">(use negativo para retirada)</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={adjustQty}
-                onChange={(e) => setAdjustQty(e.target.value)}
-                placeholder="Ex: 10 ou -5"
-                autoFocus
-                className="w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-              />
+              <Field label="Quantidade" hint="Use negativo para retirada.">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={adjustQty}
+                  onChange={(e) => setAdjustQty(e.target.value)}
+                  placeholder="Ex: 10 ou -5"
+                  autoFocus
+                  className={fieldClass}
+                />
+              </Field>
               {adjustQty && !isNaN(parseFloat(adjustQty)) && parseFloat(adjustQty) !== 0 && (
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Novo total:{' '}
@@ -381,57 +339,47 @@ export function InventoryPage() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Motivo / Observação
-              </label>
+            <Field label="Motivo ou observação">
               <textarea
                 value={adjustNotes}
                 onChange={(e) => setAdjustNotes(e.target.value)}
                 rows={2}
                 placeholder="Ex: inventário mensal, devolução de cliente..."
-                className="w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                className={fieldClass + ' resize-none'}
               />
-            </div>
+            </Field>
 
-            <div className="flex gap-2 justify-end pt-1">
-              <button
-                onClick={() => setAdjustTarget(null)}
-                className="rounded-md border border-gray-300 dark:border-brand-700/50 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-800/30"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleAdjust}
-                disabled={adjustSaving}
-                className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-              >
-                {adjustSaving ? 'Salvando...' : 'Confirmar ajuste'}
-              </button>
-            </div>
-          </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" onClick={() => setAdjustTarget(null)}>Cancelar</Button>
+            <Button onClick={handleAdjust} disabled={adjustSaving}>
+              {adjustSaving ? 'Salvando...' : 'Confirmar ajuste'}
+            </Button>
+          </ModalFooter>
         </Modal>
       )}
 
       {/* ── Movement history modal ─────────────────────────────────────────── */}
       {movementsTarget && (
         <Modal
-          title={`Histórico de movimentações — ${movementsTarget.name}`}
+          title="Histórico de movimentações"
+          description={movementsTarget.name}
           onClose={() => { setMovementsTarget(null); setMovements([]); }}
-          wide
+          size="xl"
         >
+          <ModalBody>
           {movementsLoading ? (
             <div className="py-10 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
           ) : movements.length === 0 ? (
-            <div className="py-10 text-center text-gray-400 dark:text-gray-500">
+            <div className="py-10 text-center text-gray-500 dark:text-gray-400">
               Nenhuma movimentação registrada.
             </div>
           ) : (
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            <div className="space-y-2">
               {movements.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-start justify-between rounded-lg border border-gray-100 dark:border-brand-800/40 bg-gray-50 dark:bg-brand-900/30 px-4 py-3 gap-4"
+                  className="flex flex-col gap-2 rounded-lg border border-line px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
                 >
                   <div className="flex items-start gap-3 min-w-0">
                     <span
@@ -448,21 +396,22 @@ export function InventoryPage() {
                         {MOVEMENT_TYPE_LABEL[m.movementType] ?? m.movementType}
                       </p>
                       {m.notes && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">{m.notes}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 break-words">{m.notes}</p>
                       )}
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {m.quantityBefore} → {m.quantityAfter} {movementsTarget.unit}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="shrink-0 sm:text-right">
                     <p className="text-xs text-gray-500 dark:text-gray-400">{m.createdBy}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{formatDate(m.createdAt)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{formatDate(m.createdAt)}</p>
                   </div>
                 </div>
               ))}
             </div>
           )}
+          </ModalBody>
         </Modal>
       )}
     </div>

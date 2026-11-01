@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@fontsource-variable/archivo/wdth.css";
 @plugin "tailwindcss-animate";
 
 /* Class-based dark mode for Tailwind v4 */
@@ -9,6 +10,8 @@
    brand-950  = #231345  (deep dark background)
 ──────────────────────────────────────────────────────────────────────────── */
 @theme {
+  --font-sans: 'Archivo Variable', system-ui, -apple-system, sans-serif;
+
   --color-brand-50:  #fef4ff;
   --color-brand-100: #fde8ff;
   --color-brand-200: #fbd0fe;
@@ -22,50 +25,30 @@
   --color-brand-950: #231345;
 }
 
+/* Superfícies. O roxo fica no menu e no cabeçalho; o conteúdo é neutro nos dois
+   temas, para os números e os alertas serem a única cor na área de trabalho. */
+@theme inline {
+  --color-page: var(--surface-page);
+  --color-surface: var(--surface-card);
+  --color-raised: var(--surface-raised);
+  --color-line: var(--surface-line);
+}
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 298 100% 22%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 298 20% 96%;
-    --secondary-foreground: 298 60% 15%;
-    --muted: 298 20% 96%;
-    --muted-foreground: 298 10% 46%;
-    --accent: 298 20% 96%;
-    --accent-foreground: 298 60% 15%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 298 100% 22%;
-    --radius: 0.5rem;
+    --surface-page: #f7f7f8;
+    --surface-card: #ffffff;
+    --surface-raised: #ffffff;
+    --surface-line: #e5e7eb;
   }
 
   .dark {
-    --background: 220 9% 12%;
-    --foreground: 210 40% 98%;
-    --card: 220 9% 18%;
-    --card-foreground: 210 40% 98%;
-    --popover: 220 9% 18%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 298 85% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 9% 22%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 220 9% 22%;
-    --muted-foreground: 220 9% 60%;
-    --accent: 220 9% 22%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 220 9% 26%;
-    --input: 220 9% 26%;
-    --ring: 298 85% 55%;
+    /* Faz os controles nativos (select, rolagem, data) seguirem o tema. */
+    color-scheme: dark;
+    --surface-page: #18181b;
+    --surface-card: #212124;
+    --surface-raised: #2a2a2e;
+    --surface-line: rgb(255 255 255 / 0.1);
   }
 
   * {
@@ -74,14 +57,62 @@
 
   body {
     margin: 0;
-    font-family: system-ui, -apple-system, sans-serif;
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    background-color: var(--surface-page);
+    color: #111827;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
+  .dark body {
+    color: #f9fafb;
+  }
+
   #root {
-    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* Foco de teclado visível em tudo que não define o próprio anel. */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+  }
+
+  .dark :focus-visible {
+    outline-color: var(--color-brand-300);
+  }
+}
+
+/* Títulos estreitos e pesados, como em catálogo de peças. A largura variável da
+   Archivo faz isso sem carregar uma segunda família. */
+@utility font-condensed {
+  font-stretch: 78%;
+  /* A largura menor também estreita o espaço entre palavras. */
+  word-spacing: 0.08em;
+}
+
+/* Fora de @layer de propósito, para vencer o text-sm dos campos: abaixo de 16px
+   o Safari do iPhone amplia a tela ao focar o campo e não volta sozinho. */
+@media (max-width: 767px), (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

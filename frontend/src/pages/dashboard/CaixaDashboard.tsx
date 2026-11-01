@@ -1,4 +1,5 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/Button';
 import { dashboardService } from '@/services/dashboardService';
 import { cn, formatCurrency, formatDateTime } from '@/lib/utils';
 import { useDashboardData } from './useDashboardData';
@@ -13,39 +14,35 @@ import {
 import { formatQuantity, paymentsCount, salesCount } from './dashboardFormat';
 
 export function CaixaDashboard() {
-  const navigate = useNavigate();
   const { data, loading, failed, retry } = useDashboardData(dashboardService.getCashier);
 
   return (
     <div className={cn('space-y-5 transition-opacity', loading && data && 'opacity-60')}>
       <DashboardHeader title="Caixa" subtitle="Movimento de hoje nesta filial">
-        <button
-          onClick={() => navigate('/checkout')}
-          className="rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700"
-        >
-          Processar Pagamento
-        </button>
+        <Button asChild variant="success"><Link to="/checkout">Receber pagamentos</Link></Button>
       </DashboardHeader>
 
       {!data ? (
         <DashboardFallback failed={failed} onRetry={retry} />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
             <StatTile
+              lead
               label="Recebido hoje"
               value={formatCurrency(data.receivedToday)}
               hint={paymentsCount(data.paymentsToday)}
             />
             <StatTile
               label="Aguardando pagamento"
+              to="/checkout"
               value={formatCurrency(data.pendingSales.amountRemaining)}
               hint={salesCount(data.pendingSales.count)}
             />
             <StatTile
               label="Estornos hoje"
               value={formatCurrency(data.refundsToday.amount)}
-              hint={`${formatQuantity(data.refundsToday.count)} ${data.refundsToday.count === 1 ? 'pagamento estornado' : 'pagamentos estornados'}`}
+              hint={`${formatQuantity(data.refundsToday.count)} ${data.refundsToday.count === 1 ? 'estornado' : 'estornados'}`}
             />
           </div>
 

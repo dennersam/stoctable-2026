@@ -1,33 +1,23 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import heroImage from '@/assets/hero.png';
+import { HeroScene } from './HeroScene';
 
 const destaques = ['Sem instalação', 'Multi-filial', 'Seus dados isolados'];
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      {/* Brilho de fundo puramente decorativo — escondido de leitores de tela. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -top-40 left-1/2 h-[32rem] w-[64rem] -translate-x-1/2 rounded-full bg-brand-400/20 blur-3xl dark:bg-brand-600/25"
-      />
-
-      <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:py-28">
+    <section>
+      <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-16 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:py-24">
         <div>
-          <Badge>Gestão para lojas de peças e acessórios</Badge>
-
-          <h1 className="mt-5 text-4xl font-bold leading-tight tracking-tight sm:text-5xl">
-            Todo o seu balcão em{' '}
-            <span className="text-brand-600 dark:text-brand-300">um sistema só</span>
+          <h1 className="font-condensed text-5xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+            Todo o seu balcão em um sistema só
           </h1>
 
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-gray-600 dark:text-gray-300">
-            Orçamento, caixa e estoque conversando entre si, em todas as suas
-            lojas. O vendedor monta o orçamento, o caixa recebe pronto e o
-            estoque baixa sozinho — sem planilha no meio do caminho.
+            Gestão para lojas de peças e acessórios: orçamento, caixa e estoque
+            conversando entre si, em todas as suas lojas. O vendedor monta o orçamento, o caixa recebe pronto e o
+            estoque baixa sozinho, sem planilha no meio do caminho.
           </p>
 
           <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
@@ -42,7 +32,7 @@ export function Hero() {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg">
               <Link to="/cadastro">
-                Criar minha conta
+                Criar conta
                 <ArrowRight size={18} />
               </Link>
             </Button>
@@ -52,14 +42,7 @@ export function Hero() {
           </div>
         </div>
 
-        <div className="relative">
-          <img
-            src={heroImage}
-            alt="Tela do Stoctable mostrando o painel de vendas"
-            className="w-full rounded-xl border border-gray-200 shadow-2xl dark:border-white/10"
-            loading="eager"
-          />
-        </div>
+        <HeroScene />
       </div>
     </section>
   );

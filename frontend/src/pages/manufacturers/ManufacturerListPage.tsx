@@ -1,15 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import { Pencil, PowerOff, Trash2 } from 'lucide-react';
+import { Plus, Pencil, PowerOff, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Field, SearchField } from '@/components/ui/Field';
+import { fieldClass as inputCls } from '@/components/ui/fieldClass';
+import { Modal, ModalBody, ModalFooter } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { RowActions, RowActionsMenu, type RowAction } from '@/components/ui/RowActions';
+import { Badge } from '@/components/ui/Badge';
+import { confirmDialog } from '@/lib/dialogs';
 import { manufacturerService } from '@/services/manufacturerService';
 import type { Manufacturer } from '@/types/manufacturer';
 import { Pagination } from '@/components/base/Pagination';
 import { useAuthStore } from '@/store/authStore';
 
 const PAGE_SIZE = 20;
-
-const inputCls =
-  'w-full rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
 
 // ─── Modal de cadastro / edição ───────────────────────────────────────────────
 
@@ -46,66 +52,35 @@ function ManufacturerModal({ manufacturer, onClose, onSaved }: ModalProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="w-full max-w-sm rounded-xl bg-white dark:bg-brand-900 shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 dark:border-brand-800/50 px-5 py-4">
-          <h2 className="font-semibold text-gray-900 dark:text-white">
-            {isEdit ? 'Editar Fabricante' : 'Novo Fabricante'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-brand-800/40 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="p-5 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Nome <span className="text-red-500">*</span>
-            </label>
-            <input
-              autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-              placeholder="Ex: Pirelli, Honda, NGK..."
-              className={inputCls}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Observações
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Informações adicionais (opcional)"
-              className={`${inputCls} resize-none`}
-            />
-          </div>
-          <div className="flex gap-2 justify-end pt-1">
-            <button
-              onClick={onClose}
-              className="rounded-md border border-gray-300 dark:border-brand-700/50 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-brand-800/30"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {saving ? 'Salvando...' : isEdit ? 'Salvar' : 'Cadastrar'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <Modal title={isEdit ? 'Editar fabricante' : 'Novo fabricante'} onClose={onClose} size="sm">
+      <ModalBody className="space-y-4">
+        <Field label="Nome" required>
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            placeholder="Ex: Pirelli, Honda, NGK..."
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Observações">
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Informações adicionais (opcional)"
+            className={inputCls + ' resize-none'}
+          />
+        </Field>
+      </ModalBody>
+      <ModalFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={handleSave} disabled={saving}>
+          {saving ? 'Salvando...' : isEdit ? 'Salvar alterações' : 'Cadastrar fabricante'}
+        </Button>
+      </ModalFooter>
+    </Modal>
   );
 }
 
@@ -154,7 +129,7 @@ export function ManufacturerListPage() {
   }, [search]);
 
   const handleDeactivate = async (m: Manufacturer) => {
-    if (!confirm(`Desativar fabricante "${m.name}"?`)) return;
+    if (!(await confirmDialog({ title: 'Desativar fabricante', description: `"${m.name}" ficará inativo.`, confirmLabel: 'Desativar fabricante' }))) return;
     try {
       await manufacturerService.deactivate(m.id);
       toast.success('Fabricante desativado.');
@@ -165,7 +140,7 @@ export function ManufacturerListPage() {
   };
 
   const handleHardDelete = async (m: Manufacturer) => {
-    if (!confirm(`Excluir permanentemente o fabricante "${m.name}"?\n\nEsta ação não pode ser desfeita.`)) return;
+    if (!(await confirmDialog({ title: 'Excluir fabricante', description: `"${m.name}" será excluído permanentemente. Esta ação não pode ser desfeita.`, confirmLabel: 'Excluir fabricante', tone: 'danger' }))) return;
     try {
       await manufacturerService.hardDelete(m.id);
       toast.success('Fabricante excluído.');
@@ -176,111 +151,59 @@ export function ManufacturerListPage() {
     }
   };
 
+  const actionsFor = (m: Manufacturer): RowAction[] => [
+    { label: 'Editar', icon: Pencil, onClick: () => setModal(m) },
+    { label: 'Desativar', icon: PowerOff, tone: 'warning', hidden: !m.isActive, onClick: () => handleDeactivate(m) },
+    { label: 'Excluir permanentemente', icon: Trash2, tone: 'danger', hidden: !isAdmin, onClick: () => handleHardDelete(m) },
+  ];
+
+  const name = (m: Manufacturer) => (
+    <span className="font-medium text-gray-900 dark:text-white">
+      {m.name}
+      {!m.isActive && <Badge variant="neutral" className="ml-2 align-middle">Inativo</Badge>}
+    </span>
+  );
+
+  const columns: Column<Manufacturer>[] = [
+    { key: 'name', header: 'Nome', cell: name },
+    { key: 'notes', header: 'Observações', className: 'max-w-md truncate', cell: (m) => m.notes || '—' },
+    { key: 'actions', header: '', align: 'right', cell: (m) => <RowActions actions={actionsFor(m)} /> },
+  ];
+
   return (
     <>
       <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Fabricantes</h1>
-          <button
-            onClick={() => setModal('new')}
-            className="rounded-md bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-medium text-white"
-          >
-            Novo fabricante
-          </button>
-        </div>
+        <PageHeader title="Fabricantes">
+          <Button onClick={() => setModal('new')}><Plus size={16} />Novo fabricante</Button>
+        </PageHeader>
 
-        {/* Search */}
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por nome..."
-          className="w-full max-w-sm rounded-md border border-gray-300 dark:border-brand-700/50 bg-white dark:bg-brand-900/30 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-brand-300/40 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+        <SearchField value={search} onChange={setSearch} placeholder="Buscar por nome" />
+
+        <DataTable
+          caption="Fabricantes"
+          rows={manufacturers}
+          columns={columns}
+          rowKey={(m) => m.id}
+          loading={loading}
+          empty={search ? 'Nenhum fabricante encontrado para esta busca.' : 'Nenhum fabricante cadastrado ainda.'}
+          card={(m) => (
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                {name(m)}
+                {m.notes && <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">{m.notes}</div>}
+              </div>
+              <RowActionsMenu actions={actionsFor(m)} subject={m.name} />
+            </div>
+          )}
         />
 
-        {/* Table */}
-        {loading ? (
-          <div className="py-12 text-center text-gray-500 dark:text-gray-400">Carregando...</div>
-        ) : (
-          <>
-            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-brand-800/50">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-brand-800/40">
-                <thead className="bg-brand-50 dark:bg-brand-900/40">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Nome</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70 hidden sm:table-cell">Observações</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase text-brand-700 dark:text-brand-300/70">Status</th>
-                    <th className="px-4 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-brand-800/40 bg-white dark:bg-brand-900/20">
-                  {manufacturers.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-8 text-center text-gray-400 dark:text-gray-500">
-                        Nenhum fabricante encontrado.
-                      </td>
-                    </tr>
-                  ) : (
-                    manufacturers.map((m) => (
-                      <tr key={m.id} className="hover:bg-gray-50 dark:hover:bg-brand-800/20 transition-colors">
-                        <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{m.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate hidden sm:table-cell">
-                          {m.notes ?? '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            m.isActive
-                              ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                          }`}>
-                            {m.isActive ? 'Ativo' : 'Inativo'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1">
-                            <button
-                              onClick={() => setModal(m)}
-                              title="Editar"
-                              className="rounded p-1.5 text-gray-400 hover:bg-brand-50 hover:text-brand-600 dark:hover:bg-brand-900/30 dark:hover:text-brand-400 transition-colors"
-                            >
-                              <Pencil size={15} />
-                            </button>
-                            {m.isActive && (
-                              <button
-                                onClick={() => handleDeactivate(m)}
-                                title="Desativar"
-                                className="rounded p-1.5 text-gray-400 hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/30 dark:hover:text-amber-400 transition-colors"
-                              >
-                                <PowerOff size={15} />
-                              </button>
-                            )}
-                            {isAdmin && (
-                              <button
-                                onClick={() => handleHardDelete(m)}
-                                title="Excluir permanentemente"
-                                className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <Pagination
-              page={page}
-              totalPages={totalPages}
-              totalCount={totalCount}
-              pageSize={PAGE_SIZE}
-              onPageChange={setPage}
-            />
-          </>
-        )}
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          totalCount={totalCount}
+          pageSize={PAGE_SIZE}
+          onPageChange={setPage}
+        />
       </div>
 
       {modal !== null && (

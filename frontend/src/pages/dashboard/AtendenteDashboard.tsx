@@ -1,4 +1,5 @@
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/Button';
 import { dashboardService } from '@/services/dashboardService';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useDashboardData } from './useDashboardData';
@@ -12,23 +13,12 @@ import {
 import { formatQuantity, salesCount } from './dashboardFormat';
 
 export function AtendenteDashboard() {
-  const navigate = useNavigate();
   const { data, loading, failed, retry } = useDashboardData(dashboardService.getSalesperson);
 
   const actions = (
     <>
-      <button
-        onClick={() => navigate('/quotations/new')}
-        className="rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700"
-      >
-        Novo Orçamento
-      </button>
-      <button
-        onClick={() => navigate('/quotations')}
-        className="rounded-lg border border-gray-200 dark:border-brand-800/50 bg-white dark:bg-brand-900/20 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-brand-800/30"
-      >
-        Ver Orçamentos
-      </button>
+      <Button asChild><Link to="/quotations/new">Novo orçamento</Link></Button>
+      <Button asChild variant="outline"><Link to="/quotations">Ver orçamentos</Link></Button>
     </>
   );
 
@@ -42,17 +32,19 @@ export function AtendenteDashboard() {
         <DashboardFallback failed={failed} onRetry={retry} />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <StatTile label="Vendas hoje" value={formatCurrency(data.today.revenue)} hint={salesCount(data.today.count)} />
+          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+            <StatTile lead label="Vendas hoje" value={formatCurrency(data.today.revenue)} hint={salesCount(data.today.count)} />
             <StatTile
+              lead
               label="Vendas no mês"
               value={formatCurrency(data.month.revenue)}
               hint={salesCount(data.month.count)}
               comparison={{ current: data.month.revenue, previous: data.previousMonthToDate.revenue }}
             />
-            <StatTile label="Ticket médio no mês" value={formatCurrency(data.month.averageTicket)} />
+            <StatTile label="Ticket médio" value={formatCurrency(data.month.averageTicket)} />
             <StatTile
               label="Orçamentos em aberto"
+              to="/quotations"
               value={formatCurrency(data.openQuotations.amount)}
               hint={`${formatQuantity(data.openQuotations.count)} em rascunho ou finalizados`}
             />

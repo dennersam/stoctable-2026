@@ -6,9 +6,9 @@ import { inventoryService } from '@/services/inventoryService';
 import { useBranchStore } from '@/store/branchStore';
 import type { Product } from '@/types/product';
 import type { BranchStock } from '@/types/stockTransfer';
-
-const inputCls =
-  'w-full rounded-md border border-gray-300 dark:border-white/15 bg-white dark:bg-white/5 text-gray-900 dark:text-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
+import { Button } from '@/components/ui/Button';
+import { fieldClass as inputCls } from '@/components/ui/fieldClass';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 /**
  * "Onde tem esta peça?" — a pergunta que motiva uma transferência.
@@ -61,12 +61,7 @@ export function NetworkStockPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Estoque na rede</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Saldo de um produto em todas as lojas. Consulta apenas.
-        </p>
-      </div>
+      <PageHeader title="Estoque na rede" subtitle="Saldo de um produto em todas as lojas. Consulta apenas." />
 
       <div className="flex gap-2">
         <input
@@ -76,14 +71,10 @@ export function NetworkStockPage() {
           placeholder="Buscar por nome, SKU ou código de barras…"
           className={inputCls}
         />
-        <button
-          type="button"
-          onClick={handleSearch}
-          className="inline-flex shrink-0 items-center gap-2 rounded-md border border-gray-300 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:border-white/15 dark:text-gray-300 dark:hover:bg-white/5"
-        >
+        <Button type="button" variant="outline" onClick={handleSearch} aria-label="Buscar" className="shrink-0">
           <Search size={16} />
-          Buscar
-        </button>
+          <span className="hidden sm:inline">Buscar</span>
+        </Button>
       </div>
 
       {results.length > 0 && (
@@ -92,10 +83,10 @@ export function NetworkStockPage() {
             <li key={p.id}>
               <button
                 onClick={() => select(p)}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5"
+                className="flex min-h-11 w-full items-center justify-between px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-white/5"
               >
                 <span className="truncate text-gray-900 dark:text-white">{p.name}</span>
-                <span className="ml-3 shrink-0 text-xs text-gray-400">{p.sku}</span>
+                <span className="ml-3 shrink-0 text-xs text-gray-500 dark:text-gray-400">{p.sku}</span>
               </button>
             </li>
           ))}
@@ -106,19 +97,19 @@ export function NetworkStockPage() {
         <div className="space-y-4">
           <div className="rounded-lg border border-gray-200 p-4 dark:border-white/10">
             <p className="font-medium text-gray-900 dark:text-white">{selected.name}</p>
-            <p className="text-xs text-gray-400">{selected.sku}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{selected.sku}</p>
           </div>
 
           {loading ? (
             <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">Carregando…</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-white/10">
+            <div className="overflow-x-auto rounded-lg border border-line bg-surface">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-white/5 dark:text-gray-400">
+                <thead className="bg-gray-50 text-left text-xs font-medium text-gray-500 dark:bg-white/5 dark:text-gray-400">
                   <tr>
                     <th className="px-4 py-3">Loja</th>
-                    <th className="px-4 py-3 text-right">Total</th>
-                    <th className="px-4 py-3 text-right">Reservado</th>
+                    <th className="hidden px-4 py-3 text-right sm:table-cell">Total</th>
+                    <th className="hidden px-4 py-3 text-right sm:table-cell">Reservado</th>
                     <th className="px-4 py-3 text-right">Disponível</th>
                     <th className="px-4 py-3 text-right">Em trânsito</th>
                   </tr>
@@ -134,14 +125,14 @@ export function NetworkStockPage() {
                           <Store size={14} className="text-gray-400" />
                           {branchName(r.branchId)}
                           {r.branchId === activeBranchId && (
-                            <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-[10px] text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
+                            <span className="rounded-full bg-brand-100 px-1.5 py-0.5 text-xs text-brand-700 dark:bg-brand-900/40 dark:text-brand-300">
                               esta loja
                             </span>
                           )}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-600 dark:text-gray-300">{r.quantity}</td>
-                      <td className="px-4 py-3 text-right tabular-nums text-gray-500 dark:text-gray-400">{r.reserved}</td>
+                      <td className="hidden px-4 py-3 text-right tabular-nums text-gray-600 sm:table-cell dark:text-gray-300">{r.quantity}</td>
+                      <td className="hidden px-4 py-3 text-right tabular-nums text-gray-500 sm:table-cell dark:text-gray-400">{r.reserved}</td>
                       <td className="px-4 py-3 text-right font-medium tabular-nums text-gray-900 dark:text-white">
                         {r.available}
                       </td>
@@ -154,8 +145,8 @@ export function NetworkStockPage() {
                 <tfoot className="border-t border-gray-200 bg-gray-50 text-sm font-medium dark:border-white/10 dark:bg-white/5">
                   <tr>
                     <td className="px-4 py-3 text-gray-700 dark:text-gray-200">Total da rede</td>
-                    <td className="px-4 py-3 text-right tabular-nums text-gray-700 dark:text-gray-200">{totals.quantity}</td>
-                    <td className="px-4 py-3" />
+                    <td className="hidden px-4 py-3 text-right tabular-nums text-gray-700 sm:table-cell dark:text-gray-200">{totals.quantity}</td>
+                    <td className="hidden px-4 py-3 sm:table-cell" />
                     <td className="px-4 py-3 text-right tabular-nums text-gray-900 dark:text-white">{totals.available}</td>
                     <td className="px-4 py-3 text-right tabular-nums text-gray-700 dark:text-gray-200">
                       {totals.inTransit > 0 ? totals.inTransit : '—'}

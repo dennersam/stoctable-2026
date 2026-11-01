@@ -1,15 +1,25 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { Trash2, UserRound, X } from 'lucide-react';
 import { quotationService } from '@/services/quotationService';
 import { productService } from '@/services/productService';
 import { customerService } from '@/services/customerService';
 import type { Quotation } from '@/types/quotation';
 import type { Product } from '@/types/product';
 import type { Customer } from '@/types/customer';
+import { Button } from '@/components/ui/Button';
+import { DataTable, type Column } from '@/components/ui/DataTable';
+import { Field, SearchField } from '@/components/ui/Field';
+import { fieldClass } from '@/components/ui/fieldClass';
+import { Modal, ModalBody, ModalFooter } from '@/components/ui/Modal';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { QuantityStepper } from '@/components/ui/QuantityStepper';
+import { formatCurrency } from '@/lib/utils';
 
 interface CartRow {
   productId: string;
+  itemId: string;
   sku: string;
   name: string;
   quantity: number;
@@ -18,7 +28,32 @@ interface CartRow {
   lineTotal: number;
 }
 
-const inputCls = 'w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500';
+function toRows(quotation: Quotation): CartRow[] {
+  return quotation.items.map(i => ({
+    productId: i.productId,
+    itemId: i.id,
+    sku: i.productSku,
+    name: i.productName,
+    quantity: i.quantity,
+    unitPrice: i.unitPrice,
+    discountPct: i.discountPct,
+    lineTotal: i.lineTotal,
+  }));
+}
+
+/** Lista de resultados da busca. O mousedown não tira o foco do campo, senão ela fecharia antes do clique. */
+function SearchResults({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      onMouseDown={e => e.preventDefault()}
+      className="absolute z-20 mt-1 max-h-80 w-full overflow-y-auto rounded-md border border-line bg-raised shadow-lg"
+    >
+      {children}
+    </div>
+  );
+}
+
+const RESULT_ROW = 'flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-brand-50 dark:hover:bg-white/5';
 
 export function QuotationEditorPage() {
   const navigate = useNavigate();
@@ -50,6 +85,13 @@ export function QuotationEditorPage() {
   const [cancelReason, setCancelReason] = useState('');
 
   const [saving, setSaving] = useState(false);
+
+  // Quantidades ainda indo para o servidor. Finalizar antes disso fecharia o
+  // orçamento com o total anterior à última mudança.
+  const [quantitiesBusy, setQuantitiesBusy] = useState(0);
+  const handleQuantityBusy = useCallback((delta: 1 | -1) => setQuantitiesBusy(n => n + delta), []);
+  // Trocar a chave remonta o seletor quando o servidor recusa, para voltar ao valor real.
+  const [stepperEpoch, setStepperEpoch] = useState(0);
 
   // ── Lazy creation ────────────────────────────────────────────────────────────
   // The quotation is only created when the user actually adds a product (or
@@ -103,15 +145,7 @@ export function QuotationEditorPage() {
         discountPct: 0,
       });
       setQuotation(updated);
-      setCart(updated.items.map(i => ({
-        productId: i.productId,
-        sku: i.productSku,
-        name: i.productName,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        discountPct: i.discountPct,
-        lineTotal: i.lineTotal,
-      })));
+      setCart(toRows(updated));
       toast.success(`${product.name} adicionado.`);
     } catch (err: any) {
       toast.error(err?.response?.data?.detail ?? 'Erro ao adicionar item.');
@@ -123,17 +157,10 @@ export function QuotationEditorPage() {
     try {
       const updated = await quotationService.addItem(quotation.id, { productId, quantity, discountPct: 0 });
       setQuotation(updated);
-      setCart(updated.items.map(i => ({
-        productId: i.productId,
-        sku: i.productSku,
-        name: i.productName,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        discountPct: i.discountPct,
-        lineTotal: i.lineTotal,
-      })));
+      setCart(toRows(updated));
     } catch (err: any) {
       toast.error(err?.response?.data?.detail ?? 'Erro ao atualizar quantidade.');
+      setStepperEpoch(n => n + 1);
     }
   };
 
@@ -142,15 +169,7 @@ export function QuotationEditorPage() {
     try {
       const updated = await quotationService.removeItem(quotation.id, itemId);
       setQuotation(updated);
-      setCart(updated.items.map(i => ({
-        productId: i.productId,
-        sku: i.productSku,
-        name: i.productName,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        discountPct: i.discountPct,
-        lineTotal: i.lineTotal,
-      })));
+      setCart(toRows(updated));
     } catch {
       toast.error('Erro ao remover item.');
     }
@@ -172,7 +191,7 @@ export function QuotationEditorPage() {
 
   const handleSelectCustomer = async (c: Customer) => {
     setCustomer(c);
-    setCustomerSearch(c.fullName);
+    setCustomerSearch('');
     setShowCustomerDropdown(false);
     if (quotation) {
       try {
@@ -205,15 +224,7 @@ export function QuotationEditorPage() {
         notes: finalizeNotes || undefined,
       });
       setQuotation(updated);
-      setCart(updated.items.map(i => ({
-        productId: i.productId,
-        sku: i.productSku,
-        name: i.productName,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        discountPct: i.discountPct,
-        lineTotal: i.lineTotal,
-      })));
+      setCart(toRows(updated));
       setShowFinalize(false);
       toast.success(`Orçamento ${updated.quotationNumber} finalizado!`);
       navigate('/quotations');
@@ -249,289 +260,250 @@ export function QuotationEditorPage() {
   const subtotal = cart.reduce((s, r) => s + r.lineTotal, 0);
   const discountAmount = subtotal * discountPct / 100;
   const total = subtotal - discountAmount;
+  const canFinalize = cart.length > 0 && !saving && quantitiesBusy === 0;
+
+  const stepper = (row: CartRow) => (
+    <QuantityStepper
+      key={row.productId + stepperEpoch}
+      value={row.quantity}
+      label={`Quantidade de ${row.name}`}
+      onChange={quantity => handleUpdateQuantity(row.productId, quantity)}
+      onBusy={handleQuantityBusy}
+    />
+  );
+
+  const removeButton = (row: CartRow, cls: string) => (
+    <button
+      type="button"
+      aria-label={`Remover ${row.name}`}
+      title="Remover"
+      onClick={() => handleRemoveItem(row.itemId)}
+      className={`flex items-center justify-center rounded-md text-gray-500 hover:bg-red-50 hover:text-red-700 dark:text-gray-400 dark:hover:bg-red-900/30 dark:hover:text-red-300 ${cls}`}
+    >
+      <Trash2 size={16} />
+    </button>
+  );
+
+  const columns: Column<CartRow>[] = [
+    {
+      key: 'product',
+      header: 'Produto',
+      cell: row => (
+        <>
+          <div className="font-medium text-gray-900 dark:text-white">{row.name}</div>
+          <div className="font-mono text-xs text-gray-500 dark:text-gray-400">{row.sku}</div>
+        </>
+      ),
+    },
+    { key: 'quantity', header: 'Quantidade', align: 'center', cell: stepper },
+    { key: 'unit', header: 'Unitário', align: 'right', className: 'whitespace-nowrap', cell: row => formatCurrency(row.unitPrice) },
+    { key: 'total', header: 'Total', align: 'right', className: 'whitespace-nowrap font-medium text-gray-900 dark:text-white', cell: row => formatCurrency(row.lineTotal) },
+    { key: 'remove', header: '', align: 'right', cell: row => removeButton(row, 'h-8 w-8') },
+  ];
 
   return (
-    <div className="flex h-full flex-col gap-4 lg:flex-row">
+    <div className="flex min-h-full flex-col gap-4 lg:flex-row lg:items-start">
       {/* Left: item search + cart */}
-      <div className="flex-1 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-            Novo Orçamento
-            {quotation && (
-              <span className="ml-2 text-sm font-normal text-gray-400 dark:text-gray-500">{quotation.quotationNumber}</span>
-            )}
-            {creating && (
-              <span className="ml-2 text-sm font-normal text-gray-400 dark:text-gray-500 animate-pulse">criando...</span>
-            )}
-          </h1>
-        </div>
+      <div className="min-w-0 flex-1 space-y-4">
+        <PageHeader
+          title="Novo orçamento"
+          subtitle={creating ? 'Criando...' : quotation?.quotationNumber}
+        >
+          {quotation ? (
+            <Button variant="danger-outline" size="sm" disabled={saving} onClick={() => setShowCancel(true)}>
+              Cancelar orçamento
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => navigate('/quotations')}>Voltar</Button>
+          )}
+        </PageHeader>
 
         {/* Customer selector */}
-        <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Cliente (opcional)</label>
-          <input
-            type="text"
-            value={customerSearch}
-            onChange={e => handleCustomerSearch(e.target.value)}
-            placeholder="Buscar cliente por nome ou CPF/CNPJ..."
-            className={inputCls}
-          />
-          {showCustomerDropdown && customerResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
-              {customerResults.map(c => (
-                <button
-                  key={c.id}
-                  onClick={() => handleSelectCustomer(c)}
-                  className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-brand-50 dark:hover:bg-brand-900/20"
-                >
-                  <div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{c.fullName}</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">{c.documentNumber || 'Sem documento'}</div>
-                  </div>
-                </button>
-              ))}
+        {customer ? (
+          <div className="flex items-center gap-3 rounded-md border border-line bg-surface py-1 pl-3 pr-1">
+            <UserRound size={18} className="shrink-0 text-gray-500 dark:text-gray-400" />
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-medium text-gray-900 dark:text-white">{customer.fullName}</div>
+              {customer.documentNumber && (
+                <div className="text-xs text-gray-500 dark:text-gray-400">{customer.documentNumber}</div>
+              )}
             </div>
-          )}
-          {customer && (
-            <div className="mt-1 flex items-center gap-2">
-              <span className="text-sm text-green-700 dark:text-green-400">✓ {customer.fullName}</span>
-              <button
-                onClick={handleRemoveCustomer}
-                className="text-xs text-gray-400 hover:text-red-500"
-              >
-                Remover
-              </button>
-            </div>
-          )}
-        </div>
+            <button
+              type="button"
+              aria-label="Remover cliente do orçamento"
+              onClick={handleRemoveCustomer}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-white/10"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <div className="relative" onBlur={() => setShowCustomerDropdown(false)}>
+            <SearchField
+              value={customerSearch}
+              onChange={handleCustomerSearch}
+              placeholder="Cliente (opcional): nome ou CPF/CNPJ"
+            />
+            {showCustomerDropdown && customerResults.length > 0 && (
+              <SearchResults>
+                {customerResults.map(c => (
+                  <button key={c.id} type="button" onClick={() => handleSelectCustomer(c)} className={RESULT_ROW}>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-gray-900 dark:text-white">{c.fullName}</span>
+                      <span className="block text-xs text-gray-500 dark:text-gray-400">{c.documentNumber || 'Sem documento'}</span>
+                    </span>
+                  </button>
+                ))}
+              </SearchResults>
+            )}
+          </div>
+        )}
 
         {/* Product search */}
-        <div className="relative">
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Adicionar produto</label>
-          <input
-            type="text"
+        <div className="relative" onBlur={() => setShowProductDropdown(false)}>
+          <SearchField
             value={productSearch}
-            onChange={e => handleProductSearch(e.target.value)}
-            placeholder="SKU, código de barras ou nome do produto..."
-            className={inputCls}
-            autoComplete="off"
+            onChange={handleProductSearch}
+            placeholder="Adicionar produto: nome, SKU ou código"
           />
           {showProductDropdown && productResults.length > 0 && (
-            <div className="absolute z-10 mt-1 w-full rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+            <SearchResults>
               {productResults.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => handleAddProduct(p)}
-                  className="flex w-full items-center justify-between px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-900/20"
-                >
-                  <div>
-                    <span className="font-mono text-xs text-gray-400 dark:text-gray-500 mr-2">{p.sku}</span>
-                    <span className="text-sm text-gray-900 dark:text-white">{p.name}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">R$ {p.salePrice.toFixed(2)}</div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                <button key={p.id} type="button" onClick={() => handleAddProduct(p)} className={RESULT_ROW}>
+                  <span className="min-w-0">
+                    <span className="block text-sm text-gray-900 dark:text-white">{p.name}</span>
+                    <span className="block font-mono text-xs text-gray-500 dark:text-gray-400">{p.sku}</span>
+                  </span>
+                  <span className="shrink-0 text-right">
+                    <span className="block text-sm font-medium tabular-nums text-gray-900 dark:text-white">{formatCurrency(p.salePrice)}</span>
+                    <span className="block text-xs tabular-nums text-gray-500 dark:text-gray-400">
                       Disp: {(p.stockQuantity - p.stockReserved).toFixed(0)} {p.unit}
-                    </div>
-                  </div>
+                    </span>
+                  </span>
                 </button>
               ))}
-            </div>
+            </SearchResults>
           )}
         </div>
 
-        {/* Cart table */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Produto</th>
-                <th className="w-24 px-3 py-2 text-center text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Qtd</th>
-                <th className="px-3 py-2 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Unit.</th>
-                <th className="px-3 py-2 text-right text-xs font-medium uppercase text-gray-500 dark:text-gray-400">Total</th>
-                <th className="w-8 px-3 py-2" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-900">
-              {cart.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-400 dark:text-gray-500 text-sm">
-                    Nenhum item. Busque um produto acima.
-                  </td>
-                </tr>
-              ) : (
-                cart.map(row => {
-                  const item = quotation?.items.find(i => i.productId === row.productId);
-                  return (
-                    <tr key={row.productId}>
-                      <td className="px-3 py-2">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">{row.name}</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500">{row.sku}</div>
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          min={1}
-                          value={row.quantity}
-                          onChange={e => handleUpdateQuantity(row.productId, Number(e.target.value))}
-                          className="w-20 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white px-2 py-1 text-center text-sm"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right text-sm text-gray-600 dark:text-gray-300">
-                        R$ {row.unitPrice.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2 text-right text-sm font-medium text-gray-900 dark:text-white">
-                        R$ {row.lineTotal.toFixed(2)}
-                      </td>
-                      <td className="px-3 py-2">
-                        {item && (
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="text-red-400 hover:text-red-600"
-                            title="Remover"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Cart */}
+        <DataTable
+          caption="Itens do orçamento"
+          rows={cart}
+          columns={columns}
+          rowKey={row => row.productId}
+          empty="Nenhum item ainda. Busque um produto acima para começar."
+          card={row => (
+            <>
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-gray-900 dark:text-white">{row.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="font-mono">{row.sku}</span> · {formatCurrency(row.unitPrice)} cada
+                  </div>
+                </div>
+                {removeButton(row, '-mr-1 -mt-1 h-11 w-11 shrink-0')}
+              </div>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                {stepper(row)}
+                <span className="text-base font-semibold tabular-nums text-gray-900 dark:text-white">{formatCurrency(row.lineTotal)}</span>
+              </div>
+            </>
+          )}
+        />
       </div>
 
-      {/* Right: summary + actions */}
-      <div className="w-full space-y-4 lg:w-72">
-        <div className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 space-y-3">
+      {/* Desktop: resumo ao lado dos itens */}
+      <aside className="hidden w-72 shrink-0 space-y-3 lg:block">
+        <div className="rounded-lg border border-line bg-surface p-4">
           <h2 className="font-semibold text-gray-900 dark:text-white">Resumo</h2>
-          <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-            <span>Subtotal</span>
-            <span>R$ {subtotal.toFixed(2)}</span>
-          </div>
-          {discountPct > 0 && (
-            <div className="flex justify-between text-sm text-red-600 dark:text-red-400">
-              <span>Desconto ({discountPct}%)</span>
-              <span>- R$ {discountAmount.toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between border-t border-gray-100 dark:border-gray-700 pt-2 font-bold text-gray-900 dark:text-white">
-            <span>Total</span>
-            <span className="text-brand-700 dark:text-brand-400">R$ {total.toFixed(2)}</span>
+          <div className="mt-3 flex items-baseline justify-between">
+            <span className="text-sm text-gray-600 dark:text-gray-300">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</span>
+            <span className="text-2xl font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(subtotal)}</span>
           </div>
         </div>
-
-        <button
-          disabled={cart.length === 0 || saving}
-          onClick={() => setShowFinalize(true)}
-          className="w-full rounded-md bg-brand-600 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
-        >
+        <Button size="lg" className="w-full" disabled={!canFinalize} onClick={() => setShowFinalize(true)}>
           Finalizar orçamento
-        </button>
+        </Button>
+      </aside>
 
-        <button
-          disabled={saving}
-          onClick={() => quotation ? setShowCancel(true) : navigate('/quotations')}
-          className="w-full rounded-md border border-red-200 dark:border-red-800 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-40"
-        >
-          {quotation ? 'Cancelar orçamento' : 'Voltar'}
-        </button>
+      {/* Celular e tablet: total e ação sempre ao alcance do polegar */}
+      <div className="sticky -bottom-4 -mx-4 -mb-4 mt-auto flex items-center justify-between gap-3 border-t border-line bg-surface px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:-bottom-6 md:-mx-6 md:-mb-6 md:px-6 lg:hidden">
+        <div className="min-w-0">
+          <div className="text-xs text-gray-500 dark:text-gray-400">{cart.length} {cart.length === 1 ? 'item' : 'itens'}</div>
+          <div className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">{formatCurrency(subtotal)}</div>
+        </div>
+        <Button disabled={!canFinalize} onClick={() => setShowFinalize(true)}>Finalizar orçamento</Button>
       </div>
 
       {/* Finalize dialog */}
       {showFinalize && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Finalizar orçamento</h3>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Desconto geral (%)</label>
+        <Modal title="Finalizar orçamento" onClose={() => setShowFinalize(false)}>
+          <ModalBody className="space-y-4">
+            <Field label="Desconto geral (%)">
               <input
                 type="number"
+                inputMode="decimal"
                 min={0}
                 max={100}
                 step={0.5}
                 value={discountPct}
                 onChange={e => setDiscountPct(Number(e.target.value))}
-                className={inputCls}
+                className={fieldClass}
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Observações</label>
+            </Field>
+            <Field label="Observações">
               <textarea
                 value={finalizeNotes}
                 onChange={e => setFinalizeNotes(e.target.value)}
                 rows={3}
-                className={`${inputCls} resize-none`}
-                placeholder="Opcional..."
+                className={`${fieldClass} resize-none`}
+                placeholder="Opcional"
               />
-            </div>
-            <div className="rounded-md bg-brand-50 dark:bg-brand-900/20 p-3 text-sm">
-              <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                <span>Subtotal:</span><span>R$ {subtotal.toFixed(2)}</span>
+            </Field>
+            <dl className="space-y-1 rounded-md bg-gray-50 p-3 text-sm tabular-nums dark:bg-white/5">
+              <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                <dt>Subtotal</dt><dd>{formatCurrency(subtotal)}</dd>
               </div>
               {discountPct > 0 && (
-                <div className="flex justify-between text-red-600 dark:text-red-400">
-                  <span>Desconto:</span><span>- R$ {(subtotal * discountPct / 100).toFixed(2)}</span>
+                <div className="flex justify-between text-gray-600 dark:text-gray-300">
+                  <dt>Desconto ({discountPct}%)</dt><dd>- {formatCurrency(discountAmount)}</dd>
                 </div>
               )}
-              <div className="flex justify-between font-bold mt-1 border-t border-brand-100 dark:border-brand-800 pt-1 text-gray-900 dark:text-white">
-                <span>Total:</span>
-                <span>R$ {(subtotal - subtotal * discountPct / 100).toFixed(2)}</span>
+              <div className="flex justify-between border-t border-line pt-1 text-base font-bold text-gray-900 dark:text-white">
+                <dt>Total</dt><dd>{formatCurrency(total)}</dd>
               </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowFinalize(false)}
-                className="rounded border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                Voltar
-              </button>
-              <button
-                onClick={handleFinalize}
-                disabled={saving}
-                className="rounded bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-              >
-                {saving ? 'Finalizando...' : 'Confirmar'}
-              </button>
-            </div>
-          </div>
-        </div>
+            </dl>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" onClick={() => setShowFinalize(false)}>Voltar</Button>
+            <Button onClick={handleFinalize} disabled={saving}>{saving ? 'Finalizando...' : 'Finalizar orçamento'}</Button>
+          </ModalFooter>
+        </Modal>
       )}
 
       {/* Cancel dialog */}
       {showCancel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl space-y-4">
-            <h3 className="text-lg font-semibold text-red-700 dark:text-red-400">Cancelar orçamento</h3>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Motivo *</label>
+        <Modal title="Cancelar orçamento" onClose={() => setShowCancel(false)}>
+          <ModalBody>
+            <Field label="Motivo" required>
               <textarea
+                autoFocus
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
                 rows={3}
-                className={`${inputCls} resize-none`}
-                placeholder="Informe o motivo do cancelamento..."
+                className={`${fieldClass} resize-none`}
+                placeholder="Informe o motivo do cancelamento"
               />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setShowCancel(false)}
-                className="rounded border border-gray-300 dark:border-gray-600 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                Voltar
-              </button>
-              <button
-                onClick={handleCancel}
-                disabled={saving || !cancelReason.trim()}
-                className="rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-              >
-                {saving ? 'Cancelando...' : 'Confirmar cancelamento'}
-              </button>
-            </div>
-          </div>
-        </div>
+            </Field>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" onClick={() => setShowCancel(false)}>Voltar</Button>
+            <Button variant="danger" onClick={handleCancel} disabled={saving || !cancelReason.trim()}>
+              {saving ? 'Cancelando...' : 'Cancelar orçamento'}
+            </Button>
+          </ModalFooter>
+        </Modal>
       )}
     </div>
   );

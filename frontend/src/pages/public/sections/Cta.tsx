@@ -7,7 +7,7 @@ export function Cta() {
     <section className="border-t border-gray-200 py-20 dark:border-white/10">
       <div className="mx-auto max-w-4xl px-4 sm:px-6">
         <div className="rounded-2xl bg-brand-600 px-6 py-12 text-center sm:px-12">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          <h2 className="font-condensed text-4xl font-bold tracking-tight text-white sm:text-5xl">
             Pronto para organizar sua loja?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-brand-100">
@@ -18,7 +18,7 @@ export function Cta() {
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" variant="secondary">
               <Link to="/cadastro">
-                Cadastre-se
+                Criar conta
                 <ArrowRight size={18} />
               </Link>
             </Button>
