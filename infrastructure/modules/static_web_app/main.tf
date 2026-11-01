@@ -34,6 +34,12 @@ resource "azurerm_static_web_app" "this" {
   sku_size            = var.sku_size
 
   tags = var.tags
+
+  # O vínculo com o repositório foi definido fora do Terraform. Sem isto, todo
+  # apply tentaria limpá-lo.
+  lifecycle {
+    ignore_changes = [repository_url, repository_branch]
+  }
 }
 
 output "api_key" {
