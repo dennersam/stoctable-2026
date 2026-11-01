@@ -1,8 +1,10 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Stoctable.Application.Services.Sales;
 using Stoctable.Communication.Requests.Sales;
 using Stoctable.Domain.Entities;
 using Stoctable.Domain.Enums;
+using Stoctable.Exceptions;
 using Stoctable.Infrastructure;
 using Stoctable.Infrastructure.Context;
 using Stoctable.Infrastructure.Repositories;
@@ -131,6 +133,120 @@ public class SalePaymentTests : IClassFixture<PostgresFixture>
         var second = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
             saleId, new ProcessPaymentRequest([new PaymentEntryRequest(methodId, 100m)]));
         Assert.False(second.IsSuccess);
+    }
+
+    [Fact]
+    public async Task ProcessPayment_OnCancelledSale_ReturnsFailureAndChangesNothing()
+    {
+        var (saleId, methodId) = await SeedPendingSaleAsync(total: 100m);
+        var cancel = await BuildService(_fixture.CreateContext())
+            .CancelAsync(saleId, new CancelSaleRequest("Cliente desistiu"));
+        Assert.True(cancel.IsSuccess, cancel.ErrorMessage);
+
+        var result = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
+            saleId, new ProcessPaymentRequest([new PaymentEntryRequest(methodId, 100m)]));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorMessages.Sale.AlreadyCancelled, result.ErrorMessage);
+
+        await using var verify = _fixture.CreateContext();
+        var sale = await verify.Sales.AsNoTracking().Include(s => s.Payments)
+            .FirstAsync(s => s.Id == saleId);
+        Assert.Equal(SaleStatus.Cancelled, sale.Status);
+        Assert.Equal(0m, sale.AmountPaid);
+        Assert.Empty(sale.Payments);
+    }
+
+    [Fact]
+    public async Task ProcessPayment_AboveRemainingAfterPartial_ReturnsFailureAndChangesNothing()
+    {
+        var (saleId, methodId) = await SeedPendingSaleAsync(total: 100m);
+        var partial = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
+            saleId, new ProcessPaymentRequest([new PaymentEntryRequest(methodId, 60m)]));
+        Assert.True(partial.IsSuccess, partial.ErrorMessage);
+
+        // 60 cabe no total da venda, mas não nos 40 que faltam.
+        var result = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
+            saleId, new ProcessPaymentRequest([new PaymentEntryRequest(methodId, 60m)]));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorMessages.Sale.PaymentExceedsRemaining, result.ErrorMessage);
+
+        await using var verify = _fixture.CreateContext();
+        var sale = await verify.Sales.AsNoTracking().Include(s => s.Payments)
+            .FirstAsync(s => s.Id == saleId);
+        Assert.Equal(60m, sale.AmountPaid);
+        Assert.Equal(SaleStatus.PartiallyPaid, sale.Status);
+        Assert.Single(sale.Payments);
+    }
+
+    /// <summary>
+    /// A tela calcula o saldo em ponto flutuante: 1.1 - 0.2 vira 0.9000000000000001
+    /// no JavaScript. Esse resíduo não pode impedir o caixa de quitar a venda, nem
+    /// deixá-la parcialmente paga por uma fração de centavo.
+    /// </summary>
+    [Theory]
+    [InlineData("0.9000000000000001")]
+    [InlineData("0.8999999999999999")]
+    public async Task ProcessPayment_RemainderWithFloatingPointResidue_SettlesTheSale(string restante)
+    {
+        var (saleId, methodId) = await SeedPendingSaleAsync(total: 1.10m);
+        var partial = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
+            saleId, new ProcessPaymentRequest([new PaymentEntryRequest(methodId, 0.20m)]));
+        Assert.True(partial.IsSuccess, partial.ErrorMessage);
+
+        var result = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
+            saleId, new ProcessPaymentRequest([
+                new PaymentEntryRequest(methodId, decimal.Parse(restante, CultureInfo.InvariantCulture))
+            ]));
+
+        Assert.True(result.IsSuccess, result.ErrorMessage);
+
+        await using var verify = _fixture.CreateContext();
+        var sale = await verify.Sales.AsNoTracking().FirstAsync(s => s.Id == saleId);
+        Assert.Equal(SaleStatus.Paid, sale.Status);
+        Assert.Equal(1.10m, sale.AmountPaid);
+    }
+
+    /// <summary>
+    /// Sem esta regra, [-50, 150] numa venda de 100 soma exatamente 100, passa pela
+    /// checagem de saldo e grava um recebimento negativo no caixa.
+    /// </summary>
+    [Theory]
+    [InlineData("-50", "150")]
+    [InlineData("-10", "10")]
+    [InlineData("0", "100")]
+    [InlineData("0.004", "100")] // vira zero ao arredondar para centavos
+    public async Task ProcessPayment_WithNonPositiveEntry_ReturnsFailureAndChangesNothing(string primeiro, string segundo)
+    {
+        var (saleId, methodId) = await SeedPendingSaleAsync(total: 100m);
+
+        var result = await BuildService(_fixture.CreateContext()).ProcessPaymentAsync(
+            saleId, new ProcessPaymentRequest([
+                new PaymentEntryRequest(methodId, decimal.Parse(primeiro, CultureInfo.InvariantCulture)),
+                new PaymentEntryRequest(methodId, decimal.Parse(segundo, CultureInfo.InvariantCulture)),
+            ]));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorMessages.Sale.PaymentAmountMustBePositive, result.ErrorMessage);
+
+        await using var verify = _fixture.CreateContext();
+        var sale = await verify.Sales.AsNoTracking().Include(s => s.Payments)
+            .FirstAsync(s => s.Id == saleId);
+        Assert.Equal(0m, sale.AmountPaid);
+        Assert.Empty(sale.Payments);
+    }
+
+    [Fact]
+    public async Task ProcessPayment_WithoutEntries_ReturnsFailure()
+    {
+        var (saleId, _) = await SeedPendingSaleAsync(total: 100m);
+
+        var result = await BuildService(_fixture.CreateContext())
+            .ProcessPaymentAsync(saleId, new ProcessPaymentRequest([]));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(ErrorMessages.Sale.PaymentRequired, result.ErrorMessage);
     }
 
     // ─── Helpers ────────────────────────────────────────────────────────────────

@@ -18,6 +18,17 @@ public class SaleRepository(StoctableDbContext context, NumberSequenceGenerator 
             .Include(s => s.Payments).ThenInclude(p => p.PaymentMethod)
             .FirstOrDefaultAsync(s => s.Id == id, ct);
 
+    // Pagar e cancelar decidem a partir do saldo e do status, então duas transações
+    // lendo o mesmo estado passariam juntas pelas checagens. O bloqueio vem ANTES da
+    // leitura para que a segunda já enxergue o que a primeira gravou. O SQL cru não
+    // passa pelo filtro de filial, mas só bloqueia: quem carrega é o GetWithDetails,
+    // que é filtrado, e venda de outra loja continua sem ser encontrada.
+    public async Task<Sale?> GetForUpdateAsync(Guid id, CancellationToken ct = default)
+    {
+        await Context.Database.ExecuteSqlInterpolatedAsync($"SELECT 1 FROM sales WHERE id = {id} FOR UPDATE", ct);
+        return await GetWithDetailsAsync(id, ct);
+    }
+
     public async Task<IEnumerable<Sale>> GetByStatusAsync(SaleStatus status, CancellationToken ct = default)
         => await DbSet
             .Where(s => s.Status == status)

@@ -55,7 +55,9 @@ public static class ErrorMessages
     {
         public const string NotFound = "Venda não encontrada.";
         public const string AlreadyPaid = "Venda já foi paga.";
-        public const string PaymentExceedsTotal = "Valor do pagamento excede o total da venda.";
+        public const string PaymentExceedsRemaining = "Valor do pagamento excede o saldo restante da venda.";
+        public const string PaymentRequired = "Informe ao menos um pagamento.";
+        public const string PaymentAmountMustBePositive = "O valor de cada pagamento deve ser maior que zero.";
         public const string AlreadyCancelled = "Venda já foi cancelada.";
         public const string CancellationReasonRequired = "Informe o motivo do cancelamento.";
     }
